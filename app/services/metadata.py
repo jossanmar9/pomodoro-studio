@@ -104,9 +104,17 @@ def write_metadata(folder: Path, *, theme: str, focus: int, pause: int, duration
 
 
 def build_publication_zip(folder: Path) -> Path:
+    """Crea el paquet sense recomprimir MP4, que ja és un format comprimit.
+
+    ZIP_STORED per al vídeo redueix molt CPU i temps en fitxers de diverses GB;
+    els fitxers de text i la miniatura continuen usant DEFLATE.
+    """
     target = folder / "publication-package.zip"
-    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(target, "w", allowZip64=True) as archive:
         for name in PUBLICATION_FILES:
             path = folder / name
-            if path.is_file(): archive.write(path, arcname=name)
+            if not path.is_file():
+                continue
+            compression = zipfile.ZIP_STORED if name == "video.mp4" else zipfile.ZIP_DEFLATED
+            archive.write(path, arcname=name, compress_type=compression)
     return target
