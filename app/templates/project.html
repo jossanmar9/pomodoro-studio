@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ project.theme }} · Pomodoro Studio</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><main class="shell">
+<a class="back" href="/">← New project</a>
+<header><p class="eyebrow">PROJECT #{{ project.id }}</p><h1>{{ project.theme }}</h1><p>{{ project.focus_minutes }}/{{ project.break_minutes }} Pomodoro · {{ project.resolution }}</p></header>
+<section class="stats"><div><span>Sessions</span><strong>{{ timeline.sessions }}</strong></div><div><span>Focus</span><strong>{{ focus_total }} min</strong></div><div><span>Break</span><strong>{{ break_total }} min</strong></div><div><span>Duration</span><strong>{{ duration }}</strong></div></section>
+<section class="card"><h2>Timeline</h2><div class="timeline">{% for segment in timeline.segments %}<div class="segment {{ segment.kind.value|lower }}"><strong>{{ segment.kind.value }}</strong><span>Session {{ segment.session }} · {{ segment.duration_seconds // 60 }} min</span></div>{% endfor %}</div></section>
+<section class="card"><h2>YouTube chapters</h2><pre>{{ chapters }}</pre></section>
+<section class="card pending"><h2>Next milestone: renderer</h2><p>The project definition and exact timeline are ready. FFmpeg background, countdown, ambience mixing and render queue come next.</p></section>
+</main></body></html>
