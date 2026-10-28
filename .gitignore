@@ -11,6 +11,8 @@ htmlcov/
 .DS_Store
 data/*.db
 data/*.sqlite*
+data/youtube-client-secret.json
+data/youtube-token.json
 output/*
 !output/.gitkeep
 logs/*
