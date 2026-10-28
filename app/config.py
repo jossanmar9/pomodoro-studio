@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     output_dir: Path = Path("./output")
     assets_dir: Path = Path("./assets")
     log_level: str = "INFO"
+    youtube_client_secrets: Path = Path("./data/youtube-client-secret.json")
+    youtube_token_file: Path = Path("./data/youtube-token.json")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
