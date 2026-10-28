@@ -2,113 +2,103 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** desenvolupament inicial (v0.1).
+> **Estat:** v0.1 funcional en fase de proves.
 
-## Objectiu
+## Què fa
 
-Pomodoro Studio permetrà preparar una sessió d'estudi completa a partir d'una ambientació pròpia o amb llicència compatible, configurar els intervals de concentració i descans i generar automàticament el vídeo, la miniatura i les metadades necessàries per a publicar-lo.
+Pomodoro Studio permet crear un projecte, triar una ambientació, configurar intervals de concentració i descans, seleccionar un fons i àudios locals i generar un vídeo amb temporitzador mitjançant FFmpeg.
 
-Exemples d'ambientacions: biblioteca medieval, biblioteca màgica, taverna medieval, castell gòtic, cabana amb pluja, observatori, bosc, vaixell pirata, Japó feudal o nau espacial.
+La interfície i la documentació del projecte estan en valencià. Els títols i descripcions de publicació poden adaptar-se posteriorment al mercat internacional.
 
-El projecte evita deliberadament noms, personatges, música i altres elements protegits de franquícies de tercers.
+## Funcions de la v0.1
 
-## Funcions previstes
-
-- Configuració de cicles Pomodoro 25/5, 50/10 o personalitzats.
-- Duració total configurable.
-- Càlcul exacte de la línia temporal i dels capítols de YouTube.
-- Fons JPG, PNG o vídeo MP4 en bucle.
-- Mescla de sons ambientals i música pròpia o correctament llicenciada.
-- Temporitzador i indicadors de concentració/descans sobre el vídeo.
-- Renderitzat amb FFmpeg.
-- Generació de miniatura, títol, descripció, capítols i `metadata.json`.
-- Historial local de projectes i renderitzacions.
-- Cua de renderitzat amb progrés i cancel·lació.
-- Execució local o mitjançant Docker.
-- Arquitectura preparada per a incorporar GPU, IA i publicació a YouTube més avant.
+- Cicles Pomodoro 25/5, 50/10 o personalitzats.
+- Duració total configurable i línia temporal exacta.
+- Fons JPG, JPEG, PNG, WebP, MP4, MOV, MKV o WebM en bucle.
+- Temporitzador, fase i número de sessió sobre el vídeo.
+- Sons ambientals múltiples i música opcional amb volum independent.
+- Renderitzat H.264/AAC amb FFmpeg.
+- Cua simple d'un renderitzat concurrent.
+- Progrés, estimació de temps i cancel·lació.
+- Historial de projectes en SQLite.
+- Carpetes de resultat sense sobreescriure treballs anteriors.
+- `video.mp4`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
+- Constructor de miniatures preparat per a integrar-se en el flux.
+- Docker i Docker Compose.
+- Tests del timeline, FFmpeg i metadades.
 
 ## Tecnologia
 
-- Python 3.12+
-- FastAPI
-- Jinja2
-- SQLAlchemy
-- SQLite
-- FFmpeg
-- Docker i Docker Compose
+Python 3.12+ · FastAPI · Jinja2 · SQLAlchemy · SQLite · FFmpeg · Docker
 
-FastAPI s'utilitza per al backend i Jinja2 per a la interfície web renderitzada al servidor. La primera versió evita frameworks de frontend innecessaris per mantindre el projecte lleuger i fàcil de mantindre.
+## Posada en marxa
 
-## Estructura
-
-```text
-pomodoro-studio/
-├── app/
-│   ├── main.py
-│   ├── config.py
-│   ├── database.py
-│   ├── models/
-│   ├── services/
-│   ├── templates/
-│   └── static/
-├── assets/
-│   ├── backgrounds/
-│   ├── ambience/
-│   ├── music/
-│   └── fonts/
-├── data/
-├── output/
-├── logs/
-├── tests/
-├── Dockerfile
-├── docker-compose.yml
-└── requirements.txt
-```
-
-## Posada en marxa amb Docker
-
-1. Copia `.env.example` com a `.env`.
-2. Executa:
+Copia `.env.example` com a `.env` i executa:
 
 ```bash
 docker compose up -d --build
 ```
 
-3. Obri `http://localhost:8000` al navegador.
+Després obri `http://localhost:8000`.
 
-Les carpetes `data`, `assets`, `output` i `logs` es munten com a volums perquè la informació es conserve fora del contenidor.
+## Recursos
 
-## Desenvolupament local
+Col·loca els fitxers en:
 
-Crea un entorn virtual, instal·la les dependències de `requirements.txt` i executa l'aplicació amb Uvicorn. FFmpeg ha d'estar disponible al sistema per a les funcions de renderitzat.
+```text
+assets/backgrounds/   # imatges i vídeos de fons
+assets/ambience/      # pluja, foc, vent, bosc, ones...
+assets/music/         # música opcional
+assets/fonts/         # tipografies pròpies o compatibles
+```
 
-## Recursos multimèdia
+Els recursos apareixen automàticament en la interfície. No s'admeten rutes arbitràries proporcionades des del navegador: el backend resol únicament fitxers existents dins de les carpetes autoritzades.
 
-Els recursos es classificaran així:
+## Flux de treball
 
-- `assets/backgrounds/`: imatges i vídeos de fons.
-- `assets/ambience/`: pluja, foc, vent, bosc, pàgines, ones, etc.
-- `assets/music/`: música opcional.
-- `assets/fonts/`: tipografies utilitzades en els vídeos i miniatures.
+1. Crea un projecte des de la pàgina principal.
+2. Revisa la línia temporal i els capítols.
+3. Tria el fons, els sons ambientals i, opcionalment, música.
+4. Ajusta els volums.
+5. Inicia el renderitzat.
+6. Consulta l'estat del treball o cancel·la'l.
+7. Troba els fitxers generats dins de `output/`.
 
-Només s'han d'utilitzar recursos propis, de domini públic o amb una llicència compatible amb l'ús i la monetització previstos.
+Cada treball usa una carpeta semblant a:
 
-## Estat de la v0.1
+```text
+output/2026-10-28-biblioteca-medieval-001/
+├── video.mp4
+├── title.txt
+├── description.txt
+├── chapters.txt
+└── metadata.json
+```
 
-Ja està implementada la base de l'aplicació, la persistència amb SQLite, la creació de projectes, el motor de línies temporals Pomodoro, els capítols automàtics, la interfície web inicial, Docker i els primers tests.
+## Arquitectura
 
-El següent bloc de desenvolupament és el motor de renderitzat amb FFmpeg: fons, temporitzador, àudio, cua de treball, progrés, cancel·lació i fitxers finals.
+`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construeix les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` conté el generador de miniatures.
+
+FFmpeg s'executa sense `shell=True` i rep els arguments com una llista. La cua inicial executa un únic vídeo cada vegada per evitar saturar la màquina.
+
+## Proves
+
+```bash
+pytest
+```
+
+Per a validar el renderitzat real cal tindre FFmpeg instal·lat i almenys un fons dins de `assets/backgrounds/`.
 
 ## Full de ruta
 
-- **v0.1:** base web, projectes, timeline i primer renderitzat.
-- **v0.2:** recursos ambientals, mescla d'àudio i plantilles.
-- **v0.3:** miniatures i metadades avançades.
-- **v0.4:** acceleració NVIDIA/NVENC opcional.
-- **v0.5:** generació assistida d'ambientacions amb IA.
+- **v0.1:** flux mínim complet de projecte i renderitzat.
+- **v0.2:** plantilles d'ambientació, miniatures integrades i millor panell de progrés.
+- **v0.3:** metadades internacionals i presets de publicació.
+- **v0.4:** NVIDIA NVENC opcional.
+- **v0.5:** generació assistida d'ambientacions originals amb IA.
 - **v0.6:** clips promocionals 9:16.
-- **v1.0:** flux complet estable de creació de vídeos.
+- **v1.0:** flux estable de producció i publicació assistida.
 
 ## Drets d'autor
 
-Pomodoro Studio està dissenyat per a crear contingut original i monetitzable. No està pensat per a descarregar o republicar vídeos de tercers, música protegida ni material de franquícies sense autorització.
+Pomodoro Studio està dissenyat per a contingut original o correctament llicenciat. No descarrega ni republica vídeos de tercers, música protegida o elements de franquícies sense autorització. Consulta també `docs/recursos-i-llicencies.md`.
