@@ -2,7 +2,7 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.1 implementada i preparada per a la primera prova de renderitzat real.
+> **Estat:** v0.1 implementada. Pendent únicament de validació amb un renderitzat real en una màquina amb Docker/FFmpeg.
 
 ## Funcions de la v0.1
 
@@ -67,7 +67,7 @@ output/2026-10-28-biblioteca-medieval-001/
 
 `app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta `-progress pipe:1`; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
-FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simultani.
+FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simultani. La implementació del progrés seguix l'eixida estructurada de FFmpeg en lloc d'analitzar els missatges humans de consola.
 
 ## Limitacions conegudes
 
