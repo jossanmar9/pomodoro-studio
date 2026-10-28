@@ -8,17 +8,16 @@ Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus
 
 - Projectes Pomodoro 25/5, 50/10 o personalitzats, amb duració configurable.
 - Interfície i documentació en valencià.
-- Historial de projectes reobrible des de la pàgina principal.
+- Historial de projectes reobrible.
 - Fons JPG, JPEG, PNG, WebP, MP4, MOV, MKV o WebM en bucle.
-- Temporitzador, fase i número de sessió sobre el vídeo.
+- Temporitzador MM:SS, fase i número de sessió sobre el vídeo.
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua d'un treball, protecció contra dobles enviaments, barra de progrés, estimació i cancel·lació.
-- Estat final del renderitzat sincronitzat amb SQLite.
+- Estat final sincronitzat amb SQLite.
 - Miniatura 1280×720 automàtica.
-- Resultats: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
-- Noms de carpeta segurs i únics; els accents valencians es transliteren correctament.
-- Validació de paràmetres, recursos restringits a `assets/` i neteja si falla la preparació.
+- Fitxers finals: vídeo, miniatura, títol, descripció, capítols i metadata JSON.
+- Noms de carpeta segurs i únics, validació de paràmetres i recursos restringits a assets.
 - Docker i Docker Compose amb FFmpeg i DejaVu.
 - Tests del timeline, FFmpeg i metadades.
 
@@ -39,17 +38,16 @@ assets/music/         # música opcional
 assets/fonts/         # tipografies pròpies o compatibles
 ```
 
-Els recursos apareixen automàticament en la interfície i el backend només resol fitxers existents dins de les carpetes autoritzades.
-
 ## Primera prova recomanada
 
 ```bash
 docker compose up -d --build
 docker compose exec pomodoro-studio pytest
 docker compose exec pomodoro-studio ffmpeg -version
+docker compose exec pomodoro-studio ffmpeg -filters
 ```
 
-Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
+En l'última ordre comprova que apareix el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
 
 ## Resultat esperat
 
@@ -65,9 +63,9 @@ output/2026-10-28-biblioteca-medieval-001/
 
 ## Arquitectura
 
-`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta `-progress pipe:1`; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
+`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
-FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simultani. La implementació del progrés seguix l'eixida estructurada de FFmpeg en lloc d'analitzar els missatges humans de consola.
+FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simultani. El temporitzador usa `drawtext` i expressions basades en el temps; el progrés usa l'eixida estructurada de FFmpeg.
 
 ## Limitacions conegudes
 
