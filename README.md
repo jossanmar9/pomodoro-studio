@@ -22,8 +22,8 @@ La interfície i la documentació del projecte estan en valencià. Els títols i
 - Progrés, estimació de temps i cancel·lació.
 - Historial de projectes en SQLite.
 - Carpetes de resultat sense sobreescriure treballs anteriors.
-- `video.mp4`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
-- Constructor de miniatures preparat per a integrar-se en el flux.
+- `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
+- Miniatura 1280×720 generada automàticament a partir del fons.
 - Docker i Docker Compose.
 - Tests del timeline, FFmpeg i metadades.
 
@@ -52,7 +52,7 @@ assets/music/         # música opcional
 assets/fonts/         # tipografies pròpies o compatibles
 ```
 
-Els recursos apareixen automàticament en la interfície. No s'admeten rutes arbitràries proporcionades des del navegador: el backend resol únicament fitxers existents dins de les carpetes autoritzades.
+Els recursos apareixen automàticament en la interfície. El backend resol únicament fitxers existents dins de les carpetes autoritzades.
 
 ## Flux de treball
 
@@ -69,6 +69,7 @@ Cada treball usa una carpeta semblant a:
 ```text
 output/2026-10-28-biblioteca-medieval-001/
 ├── video.mp4
+├── thumbnail.jpg
 ├── title.txt
 ├── description.txt
 ├── chapters.txt
@@ -77,7 +78,7 @@ output/2026-10-28-biblioteca-medieval-001/
 
 ## Arquitectura
 
-`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construeix les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` conté el generador de miniatures.
+`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construeix les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
 FFmpeg s'executa sense `shell=True` i rep els arguments com una llista. La cua inicial executa un únic vídeo cada vegada per evitar saturar la màquina.
 
@@ -92,7 +93,7 @@ Per a validar el renderitzat real cal tindre FFmpeg instal·lat i almenys un fon
 ## Full de ruta
 
 - **v0.1:** flux mínim complet de projecte i renderitzat.
-- **v0.2:** plantilles d'ambientació, miniatures integrades i millor panell de progrés.
+- **v0.2:** plantilles d'ambientació i millor panell de progrés.
 - **v0.3:** metadades internacionals i presets de publicació.
 - **v0.4:** NVIDIA NVENC opcional.
 - **v0.5:** generació assistida d'ambientacions originals amb IA.
