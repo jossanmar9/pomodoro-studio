@@ -37,62 +37,42 @@ def build_timer_filters(timeline: TimelineSummary) -> str:
     filters = []
     for segment in timeline.segments:
         start, end = segment.start_seconds, segment.end_seconds
-        minutes = f"floor(({end}-t)/60)"
-        seconds = f"floor({end}-t)-60*floor(({end}-t)/60)"
+        minutes = f"floor(({end}-t)/60)"; seconds = f"floor({end}-t)-60*floor(({end}-t)/60)"
         timer = f"%{{eif\\:{minutes}\\:d\\:2}}\\:%{{eif\\:{seconds}\\:d\\:2}}"
         phase = "CONCENTRACIÓ" if segment.kind.value == "FOCUS" else "DESCANS"
-        enable = f"between(t\\,{start}\\,{max(start, end-.001)})"
-        prefix = f"drawtext=font='{FONT}':"
-        filters += [
-            f"{prefix}text='{_escape_drawtext(phase)}':fontcolor=white@0.88:fontsize=h/32:x=(w-text_w)/2:y=h*0.37:enable='{enable}'",
-            f"{prefix}text='{timer}':fontcolor=white:fontsize=h/9:borderw=2:bordercolor=black@0.35:x=(w-text_w)/2:y=(h-text_h)/2:enable='{enable}'",
-            f"{prefix}text='SESSIÓ {segment.session}':fontcolor=white@0.72:fontsize=h/44:x=(w-text_w)/2:y=h*0.62:enable='{enable}'",
-        ]
+        enable = f"between(t\\,{start}\\,{max(start, end-.001)})"; prefix = f"drawtext=font='{FONT}':"
+        filters += [f"{prefix}text='{_escape_drawtext(phase)}':fontcolor=white@0.88:fontsize=h/32:x=(w-text_w)/2:y=h*0.37:enable='{enable}'", f"{prefix}text='{timer}':fontcolor=white:fontsize=h/9:borderw=2:bordercolor=black@0.35:x=(w-text_w)/2:y=(h-text_h)/2:enable='{enable}'", f"{prefix}text='SESSIÓ {segment.session}':fontcolor=white@0.72:fontsize=h/44:x=(w-text_w)/2:y=h*0.62:enable='{enable}'"]
     return ",".join(filters)
 
 
 def _validate_audio(track: AudioTrack) -> None:
-    if track.path.suffix.lower() not in SUPPORTED_AUDIO_SUFFIXES:
-        raise ValueError(f"Format d'àudio no compatible: {track.path.suffix}")
-    if not 0 <= track.volume <= 1:
-        raise ValueError("El volum ha d'estar entre 0 i 1")
+    if track.path.suffix.lower() not in SUPPORTED_AUDIO_SUFFIXES: raise ValueError(f"Format d'àudio no compatible: {track.path.suffix}")
+    if not 0 <= track.volume <= 1: raise ValueError("El volum ha d'estar entre 0 i 1")
 
 
 def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) -> list[str]:
-    """Construïx l'ordre FFmpeg completa sense invocar cap shell."""
     suffix = spec.background.suffix.lower()
-    if suffix not in SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_VIDEO_SUFFIXES:
-        raise ValueError(f"Format de fons no compatible: {suffix}")
-    try:
-        width, height = (int(value) for value in spec.resolution.lower().split("x", 1))
-    except (ValueError, AttributeError) as exc:
-        raise ValueError("Resolució no vàlida; usa el format amplàriaxaltura") from exc
-    if width <= 0 or height <= 0:
-        raise ValueError("La resolució ha de ser positiva")
+    if suffix not in SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_VIDEO_SUFFIXES: raise ValueError(f"Format de fons no compatible: {suffix}")
+    try: width, height = (int(value) for value in spec.resolution.lower().split("x", 1))
+    except (ValueError, AttributeError) as exc: raise ValueError("Resolució no vàlida; usa el format amplàriaxaltura") from exc
+    if width <= 0 or height <= 0: raise ValueError("La resolució ha de ser positiva")
 
     selected = plan or select_encoding(spec.encoding)
     command = ["ffmpeg", "-y", "-nostdin", "-progress", "pipe:1", "-nostats"]
     command += ["-loop", "1", "-framerate", str(spec.fps), "-i", str(spec.background)] if suffix in SUPPORTED_IMAGE_SUFFIXES else ["-stream_loop", "-1", "-i", str(spec.background)]
-
     audio_tracks = [*spec.ambience, *([spec.music] if spec.music else [])]
     for track in audio_tracks:
-        _validate_audio(track)
-        command += ["-stream_loop", "-1", "-i", str(track.path)]
+        _validate_audio(track); command += ["-stream_loop", "-1", "-i", str(track.path)]
 
-    base = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"
-    timer = build_timer_filters(spec.timeline)
+    base = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"; timer = build_timer_filters(spec.timeline)
     parts = [f"[0:v]{base},{timer}[vout]" if timer else f"[0:v]{base}[vout]"]
+    fade_out = max(0, spec.timeline.total_seconds - 2)
     for i, track in enumerate(audio_tracks, 1):
-        parts.append(f"[{i}:a]volume={track.volume}[a{i}]")
+        parts.append(f"[{i}:a]volume={track.volume},afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2[a{i}]")
     if audio_tracks:
-        inputs = "".join(f"[a{i}]" for i in range(1, len(audio_tracks) + 1))
-        parts.append(f"{inputs}amix=inputs={len(audio_tracks)}:duration=longest:normalize=0,alimiter=limit=0.95[aout]")
-
+        inputs = "".join(f"[a{i}]" for i in range(1, len(audio_tracks) + 1)); parts.append(f"{inputs}amix=inputs={len(audio_tracks)}:duration=longest:normalize=0,alimiter=limit=0.95[aout]")
     command += ["-filter_complex", ";".join(parts), "-map", "[vout]"]
-    if audio_tracks:
-        command += ["-map", "[aout]", "-c:a", "aac", "-b:a", "192k"]
+    if audio_tracks: command += ["-map", "[aout]", "-c:a", "aac", "-b:a", "192k"]
     command += ["-t", str(spec.timeline.total_seconds), "-r", str(spec.fps), *selected.video_args, "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
-    if not audio_tracks:
-        command.append("-an")
-    command.append(str(spec.output))
-    return command
+    if not audio_tracks: command.append("-an")
+    command.append(str(spec.output)); return command
