@@ -21,6 +21,13 @@ BASE_PRESETS = {
     "spaceship": ("deep-space research station", "functional observation room, restrained technology, distant planets and quiet work area"),
 }
 
+COMPOSITIONS = {
+    "background": "wide environmental shot, balanced scene, strong depth, calm focal area, no important subject near the edges",
+    "thumbnail-left": "cinematic thumbnail composition, strongest visual subject on the right, generous clean negative space on the left for title text",
+    "thumbnail-right": "cinematic thumbnail composition, strongest visual subject on the left, generous clean negative space on the right for title text",
+    "thumbnail-center": "cinematic thumbnail composition, strong central focal subject, uncluttered upper and lower areas for graphic treatment",
+}
+
 @dataclass(frozen=True)
 class AmbiencePromptSpec:
     subject: str
@@ -33,6 +40,7 @@ class AmbiencePromptSpec:
     visual_style: str = "cinematic environmental concept art"
     details: str = ""
     aspect_ratio: str = "16:9"
+    composition: str = "background"
 
 @dataclass(frozen=True)
 class AmbiencePrompt:
@@ -57,6 +65,8 @@ def validate_spec(spec: AmbiencePromptSpec) -> list[str]:
         errors.append("El tema visual és obligatori")
     if spec.aspect_ratio not in {"16:9", "1:1", "9:16"}:
         errors.append("Relació d'aspecte no admesa")
+    if spec.composition not in COMPOSITIONS:
+        errors.append("Composició no admesa")
     combined = " ".join((spec.subject, spec.place, spec.visual_style, spec.details))
     refs = detect_restricted_references(combined)
     if refs:
@@ -69,16 +79,11 @@ def build_prompt(spec: AmbiencePromptSpec) -> AmbiencePrompt:
     if errors:
         raise ValueError("; ".join(errors))
     parts = [
-        _clean(spec.subject),
-        _clean(spec.place),
-        f"era: {_clean(spec.era)}",
-        f"time: {_clean(spec.time_of_day)}",
-        f"weather: {_clean(spec.weather)}",
-        f"lighting: {_clean(spec.lighting)}",
-        f"atmosphere: {_clean(spec.atmosphere)}",
-        f"visual style: {_clean(spec.visual_style)}",
-        _clean(spec.details),
-        f"composition for {spec.aspect_ratio}, wide environmental shot, strong depth, clear focal area, suitable as a long focus-video background",
+        _clean(spec.subject), _clean(spec.place), f"era: {_clean(spec.era)}",
+        f"time: {_clean(spec.time_of_day)}", f"weather: {_clean(spec.weather)}",
+        f"lighting: {_clean(spec.lighting)}", f"atmosphere: {_clean(spec.atmosphere)}",
+        f"visual style: {_clean(spec.visual_style)}", _clean(spec.details),
+        f"composition for {spec.aspect_ratio}: {COMPOSITIONS[spec.composition]}",
         "original worldbuilding, generic architecture and props, no recognisable copyrighted characters or brands",
     ]
     positive = ", ".join(part for part in parts if part)
