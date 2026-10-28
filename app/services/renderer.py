@@ -12,7 +12,7 @@ def _escape_drawtext(text:str)->str: return text.replace("\\","\\\\").replace(":
 def build_timer_filters(timeline:TimelineSummary)->str:
     filters=[]
     for segment in timeline.segments:
-        start,end=segment.start_seconds,segment.end_seconds; minutes=f"floor(({end}-t)/60)"; seconds=f"mod(floor({end}-t)\\,60)"; timer=f"%{{eif\\:{minutes}\\:d\\:2}}\\:%{{eif\\:{seconds}\\:d\\:2}}"; phase="CONCENTRACIÓ" if segment.kind.value=="FOCUS" else "DESCANS"; session=f"SESSIÓ {segment.session}"; enable=f"between(t\\,{start}\\,{max(start,end-.001)})"; prefix=f"drawtext=font='{FONT}':"
+        start,end=segment.start_seconds,segment.end_seconds; minutes=f"floor(({end}-t)/60)"; seconds=f"mod(floor({end}-t)\\,60)"; timer=f"%{{eif\\:{minutes}\\:d}}\\:%{{eif\\:{seconds}\\:d}}"; phase="CONCENTRACIÓ" if segment.kind.value=="FOCUS" else "DESCANS"; session=f"SESSIÓ {segment.session}"; enable=f"between(t\\,{start}\\,{max(start,end-.001)})"; prefix=f"drawtext=font='{FONT}':"
         filters += [f"{prefix}text='{_escape_drawtext(phase)}':fontcolor=white@0.88:fontsize=h/32:x=(w-text_w)/2:y=h*0.37:enable='{enable}'",f"{prefix}text='{timer}':fontcolor=white:fontsize=h/9:borderw=2:bordercolor=black@0.35:x=(w-text_w)/2:y=(h-text_h)/2:enable='{enable}'",f"{prefix}text='{_escape_drawtext(session)}':fontcolor=white@0.72:fontsize=h/44:x=(w-text_w)/2:y=h*0.62:enable='{enable}'"]
     return ",".join(filters)
 def _validate_audio(track:AudioTrack)->None:
