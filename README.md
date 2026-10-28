@@ -6,24 +6,19 @@ Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus
 
 ## Què fa
 
-Pomodoro Studio permet crear un projecte, triar una ambientació, configurar intervals de concentració i descans, seleccionar un fons i àudios locals i generar un vídeo amb temporitzador mitjançant FFmpeg.
-
-La interfície i la documentació estan en valencià. Els textos de publicació es podran internacionalitzar en versions posteriors.
+Pomodoro Studio permet crear un projecte, triar una ambientació, configurar intervals de concentració i descans, seleccionar un fons i àudios locals i generar un vídeo amb temporitzador mitjançant FFmpeg. La interfície i la documentació estan en valencià.
 
 ## Funcions de la v0.1
 
-- Cicles Pomodoro 25/5, 50/10 o personalitzats.
-- Duració total configurable i línia temporal exacta.
+- Cicles Pomodoro 25/5, 50/10 o personalitzats i duració total configurable.
 - Fons JPG, JPEG, PNG, WebP, MP4, MOV, MKV o WebM en bucle.
 - Temporitzador, fase i número de sessió sobre el vídeo.
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
-- Cua simple d'un renderitzat concurrent.
-- Barra de progrés actualitzada automàticament, estimació i cancel·lació.
+- Cua d'un renderitzat concurrent, barra de progrés, estimació i cancel·lació.
 - Historial de projectes en SQLite.
-- Carpetes de resultat sense sobreescriure treballs anteriors.
-- `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
-- Miniatura 1280×720 generada automàticament a partir del fons.
+- Resultats sense sobreescriure: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
+- Miniatura 1280×720 automàtica.
 - Docker i Docker Compose.
 - Tests del timeline, FFmpeg i metadades.
 
@@ -33,17 +28,15 @@ Python 3.12+ · FastAPI · Jinja2 · SQLAlchemy · SQLite · FFmpeg · Docker
 
 ## Posada en marxa
 
-Copia `.env.example` com a `.env` i executa:
+Amb Docker només cal:
 
 ```bash
 docker compose up -d --build
 ```
 
-Després obri `http://localhost:8000`.
+Després obri `http://localhost:8000`. El fitxer `.env` és opcional; `.env.example` documenta els valors configurables.
 
 ## Recursos
-
-Col·loca els fitxers en:
 
 ```text
 assets/backgrounds/   # imatges i vídeos de fons
@@ -86,7 +79,7 @@ FFmpeg s'executa sense `shell=True`. El progrés s'obté amb `-progress pipe:1` 
 pytest
 ```
 
-Per a validar el renderitzat real cal tindre FFmpeg instal·lat i almenys un fons dins de `assets/backgrounds/`.
+Per a validar el renderitzat real cal tindre FFmpeg i almenys un fons dins de `assets/backgrounds/`.
 
 ## Limitacions conegudes de la v0.1
 
