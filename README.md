@@ -16,7 +16,7 @@ Pomodoro Studio permet crear un projecte, triar una ambientació, configurar int
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua d'un renderitzat concurrent, barra de progrés, estimació i cancel·lació.
-- Historial de projectes en SQLite.
+- Historial de projectes i estat final del renderitzat en SQLite.
 - Resultats sense sobreescriure: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
 - Miniatura 1280×720 automàtica.
 - Docker i Docker Compose, amb FFmpeg i DejaVu instal·lats al contenidor.
@@ -81,15 +81,14 @@ Per a validar el renderitzat real cal tindre FFmpeg i almenys un fons dins de `a
 
 ## Limitacions conegudes de la v0.1
 
-- La cua i el progrés viuen en memòria: reiniciar l'aplicació perd l'estat dels treballs actius.
-- La persistència de l'estat final del renderitzat en SQLite es completarà després de les proves reals.
+- La cua i el percentatge de progrés viuen en memòria; si es reinicia l'aplicació, un treball que estiguera actiu no es reprén automàticament.
 - La v0.1 usa CPU (`libx264`); NVENC queda reservat per a una versió posterior.
 - Encara no hi ha publicació automàtica en YouTube ni altres xarxes.
 
 ## Full de ruta
 
 - **v0.1:** flux mínim complet de projecte i renderitzat.
-- **v0.2:** plantilles d'ambientació, persistència de treballs i presets reutilitzables.
+- **v0.2:** plantilles d'ambientació, persistència avançada de treballs i presets reutilitzables.
 - **v0.3:** metadades internacionals i presets de publicació.
 - **v0.4:** NVIDIA NVENC opcional.
 - **v0.5:** generació assistida d'ambientacions originals amb IA.
