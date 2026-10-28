@@ -19,7 +19,7 @@ La interfície i la documentació estan en valencià. Els textos de publicació 
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua simple d'un renderitzat concurrent.
-- Barra de progrés actualitzada automàticament, temps transcorregut/estimació i cancel·lació.
+- Barra de progrés actualitzada automàticament, estimació i cancel·lació.
 - Historial de projectes en SQLite.
 - Carpetes de resultat sense sobreescriure treballs anteriors.
 - `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
@@ -56,13 +56,13 @@ Els recursos apareixen automàticament en la interfície. El backend resol únic
 
 ## Flux de treball
 
-1. Crea un projecte des de la pàgina principal.
+1. Crea un projecte.
 2. Revisa la línia temporal i els capítols.
-3. Tria el fons, els sons ambientals i, opcionalment, música.
+3. Tria fons, sons ambientals i música opcional.
 4. Ajusta els volums.
 5. Inicia el renderitzat.
 6. Seguix la barra de progrés o cancel·la el treball.
-7. Troba els fitxers generats dins de `output/`.
+7. Troba els resultats en `output/`.
 
 ```text
 output/2026-10-28-biblioteca-medieval-001/
@@ -76,9 +76,9 @@ output/2026-10-28-biblioteca-medieval-001/
 
 ## Arquitectura
 
-`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construeix les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
+`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
-FFmpeg s'executa sense `shell=True`. El progrés s'obté amb l'eixida estructurada de FFmpeg i la interfície el consulta periòdicament. La cua inicial executa un únic vídeo cada vegada per evitar saturar la màquina.
+FFmpeg s'executa sense `shell=True`. El progrés s'obté amb `-progress pipe:1` i la interfície el consulta periòdicament. La cua executa un únic vídeo cada vegada per evitar saturar la màquina.
 
 ## Proves
 
@@ -88,10 +88,17 @@ pytest
 
 Per a validar el renderitzat real cal tindre FFmpeg instal·lat i almenys un fons dins de `assets/backgrounds/`.
 
+## Limitacions conegudes de la v0.1
+
+- La cua i el progrés viuen en memòria: reiniciar l'aplicació perd l'estat dels treballs actius.
+- La persistència de l'estat final del renderitzat en SQLite es completarà després de les proves reals.
+- La v0.1 usa CPU (`libx264`); NVENC queda reservat per a una versió posterior.
+- Encara no hi ha publicació automàtica en YouTube ni altres xarxes.
+
 ## Full de ruta
 
 - **v0.1:** flux mínim complet de projecte i renderitzat.
-- **v0.2:** plantilles d'ambientació i presets reutilitzables.
+- **v0.2:** plantilles d'ambientació, persistència de treballs i presets reutilitzables.
 - **v0.3:** metadades internacionals i presets de publicació.
 - **v0.4:** NVIDIA NVENC opcional.
 - **v0.5:** generació assistida d'ambientacions originals amb IA.
