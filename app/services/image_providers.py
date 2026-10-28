@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import httpx
 
+from app.config import settings
 from app.services.ambience_prompt import AmbiencePrompt
 
 
@@ -36,7 +37,6 @@ class ImageProvider(Protocol):
 
 
 class ManualImageProvider:
-    """Mode explícit sense IA: el prompt es copia i la imatge s'importa després."""
     name = "manual"
 
     def available(self) -> bool:
@@ -107,8 +107,7 @@ class A1111ImageProvider:
 
         path = request.output_dir / f"generated-{uuid4().hex[:12]}.png"
         path.write_bytes(raw)
-        info = data.get("info", "")
-        return GeneratedImage(path=path, provider=self.name, model=self.model, notes=str(info)[:2000])
+        return GeneratedImage(path=path, provider=self.name, model=self.model, notes=str(data.get("info", ""))[:2000])
 
 
 _PROVIDERS: dict[str, ImageProvider] = {"manual": ManualImageProvider()}
@@ -122,7 +121,6 @@ def register_provider(provider: ImageProvider) -> None:
 
 
 def configure_a1111(base_url: str, model: str = "") -> None:
-    """Registra el connector local només quan hi ha una URL configurada."""
     if base_url.strip():
         _PROVIDERS["a1111"] = A1111ImageProvider(base_url, model)
     else:
@@ -142,3 +140,6 @@ def get_provider(name: str) -> ImageProvider:
     if key not in _PROVIDERS:
         raise ValueError("Proveïdor d'imatges no configurat")
     return _PROVIDERS[key]
+
+
+configure_a1111(settings.image_a1111_url, settings.image_a1111_model)
