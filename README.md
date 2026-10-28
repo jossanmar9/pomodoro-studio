@@ -14,7 +14,7 @@ Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua d'un treball, protecció contra dobles enviaments, barra de progrés, estimació i cancel·lació.
-- Estat final sincronitzat amb SQLite.
+- Estat final sincronitzat amb SQLite i recuperable després de reiniciar la web.
 - Miniatura 1280×720 automàtica.
 - Fitxers finals: vídeo, miniatura, títol, descripció, capítols i metadata JSON.
 - Noms de carpeta segurs i únics, validació de paràmetres i recursos restringits a assets.
@@ -69,7 +69,7 @@ FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simul
 
 ## Limitacions conegudes
 
-- La cua i el percentatge de progrés viuen en memòria; si es reinicia l'aplicació, un treball actiu no es reprén automàticament.
+- Si l'aplicació es reinicia durant un renderitzat actiu, eixe procés no es reprén automàticament; l'estat dels treballs ja finalitzats sí que queda en SQLite.
 - La v0.1 usa CPU (`libx264`).
 - Encara no hi ha publicació automàtica en YouTube ni altres xarxes.
 
