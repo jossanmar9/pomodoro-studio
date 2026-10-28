@@ -47,9 +47,21 @@ docker compose exec pomodoro-studio ffmpeg -version
 docker compose exec pomodoro-studio ffmpeg -filters
 ```
 
-Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
+Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Després prova l'àudio i finalment una sessió llarga.
 
-Abans de fusionar la PR a `main`, la prova curta ha de complir: vídeo reproduïble, temporitzador visible, duració correcta, miniatura generada, progrés fins al 100 %, cancel·lació funcional i tests verds.
+### Checklist abans de fusionar a main
+
+- Tests verds.
+- Contenidor arranca sense `.env`.
+- La web obri i permet crear/reobrir projectes.
+- Es detecta el fons d'`assets/backgrounds/`.
+- Es genera `thumbnail.jpg`.
+- FFmpeg genera un `video.mp4` reproduïble i amb la duració esperada.
+- El compte arrere i els canvis de fase són visibles.
+- La barra de progrés arriba al 100 %.
+- Cancel·lar elimina el vídeo parcial.
+- Els sons ambientals i la música es mesclen correctament.
+- Es creen `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
 
 ## Resultat esperat
 
