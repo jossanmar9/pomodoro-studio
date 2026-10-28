@@ -40,17 +40,16 @@ def project_view(project_id:int,request:Request):
     return templates.TemplateResponse(request,"project.html",{"project":project,"timeline":timeline,"chapters":build_chapters(timeline),"duration":format_timestamp(timeline.total_seconds),"focus_total":timeline.focus_seconds//60,"break_total":timeline.break_seconds//60,"assets":catalog(),"job":render_queue.jobs.get(project_id)})
 @app.post("/projects/{project_id}/render")
 def start_render(project_id:int,background:str=Form(...),ambience:list[str]=Form(default=[]),music:str=Form(""),ambience_volume:float=Form(.25),music_volume:float=Form(.12)):
+    current=render_queue.jobs.get(project_id)
+    if current and current.status in {"EN_CUA","GENERANT"}: return RedirectResponse(f"/projects/{project_id}",status_code=303)
     if not 0<=ambience_volume<=1 or not 0<=music_volume<=1: raise HTTPException(400,"Els volums han d'estar entre 0 i 1")
     with SessionLocal() as db: project=db.get(Project,project_id)
     if not project: raise HTTPException(404,"Projecte no trobat")
     try: bg=resolve_asset("backgrounds",background); amb=[AudioTrack(resolve_asset("ambience",name),ambience_volume) for name in ambience]; mus=AudioTrack(resolve_asset("music",music),music_volume) if music else None
     except ValueError as exc: raise HTTPException(400,str(exc)) from exc
     timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); folder=create_output_dir(project.id,project.theme)
-    try:
-        write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline)
-        generate_thumbnail(bg,folder/"thumbnail.jpg",f"{project.theme.upper()} · {project.duration_minutes} MIN · {project.focus_minutes}/{project.break_minutes}")
-    except Exception as exc:
-        shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
+    try: write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline); generate_thumbnail(bg,folder/"thumbnail.jpg",f"{project.theme.upper()} · {project.duration_minutes} MIN · {project.focus_minutes}/{project.break_minutes}")
+    except Exception as exc: shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
     render_queue.enqueue(project.id,RenderSpec(bg,folder/"video.mp4",project.resolution,timeline,ambience=amb,music=mus))
     with SessionLocal() as db: saved=db.get(Project,project_id); saved.status="QUEUED"; saved.output_path=str(folder); db.commit()
     return RedirectResponse(f"/projects/{project_id}",status_code=303)
