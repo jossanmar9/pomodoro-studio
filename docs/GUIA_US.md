@@ -2,7 +2,9 @@
 
 ## 1. Preparar l'aplicació
 
-Copia `.env.example` a `.env` i inicia el servei amb:
+En Linux Mint sense Docker, seguix la [guia de Python i Forge](INSTAL_LINUX_MINT.md). Després pots instal·lar els [accessos directes](ACCESSOS_DIRECTES.md).
+
+Si encara no tens `.env`, copia `.env.example` a `.env` i inicia el servei amb:
 
 ```bash
 docker compose up -d --build
@@ -18,7 +20,7 @@ Copia els recursos a:
 - `assets/ambience/`: MP3, WAV, OGG, M4A, FLAC o AAC.
 - `assets/music/`: música opcional en els mateixos formats d'àudio.
 
-Registra l'origen i la llicència en `assets/REGISTRE_RECURSOS.md`.
+Registra l'origen i la llicència en `assets/REGISTRE_RECURSOS.md`. Consulta [àudios i llicències](AUDIO_I_LLICENCIES.md) per organitzar els comprovants i els crèdits.
 
 ## 3. Crear un projecte
 
@@ -62,7 +64,7 @@ Conserva almenys `data/`, `assets/` i els resultats d'`output/` que vulgues pres
 Quan hi haja una versió nova:
 
 ```bash
-git pull
+git pull --ff-only
 docker compose up -d --build
 ```
 
@@ -72,3 +74,20 @@ Abans d'actualitzar una instal·lació amb contingut important, fes còpia de `d
 ## Ambientacions originals opcionals
 
 En la vista del projecte, prepara un prompt manualment o selecciona A1111/Forge si està configurat. Genera, revisa la previsualització, indica nom i llicència i prem **Acceptar com a fons**. Només aleshores s’importa a assets/backgrounds amb procedència i queda seleccionat per al vídeo. Consulta [v0.8](v0.8.md) per a configuració i API.
+
+## Ús habitual sense Docker
+
+La instal·lació només es fa una vegada. Per generar fons nous, arranca Forge i Pomodoro. Per preparar vídeos amb recursos ja acceptats, només cal Pomodoro. Cada servei usa un terminal; deixa’l obert i usa Ctrl+C per aturar-lo. Els accessos directes automatitzen l’arrancada i obrin el navegador.
+
+Després de canviar `.env`, reinicia Pomodoro perquè torne a llegir la configuració. En l’explorador de fitxers de Mint, Ctrl+H mostra `.env` i `.venv`.
+
+Per actualitzar una instal·lació Python, para Pomodoro i, dins de la seua carpeta, executa:
+
+```bash
+git pull --ff-only
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Conserva `.env`, `data/`, els recursos i les llicències. Si Git detecta canvis locals, revisa’ls abans de continuar; no els descartes per força.

@@ -1,0 +1,1400 @@
+[
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/bosc-02.mp3",
+    "id": "1348",
+    "title": "Forest #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-2-s1348.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1348.mp3",
+    "duration_seconds": 411.624,
+    "bytes": 16466148,
+    "sha256": "7a252432adaabc56c50870b5a6ea19a18b7b8ae613525fef3a573bdbce9f22bb",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/bosc-03.mp3",
+    "id": "2715",
+    "title": "Forest #3",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-3-s2715.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2715.mp3",
+    "duration_seconds": 160.661333,
+    "bytes": 3855968,
+    "sha256": "e47516d264ccf4112c871afbe94f460e0dac2cad0444705a91d14608d9af5ee7",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/bosc-04.mp3",
+    "id": "2749",
+    "title": "Forest #4",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-4-s2749.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2749.mp3",
+    "duration_seconds": 225.941333,
+    "bytes": 5422688,
+    "sha256": "3418164e5e30d752971257f054ecb2a2eb9912642dd135eead783f5c1e3d9326",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "file": "assets/ambience/bosc-ocells.mp3",
+    "title": "Forest",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-s0100.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0100.mp3",
+    "downloaded_on": "2026-10-28",
+    "changes": "Original MP3; filename changed only.",
+    "sha256": "c6c04cce07cbdb11ec8732ca28035213a5bcbcb5d3638112b71d0ed90edeabec",
+    "bytes": 1307883,
+    "duration_seconds": 54.408,
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "kind": "ambience"
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/bosc-rierol-01.mp3",
+    "id": "2713",
+    "title": "Forest and Stream #1",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-and-stream-1-s2713.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2713.mp3",
+    "duration_seconds": 300.077333,
+    "bytes": 7201952,
+    "sha256": "9ce5ba874d2f61fcbc05e5f80b695c7873d22329516a8d96f15242e82f8b17ea",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/bosc-rierol-03.mp3",
+    "id": "2716",
+    "title": "Forest and Stream #3",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-and-stream-3-s2716.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2716.mp3",
+    "duration_seconds": 218.717333,
+    "bytes": 5249312,
+    "sha256": "c91f451d6a807f5be2442e32aa0542d0e3c8d34acb75602e9d5de17ec036a0d2",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/camp-nit.mp3",
+    "id": "0110",
+    "title": "Campaign at night #1",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/campaign-at-night-1-s0110.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0110.mp3",
+    "duration_seconds": 75.552,
+    "bytes": 3024171,
+    "sha256": "9a67a8bfcac34b27369f8d694a66eae612ec8532e919a0777e1f13f519806ecc",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/cascada-petita.mp3",
+    "id": "0219",
+    "title": "Small waterfall #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/small-waterfall-2-s0219.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0219.mp3",
+    "duration_seconds": 45.113469,
+    "bytes": 906726,
+    "sha256": "c8ecb5cf364c645bde9c2246af905a1354b0702db062b83d8518b52c99e50db8",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 1
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/corrent-aigua.mp3",
+    "id": "3137",
+    "title": "Watercourse 5.2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/watercourse-5-2-s3137.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/3137.mp3",
+    "duration_seconds": 60.1472,
+    "bytes": 2406093,
+    "sha256": "abd49277439eb0d24448b64f041526e66a4cdb8809feddcb36351ef61a45aae6",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/foc-llar-04.mp3",
+    "id": "2856",
+    "title": "Fireplace #4",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/fireplace-4-s2856.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2856.mp3",
+    "duration_seconds": 79.205333,
+    "bytes": 1901024,
+    "sha256": "9bda58aa7b596f26c1a09b01d14ccc2157f6ed236262d9f32d640e2020eeea5e",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/foc-llar-05.mp3",
+    "id": "2857",
+    "title": "Fireplace #5",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/fireplace-5-s2857.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2857.mp3",
+    "duration_seconds": 45.365333,
+    "bytes": 1088864,
+    "sha256": "a2302782cca426e9499260b06ae32b2813cfed97fb4c5909dcef6675a4f8b07d",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/foc-llar-oberta.mp3",
+    "id": "0031",
+    "title": "Fireplace #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/fireplace-2-s0031.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0031.mp3",
+    "duration_seconds": 60.055542,
+    "bytes": 1443424,
+    "sha256": "c81dcb630c1bc7e874cf380319313ff01b3894e3439055682cb863d775c59f14",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "file": "assets/ambience/foc-llar.mp3",
+    "title": "Fireplace #3",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/fireplace-3-s2855.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2855.mp3",
+    "downloaded_on": "2026-10-28",
+    "changes": "Original MP3; filename changed only.",
+    "sha256": "27a720ebded565f01a1b1a733812312e5dbbf95c1df71ef7587521d5548ac44b",
+    "bytes": 4360544,
+    "duration_seconds": 181.685333,
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "kind": "ambience"
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/mar-agitada.mp3",
+    "id": "0915",
+    "title": "Slightly Agitated Sea",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/slightly-agitated-sea-s0915.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0915.mp3",
+    "duration_seconds": 132.49625,
+    "bytes": 5300894,
+    "sha256": "0aaaf75c3eb84ec80003a60b8175a6fc893267ea8f04c9a068e3f94a5b6be40d",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/mar-ocells.mp3",
+    "id": "0267",
+    "title": "Sea Waves with Tern Calls",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/sea-waves-and-seagulls-s0267.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0267.mp3",
+    "duration_seconds": 57.626125,
+    "bytes": 2307159,
+    "sha256": "8e788be990d2f2e2d8f365ac2152324e227b4d7d29c8b616a632932e8486ac92",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/muntanya-vesprada.mp3",
+    "id": "3203",
+    "title": "Mountain, Evening #1",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/mountain-evening-1-s3203.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/3203.mp3",
+    "duration_seconds": 164.6912,
+    "bytes": 6587853,
+    "sha256": "bb2cdec0c554b59ae772e156c9bd36321553abde56fcce86416f1a5dc9f082b8",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/nit-grills-granotes.mp3",
+    "id": "1880",
+    "title": "Campaign at Night #4",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/campaign-at-night-4-s1880.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1880.mp3",
+    "duration_seconds": 299.16,
+    "bytes": 11967588,
+    "sha256": "50e070dc217e3e49d3e18da62144aadc92996763fa52743f7888ce6e4ad5fe3e",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/ones-escuma-platja.mp3",
+    "id": "1447",
+    "title": "Small Waves, Froth and Beach",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/small-waves-froth-and-beach-s1447.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1447.mp3",
+    "duration_seconds": 97.656,
+    "bytes": 3907428,
+    "sha256": "517956e7eb32d4449dfb6b1f6d498ed915f18b6ca5d57e1ca55e7737e2a87a00",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/ones-ocea.mp3",
+    "id": "1046",
+    "title": "Small Waves Facing the Ocean",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/small-waves-facing-the-ocean-s1046.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1046.mp3",
+    "duration_seconds": 137.616,
+    "bytes": 5505828,
+    "sha256": "6e56a8f4f64db7fc5b66e5938a297bd1a091e27b68cfc159822054b28f4d59fb",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-bassal.mp3",
+    "id": "1290",
+    "title": "Rain on Puddle",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-on-puddle-s1290.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1290.mp3",
+    "duration_seconds": 78.024,
+    "bytes": 3122148,
+    "sha256": "aa5a6824c92440431ec38b3de692a941b61fdfa3c29c69b14307651000269360",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-dins-cotxe.mp3",
+    "id": "1295",
+    "title": "Rain on car windshield",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-on-car-windshield-s1295.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1295.mp3",
+    "duration_seconds": 73.056,
+    "bytes": 2923428,
+    "sha256": "4720fd69b4b0e8eb692a3981f8d6204f927a8b60fe7e427c342e2ef025c260d4",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-lona.mp3",
+    "id": "1292",
+    "title": "Rain on plastic tarpaulin",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-on-plastic-tarpaulin-s1292.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1292.mp3",
+    "duration_seconds": 85.32,
+    "bytes": 3413988,
+    "sha256": "d463790eb78db0e3e204750c3f58c4fd9f3fde5ca2e31157cb410496d8562d23",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-parabrisa.mp3",
+    "id": "1297",
+    "title": "Rain on car windshield #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-on-car-windshield-2-s1297.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1297.mp3",
+    "duration_seconds": 85.008,
+    "bytes": 3401508,
+    "sha256": "3f0a8edf87e058cc6fce22eaaf41175fd2bd27a79437608d8d5ece2b608d709a",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-paraigua.mp3",
+    "id": "2679",
+    "title": "Rain Under an Umbrella",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-under-an-umbrella-s2679.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2679.mp3",
+    "duration_seconds": 34.251792,
+    "bytes": 822139,
+    "sha256": "128d1f724175161635f524b110c580c545875654db402d9aaae4f13a775698bd",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-pedra.mp3",
+    "id": "1289",
+    "title": "Rain on concrete",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-on-concrete-s1289.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1289.mp3",
+    "duration_seconds": 80.832,
+    "bytes": 3234468,
+    "sha256": "ba40d67b99bb5f00b1b89d96fa8da2e3476d4e198ff48b77c9f7e20e9cfd657a",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-tempesta-35min.mp3",
+    "id": "2719",
+    "title": "Rain and Thunder #4",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/storm-and-rain-4-s2719.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/2719.mp3",
+    "duration_seconds": 2092.133333,
+    "bytes": 50211296,
+    "sha256": "776d38ef6f733f85284126e53d4d3877dfb8b406f52372b67d122067700a6578",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-tenda.mp3",
+    "id": "0820",
+    "title": "Rain and thunder in a tent",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-and-storm-in-a-tent-s0820.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0820.mp3",
+    "duration_seconds": 209.5472,
+    "bytes": 8382848,
+    "sha256": "5a69c0b95b85278eb0cdb0fe7d993acd5d5dae106284c3852174f7764d4cbd89",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/pluja-terrassa.mp3",
+    "id": "1019",
+    "title": "Summer Rain on Terrace",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/summer-rain-on-terrace-s1019.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1019.mp3",
+    "duration_seconds": 156.768,
+    "bytes": 6271908,
+    "sha256": "b3050713d6303cde08379b0e45db568a216ca9d8068d2b93eb37c38a3edbe979",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "file": "assets/ambience/pluja-trons.mp3",
+    "title": "Rain and Thunder #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/rain-and-storm-2-s0740.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0740.mp3",
+    "downloaded_on": "2026-10-28",
+    "changes": "Original MP3; filename changed only.",
+    "sha256": "056c5296303887b650e62a6dc3282f327f8a8560c061acbf577c5e0734acdb6e",
+    "bytes": 6320768,
+    "duration_seconds": 157.9952,
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "kind": "ambience"
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/rierol-muntanya.mp3",
+    "id": "1354",
+    "title": "Small Stream #4",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/small-stream-4-s1354.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1354.mp3",
+    "duration_seconds": 104.928,
+    "bytes": 4198308,
+    "sha256": "29c6c0498b18e24d00776d99f7be35d6e35f64c2f203dee6a1d0434f9f45a927",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/torrent-muntanya.mp3",
+    "id": "3222",
+    "title": "Mountain Stream #7",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/mountain-stream-7-s3222.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/3222.mp3",
+    "duration_seconds": 147.7712,
+    "bytes": 5911053,
+    "sha256": "15cc997905f3e4e1639a17790fa4b77972da49ea033de78c82c5674711f829a0",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vent-arbre.mp3",
+    "id": "0659",
+    "title": "Wind in a Tree",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/wind-in-a-tree-s0659.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0659.mp3",
+    "duration_seconds": 115.4912,
+    "bytes": 4620608,
+    "sha256": "e14873c3430334075ba3a5274fb92672dc85896089ac94f1ef12154412ed2630",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 1
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vent-arbres.mp3",
+    "id": "0904",
+    "title": "Wind in the Trees",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-wind-in-the-trees-s0904.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0904.mp3",
+    "duration_seconds": 218.4992,
+    "bytes": 8740928,
+    "sha256": "25f907ab068df5836b28af2c923468b97d2b75afbc56cce27834d3526ac7b3c0",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vent-des-de-dins.mp3",
+    "id": "1715",
+    "title": "Wind from inside #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/wind-from-inside-2-s1715.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1715.mp3",
+    "duration_seconds": 169.992,
+    "bytes": 6800868,
+    "sha256": "cc2021d8ebd4962e0210281646dca24fb9ef0dffcf588b20ee1c80656b6f9bc1",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vent-herba.mp3",
+    "id": "0908",
+    "title": "Wind in Tall Grass",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/wind-in-tall-grass-s0908.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0908.mp3",
+    "duration_seconds": 85.1552,
+    "bytes": 3407168,
+    "sha256": "153ec87a4b9889efa6c7fa3c9f7115d24a234f25d3178de0056d8cf7f30cd6c1",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/ventilacio-suau.mp3",
+    "id": "0174",
+    "title": "Ventilation #2",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/ventilation-2-s0174.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0174.mp3",
+    "duration_seconds": 35.082449,
+    "bytes": 703053,
+    "sha256": "1717f97f39b8c2c2f3470a223f743b3e48882240429498347c8acbc493922e30",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 1
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vesprada-camp.mp3",
+    "id": "1066",
+    "title": "Evening in Gironde, France",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/evening-gironde-france-s1066.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1066.mp3",
+    "duration_seconds": 211.632,
+    "bytes": 8466468,
+    "sha256": "aaf6f327ad9156ab2f32e18d1acc614dc758de45eb89c73d0a1e529571b97fa1",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2,
+        "side_data_list": [
+          {}
+        ]
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vora-bosc.mp3",
+    "id": "0905",
+    "title": "Forest: On the Edge",
+    "author": "Joseph SARDIN",
+    "source_url": "https://bigsoundbank.com/forest-on-the-edge-s0905.html",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0905.mp3",
+    "duration_seconds": 360.1232,
+    "bytes": 14405888,
+    "sha256": "f3396294cd7e728a53f5344f1aab01db33b385979f0eb7053b1bf21d70d97810",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/deep-relaxation.mp3",
+    "title": "Deep Relaxation",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1900045",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deep%20Relaxation.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:51:08",
+    "duration_seconds": 3068.0555,
+    "bytes": 122857035,
+    "sha256": "6d7b3f83741bac282f4dfeaa27032f5bf87fcb28d1246b468eec88a38cf1a7c2",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "file": "assets/music/dream-culture.mp3",
+    "title": "Dream Culture",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1300046",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dream%20Culture.mp3",
+    "downloaded_on": "2026-10-28",
+    "changes": "Original MP3; filename changed only.",
+    "sha256": "f12cbb52bd4b92bd6cf8a343645567c119627e9cbf98108a3eb6ac2cc275ee46",
+    "bytes": 8576659,
+    "duration_seconds": 214.360825,
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "kind": "music"
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/dreams-become-real.mp3",
+    "title": "Dreams Become Real",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500027",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dreams%20Become%20Real.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:06:50",
+    "duration_seconds": 410.070219,
+    "bytes": 13124519,
+    "sha256": "a8ea5df5f969ed8d898af7fe07eb4712233f03e9d83f7ebcc88d1c851f3171b0",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/drone-in-d.mp3",
+    "title": "Drone in D",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200044",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Drone%20in%20D.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:21:23",
+    "duration_seconds": 1282.56,
+    "bytes": 51304582,
+    "sha256": "e66cbca790d98f8bddd2a2723882cd30e57bd2c57834b048b944c47c673d9ee6",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/floating-cities.mp3",
+    "title": "Floating Cities",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Floating%20Cities.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:03:04",
+    "duration_seconds": 184.058781,
+    "bytes": 5892113,
+    "sha256": "e7365652410d1fbc8a14d87537855d625c1a5fa8b7de8c626f47c13256ef2ddd",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/fluidscape.mp3",
+    "title": "Fluidscape",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100393",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluidscape.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:30:21",
+    "duration_seconds": 1821.126525,
+    "bytes": 73006890,
+    "sha256": "27de6242dd2aee74d05276babcc626870ceccec815726f48e940f2236aaccb83",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/garden-music.mp3",
+    "title": "Garden Music",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500081",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Garden%20Music.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:41:17",
+    "duration_seconds": 2477.218067,
+    "bytes": 79665939,
+    "sha256": "36e34a936ced21466a242774d7ceb55bc88587aaa019bd4a2662215436b27a14",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/healing.mp3",
+    "title": "Healing",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200048",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Healing.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:08:40",
+    "duration_seconds": 520.07185,
+    "bytes": 20805074,
+    "sha256": "7392a8a0b9c088d640e5c28f72d9f54a74cfa9344d41040e2058b998e3fc6987",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/mana-two-part-1.mp3",
+    "title": "Mana Two - Part 1",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1900036",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mana%20Two%20-%20Part%201.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:03:54",
+    "duration_seconds": 234.03102,
+    "bytes": 9497023,
+    "sha256": "41047f29ea1679a0139947bde8864c7b38b3e97744285583efba5079a88f5a34",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/mana-two-part-2.mp3",
+    "title": "Mana Two - Part 2",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1900037",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mana%20Two%20-%20Part%202.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:06:02",
+    "duration_seconds": 362.03102,
+    "bytes": 14617023,
+    "sha256": "68b491c3bd53f6acb63802c798832baddb61a609452658d586764dc1b03ed311",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/mana-two-part-3.mp3",
+    "title": "Mana Two - Part 3",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1900038",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mana%20Two%20-%20Part%203.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:03:12",
+    "duration_seconds": 192.026122,
+    "bytes": 7816827,
+    "sha256": "1b1024c984cb547aa27670f11e2bd82bb2e27f21991cfd9400fa0943e6fc531d",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/meditation-impromptu-01.mp3",
+    "title": "Meditation Impromptu 01",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100163",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2001.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:03:33",
+    "duration_seconds": 212.819592,
+    "bytes": 7042622,
+    "sha256": "ac1332a12fe020cbeee206c7f33a82e29109d5ce63636e3302454e3bdfc36187",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/meditation-impromptu-02.mp3",
+    "title": "Meditation Impromptu 02",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100162",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2002.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:04:09",
+    "duration_seconds": 249.103673,
+    "bytes": 8261798,
+    "sha256": "4e7ead76cfdda0979ff7d771fbbc3dbb312ca80ce25b78f3cdcaef07fcc7c2da",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "file": "assets/music/meditation-impromptu-03.mp3",
+    "title": "Meditation Impromptu 03",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100161",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2003.mp3",
+    "downloaded_on": "2026-10-28",
+    "changes": "Original MP3; filename changed only.",
+    "sha256": "91a74559a209eeeb6c8057bd3403218a39563b6b148a015d7d3c2c8204d595c8",
+    "bytes": 8423717,
+    "duration_seconds": 255.242449,
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "kind": "music"
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/mesmerize.mp3",
+    "title": "Mesmerize",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500005",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Mesmerize.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:07:04",
+    "duration_seconds": 424.071875,
+    "bytes": 13572535,
+    "sha256": "fd6a372b816bb9117cbd81167f258e71add16fec072b711aa7bdb89aa9acc277",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/peace-of-mind.mp3",
+    "title": "Peace of Mind",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200099",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Peace%20of%20Mind.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:35:58",
+    "duration_seconds": 2157.844875,
+    "bytes": 86315915,
+    "sha256": "3dd5866291044e7c14bb8c966f429a68912bf0ffc9c43e400b7005d01ca82156",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/relaxing-piano-music.mp3",
+    "title": "Relaxing Piano Music",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500075",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Relaxing%20Piano%20Music.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:24:54",
+    "duration_seconds": 1494.073531,
+    "bytes": 47812614,
+    "sha256": "3c4683a8c6396df9be99194aeffddfc01036f3c3ed3384a3e39fd1cc1d9f1e43",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/tranquility-base.mp3",
+    "title": "Tranquility Base",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100614",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Tranquility%20Base.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:18:29",
+    "duration_seconds": 1108.9502,
+    "bytes": 44362104,
+    "sha256": "9cdd2f99c4e60ab4a4543d4696a08f4aa6373c4245990a8b543418602e554ab1",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/water-prelude.mp3",
+    "title": "Water Prelude",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100017",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Water%20Prelude.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:05:25",
+    "duration_seconds": 324.911,
+    "bytes": 6588555,
+    "sha256": "aa9af59090133e60a2246e0da49b3b477a9b1f5fe5259d3f4e6cec3edfd3aad4",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      },
+      {
+        "codec_name": "mjpeg"
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  },
+  {
+    "kind": "music",
+    "file": "assets/music/white-lotus.mp3",
+    "title": "White Lotus",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1300044",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/White%20Lotus.mp3",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "catalog_duration": "00:34:32",
+    "duration_seconds": 2071.6408,
+    "bytes": 82867838,
+    "sha256": "9d66f2eb0113397f9d9aeb6c8f385a82503aeaf8fa84c7ec9fc568189307294a",
+    "streams": [
+      {
+        "codec_name": "mp3",
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "downloaded_on": "2026-10-28",
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+  }
+]

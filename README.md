@@ -2,7 +2,7 @@
 
 Aplicació privada i autohosteable per a crear, renderitzar i publicar vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.6 estable en `main`. Desenvolupament de la v0.7 en `develop/v0.7`.
+> **Estat:** v0.8 fusionada en `main`: ambientacions originals amb generació local opcional, previsualització i acceptació explícita.
 
 ## Funcions actuals
 
@@ -23,10 +23,12 @@ Aplicació privada i autohosteable per a crear, renderitzar i publicar vídeos l
 - Registre de llicències dels recursos per a facilitar un ús monetitzable responsable.
 - Docker/Compose i GitHub Actions amb proves automàtiques i renderitzat FFmpeg curt real.
 
+- Generació opcional de fons amb A1111/Forge, previsualització i registre automàtic de procedència.
+
 ## Posada en marxa
 
 ```bash
-cp .env.example .env
+cp -n .env.example .env
 docker compose up -d --build
 ```
 
@@ -35,11 +37,13 @@ Obri `http://localhost:8000`.
 Per a una instal·lació Python local:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
+
+En Linux Mint, consulta la [instal·lació local i Forge](docs/INSTAL_LINUX_MINT.md). Per obrir els programes amb doble clic, usa els [accessos directes](docs/ACCESSOS_DIRECTES.md).
 
 ## Recursos
 
@@ -128,9 +132,14 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 
 ## Documentació
 
-- `docs/GUIA_US.md`: instal·lació i ús pas a pas.
+- [Guia d’ús](docs/GUIA_US.md).
+- [Linux Mint, Forge i correcció d’errors](docs/INSTAL_LINUX_MINT.md).
+- [Accessos directes en Linux](docs/ACCESSOS_DIRECTES.md).
+- [Generació local: imatges, clips, efectes i música](docs/GENERACIO_LOCAL.md).
+- [Àudios, bucles, procedència i crèdits](docs/AUDIO_I_LLICENCIES.md).
+- [Catàleg de 38 efectes i 20 peces musicals](assets/audio-catalog.json).
 - `docs/arquitectura.md`: components i decisions tècniques.
-- `docs/recursos-i-llicencies.md`: criteris de drets d'ús.
+- `docs/recursos.md`: criteris de drets d'ús.
 - `docs/v0.6.md`: configuració de YouTube.
 - `assets/REGISTRE_RECURSOS.md`: registre pràctic dels recursos emprats.
 
@@ -142,19 +151,21 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 - **v0.4:** perfils de renderitzat, NVIDIA NVENC i fallback automàtic a CPU.
 - **v0.5:** metadades editables, regeneració i paquet de publicació.
 - **v0.6:** publicació opcional a YouTube amb OAuth 2.0.
+- **v0.7:** robustesa i comprovacions prèvies.
+- **v0.8:** ambientacions originals, generació local opcional, previsualització i procedència.
 
 ## Full de ruta
 
-- **v0.7 — Robustesa:** recuperació d'estats després de reinicis, errors i logs més útils, comprovacions prèvies, gestió de fitxers grans i més tests d'integració.
-- **v0.8 — Shorts:** generació de clips verticals 9:16 preparats per a YouTube Shorts i reutilitzables en Reels/TikTok.
-- **v0.9 — Ambientacions originals:** assistència opcional per a generar/importar ambientacions i variants de miniatura, sense convertir la IA en dependència del nucli.
-- **v1.0 — Estable:** migracions de base de dades, còpies/restauració, configuració inicial guiada, revisió de seguretat, documentació i UX final.
+- **v0.9 — Shorts:** clips verticals 9:16.
+- **v1.0 — Estable:** migracions, còpies/restauració, configuració inicial guiada, seguretat i UX.
 
 ## Limitacions actuals
 
 - Un renderitzat interromput per un reinici no es reprén des del punt on estava.
-- La v0.6 no genera encara clips verticals promocionals.
-- La generació d'imatges, vídeo o música amb IA no forma part del nucli actual.
+- Els clips verticals promocionals queden pendents per a v0.9.
+- La IA és opcional. La generació d’imatges té connector A1111/Forge; vídeo, efectes i música generats amb IA encara s’han d’importar manualment.
+- Es mesclen diversos efectes i una peça musical repetida; no hi ha llista musical amb alternança automàtica ni bucles sense costura garantits.
+- Els crèdits dels àudios es copien manualment a la descripció del vídeo.
 - La integració directa de publicació està centrada en YouTube.
 
 ## Drets d'autor
