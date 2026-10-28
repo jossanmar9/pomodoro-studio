@@ -60,6 +60,18 @@ def default_publication(*, theme: str, focus: int, pause: int, duration: int, ti
     return PublicationDraft(title, description, chapters, tags)
 
 
+def _starts_at_zero(chapters: str) -> bool:
+    """Accepta els formats de capítols habituals i el HH:MM:SS generat internament."""
+    lines = [line.strip() for line in chapters.splitlines() if line.strip()]
+    if not lines:
+        return False
+    timestamp = lines[0].split(maxsplit=1)[0]
+    parts = timestamp.split(":")
+    if len(parts) not in {2, 3} or not all(part.isdigit() for part in parts):
+        return False
+    return all(int(part) == 0 for part in parts)
+
+
 def validate_publication(draft: PublicationDraft) -> list[str]:
     errors: list[str] = []
     if not draft.title.strip(): errors.append("El títol és obligatori")
@@ -69,7 +81,7 @@ def validate_publication(draft: PublicationDraft) -> list[str]:
     if draft.language not in {"en", "ca", "es"}: errors.append("Idioma de publicació no admés")
     lines = [line.strip() for line in draft.chapters.splitlines() if line.strip()]
     if not lines: errors.append("Els capítols són obligatoris")
-    elif not re.match(r"^(0:00|00:00)\s+.+", lines[0]): errors.append("Els capítols han de començar en 0:00")
+    elif not _starts_at_zero(draft.chapters): errors.append("Els capítols han de començar en 0:00")
     return errors
 
 
