@@ -57,8 +57,9 @@ def start_render(project_id:int,background:str=Form(...),ambience:list[str]|None
 def render_status(project_id:int):
     job=render_queue.jobs.get(project_id)
     if not job:
-        with SessionLocal() as db: project=db.get(Project,project_id); status=project.status if project else "SENSE_RENDER"
-        return {"status":status,"progress":100 if status=="COMPLETED" else 0}
+        with SessionLocal() as db: project=db.get(Project,project_id)
+        if not project: raise HTTPException(404,"Projecte no trobat")
+        return {"status":project.status,"progress":100 if project.status=="COMPLETED" else 0}
     mapped={"EN_CUA":"QUEUED","GENERANT":"GENERATING","COMPLETAT":"COMPLETED","ERROR":"FAILED","CANCEL·LAT":"CANCELLED"}
     if job.status in mapped:
         with SessionLocal() as db:
