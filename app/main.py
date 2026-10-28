@@ -67,4 +67,9 @@ def render_status(project_id:int):
             if project and project.status!=mapped[job.status]: project.status=mapped[job.status]; db.commit()
     return {"status":job.status,"progress":round(job.progress,1),"elapsed":round(job.elapsed),"eta":round(job.eta) if job.eta is not None else None,"error":job.error,"output":job.output}
 @app.post("/projects/{project_id}/cancel")
-def cancel_render(project_id:int): render_queue.cancel(project_id); return RedirectResponse(f"/projects/{project_id}",status_code=303)
+def cancel_render(project_id:int):
+    if not render_queue.cancel(project_id): raise HTTPException(404,"No hi ha cap renderitzat actiu")
+    with SessionLocal() as db:
+        project=db.get(Project,project_id)
+        if project: project.status="CANCELLED"; db.commit()
+    return RedirectResponse(f"/projects/{project_id}",status_code=303)
