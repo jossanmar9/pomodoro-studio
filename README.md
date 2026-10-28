@@ -2,7 +2,7 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.1 implementada en `develop/v0.1`. El codi queda llest per a la validació local amb Docker/FFmpeg abans de fusionar-lo a `main`.
+> **Estat:** desenvolupament de la v0.1 complet en `develop/v0.1`. Falta executar la checklist local amb Docker/FFmpeg abans de fusionar la PR a `main`.
 
 ## Funcions de la v0.1
 
@@ -47,7 +47,7 @@ docker compose exec pomodoro-studio ffmpeg -version
 docker compose exec pomodoro-studio ffmpeg -filters
 ```
 
-Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. En esta primera prova és suficient un fons sense àudio; així s'aïlla el vídeo i el temporitzador. Quan passe, repetix amb un so ambiental i després amb música.
+Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. En esta primera prova és suficient un fons sense àudio; quan passe, repetix amb un so ambiental i després amb música.
 
 ### Checklist abans de fusionar a main
 
@@ -59,7 +59,7 @@ Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrou
 - FFmpeg genera un `video.mp4` reproduïble i amb la duració esperada.
 - El compte arrere i els canvis de fase són visibles.
 - La barra de progrés arriba al 100 %.
-- Cancel·lar elimina el vídeo parcial.
+- Cancel·lar elimina el vídeo parcial i actualitza l'estat.
 - Els sons ambientals i la música es mesclen correctament.
 - Es creen `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
 
