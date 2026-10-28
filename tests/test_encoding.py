@@ -1,3 +1,4 @@
+from app.services import encoding
 from app.services.encoding import EncodingOptions, select_encoding
 
 
@@ -26,3 +27,21 @@ def test_quality_profiles_change_encoder_arguments():
     assert fast.video_args != quality.video_args
     assert "fast" in fast.video_args
     assert "slow" in quality.video_args
+
+
+def test_nvenc_detection_is_cached(monkeypatch):
+    calls = 0
+
+    def fake_run(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return type("Result", (), {"returncode": 0, "stdout": " h264_nvenc "})()
+        return type("Result", (), {"returncode": 0, "stdout": ""})()
+
+    encoding.clear_encoding_cache()
+    monkeypatch.setattr(encoding.subprocess, "run", fake_run)
+    assert encoding.nvenc_available()
+    assert encoding.nvenc_available()
+    assert calls == 2
+    encoding.clear_encoding_cache()

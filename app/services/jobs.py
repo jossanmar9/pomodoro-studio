@@ -1,4 +1,5 @@
 """Cua simple d'un únic renderitzat concurrent."""
+import logging
 import shutil
 import subprocess
 import threading
@@ -9,9 +10,23 @@ from time import monotonic
 from app.database import SessionLocal
 from app.models import Project, RenderConfig
 from app.services.encoding import EncodingOptions, select_encoding
+from app.services.preflight import check_render_preflight
 from app.services.renderer import RenderSpec, build_ffmpeg_command
 
+logger = logging.getLogger(__name__)
 STATUS_MAP = {"EN_CUA": "QUEUED", "GENERANT": "GENERATING", "COMPLETAT": "COMPLETED", "ERROR": "FAILED", "CANCEL·LAT": "CANCELLED"}
+ACTIVE_DB_STATUSES = {"QUEUED", "GENERATING"}
+
+
+def recover_interrupted_projects() -> int:
+    """Marca com a fallits els treballs que no poden continuar després d'un reinici."""
+    with SessionLocal() as db:
+        projects = db.query(Project).filter(Project.status.in_(ACTIVE_DB_STATUSES)).all()
+        for project in projects:
+            project.status = "FAILED"
+        if projects:
+            db.commit()
+        return len(projects)
 
 
 def _persist_status(project_id: int, status: str) -> None:
@@ -34,10 +49,22 @@ def _persist_engine(project_id: int, engine: str) -> None:
 
 
 def _cleanup_output(output: Path) -> None:
-    output.unlink(missing_ok=True)
+    """Elimina només la carpeta de resultat concreta del treball fallit."""
     folder = output.parent
-    if folder.exists():
-        shutil.rmtree(folder, ignore_errors=True)
+    try:
+        output.unlink(missing_ok=True)
+        if folder.exists() and folder.is_dir():
+            shutil.rmtree(folder)
+    except OSError:
+        logger.exception("No s'ha pogut netejar el resultat parcial %s", folder)
+
+
+def _resource_paths(spec: RenderSpec) -> tuple[Path, ...]:
+    paths = [Path(spec.background)]
+    paths.extend(Path(track.path) for track in spec.ambience)
+    if spec.music:
+        paths.append(Path(spec.music.path))
+    return tuple(paths)
 
 
 @dataclass
@@ -48,6 +75,7 @@ class RenderJob:
     elapsed: float = 0.0
     eta: float | None = None
     error: str | None = None
+    warning: str | None = None
     output: str | None = None
     engine: str | None = None
     fallback_used: bool = False
@@ -71,6 +99,7 @@ class RenderQueue:
             self.jobs[project_id] = job
             self._queue.append((job, spec))
             _persist_status(project_id, job.status)
+            logger.info("Render %s afegit a la cua", project_id)
             if not self._worker or not self._worker.is_alive():
                 self._worker = threading.Thread(target=self._run, daemon=True)
                 self._worker.start()
@@ -81,6 +110,7 @@ class RenderQueue:
         if not job or job.status not in {"EN_CUA", "GENERANT"}:
             return False
         job.cancel_requested = True
+        logger.info("Cancel·lació sol·licitada per al render %s", project_id)
         if job.process and job.process.poll() is None:
             job.process.terminate()
         return True
@@ -122,8 +152,26 @@ class RenderQueue:
 
     def _execute(self, job: RenderJob, spec: RenderSpec) -> None:
         start = monotonic()
+        preflight = check_render_preflight(
+            Path(spec.output).parent,
+            resources=_resource_paths(spec),
+            duration_seconds=spec.timeline.total_seconds,
+            resolution=spec.resolution,
+        )
+        if not preflight.ok:
+            job.status = "ERROR"
+            job.error = "; ".join(preflight.errors)
+            logger.error("Preflight fallit per al render %s: %s", job.project_id, job.error)
+            _cleanup_output(Path(spec.output))
+            _persist_status(job.project_id, job.status)
+            return
+        if preflight.warnings:
+            job.warning = "; ".join(preflight.warnings)
+            logger.warning("Preflight render %s: %s", job.project_id, job.warning)
+
         job.status = "GENERANT"
         _persist_status(job.project_id, job.status)
+        logger.info("Comença el render %s", job.project_id)
         try:
             plan = select_encoding(spec.encoding)
             job.engine = plan.engine
@@ -135,6 +183,7 @@ class RenderQueue:
                 job.engine = "cpu"
                 job.progress = 0.0
                 job.eta = None
+                logger.warning("NVENC ha fallat al render %s; reintent amb CPU", job.project_id)
                 _persist_engine(job.project_id, "cpu")
                 cpu_plan = select_encoding(EncodingOptions("cpu", spec.encoding.quality), has_nvenc=False)
                 returncode, log_tail = self._run_ffmpeg(job, spec, build_ffmpeg_command(spec, plan=cpu_plan), start)
@@ -145,12 +194,15 @@ class RenderQueue:
                 _cleanup_output(Path(spec.output))
             elif returncode == 0:
                 job.status, job.progress, job.eta = "COMPLETAT", 100.0, 0.0
+                logger.info("Render %s completat en %.1f s", job.project_id, job.elapsed)
             else:
                 job.status = "ERROR"
                 job.error = "\n".join(log_tail)[-2000:] or f"FFmpeg ha finalitzat amb codi {returncode}"
+                logger.error("Render %s fallit: %s", job.project_id, job.error)
                 _cleanup_output(Path(spec.output))
         except Exception as exc:
             job.status, job.error = "ERROR", str(exc)
+            logger.exception("Error inesperat al render %s", job.project_id)
             _cleanup_output(Path(spec.output))
         finally:
             job.process = None
