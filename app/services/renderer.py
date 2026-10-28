@@ -10,7 +10,7 @@ class RenderSpec: background:Path; output:Path; resolution:str; timeline:Timelin
 
 def _escape_drawtext(text:str)->str: return text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'")
 def build_timer_filters(timeline:TimelineSummary)->str:
-    """Genera els overlays de fase, compte arrere i sessió segons el temps `t`."""
+    """Genera overlays de fase, compte arrere i sessió amb expressions `t`."""
     filters=[]
     for segment in timeline.segments:
         start,end=segment.start_seconds,segment.end_seconds; minutes=f"floor(({end}-t)/60)"; seconds=f"floor({end}-t)-60*floor(({end}-t)/60)"; timer=f"%{{eif\\:{minutes}\\:d}}\\:%{{eif\\:{seconds}\\:d}}"; phase="CONCENTRACIÓ" if segment.kind.value=="FOCUS" else "DESCANS"; session=f"SESSIÓ {segment.session}"; enable=f"between(t\\,{start}\\,{max(start,end-.001)})"; prefix=f"drawtext=font='{FONT}':"
@@ -20,7 +20,7 @@ def _validate_audio(track:AudioTrack)->None:
     if track.path.suffix.lower() not in SUPPORTED_AUDIO_SUFFIXES: raise ValueError(f"Format d'àudio no compatible: {track.path.suffix}")
     if not 0<=track.volume<=1: raise ValueError("El volum ha d'estar entre 0 i 1")
 def build_ffmpeg_command(spec:RenderSpec)->list[str]:
-    """Construïx una ordre FFmpeg sense shell per a vídeo, overlays i àudio."""
+    """Construïx l'ordre FFmpeg completa sense invocar cap shell."""
     suffix=spec.background.suffix.lower()
     if suffix not in SUPPORTED_IMAGE_SUFFIXES|SUPPORTED_VIDEO_SUFFIXES: raise ValueError(f"Format de fons no compatible: {suffix}")
     try: width,height=(int(value) for value in spec.resolution.lower().split("x",1))
