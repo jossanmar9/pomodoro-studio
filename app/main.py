@@ -54,6 +54,11 @@ def start_render(project_id:int,background:str=Form(...),ambience:list[str]=Form
 def render_status(project_id:int):
     job=render_queue.jobs.get(project_id)
     if not job: return {"status":"SENSE_RENDER","progress":0}
+    mapped={"EN_CUA":"QUEUED","GENERANT":"GENERATING","COMPLETAT":"COMPLETED","ERROR":"FAILED","CANCEL·LAT":"CANCELLED"}
+    if job.status in mapped:
+        with SessionLocal() as db:
+            project=db.get(Project,project_id)
+            if project and project.status!=mapped[job.status]: project.status=mapped[job.status]; db.commit()
     return {"status":job.status,"progress":round(job.progress,1),"elapsed":round(job.elapsed),"eta":round(job.eta) if job.eta is not None else None,"error":job.error,"output":job.output}
 @app.post("/projects/{project_id}/cancel")
 def cancel_render(project_id:int): render_queue.cancel(project_id); return RedirectResponse(f"/projects/{project_id}",status_code=303)
