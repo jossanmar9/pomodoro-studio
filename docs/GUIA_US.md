@@ -67,3 +67,8 @@ docker compose up -d --build
 ```
 
 Abans d'actualitzar una instal·lació amb contingut important, fes còpia de `data/`.
+
+
+## Ambientacions originals opcionals
+
+En la vista del projecte, prepara un prompt manualment o selecciona A1111/Forge si està configurat. Genera, revisa la previsualització, indica nom i llicència i prem **Acceptar com a fons**. Només aleshores s’importa a assets/backgrounds amb procedència i queda seleccionat per al vídeo. Consulta [v0.8](v0.8.md) per a configuració i API.

@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     youtube_client_secrets: Path = Path("./data/youtube-client-secret.json")
     youtube_token_file: Path = Path("./data/youtube-token.json")
+    image_a1111_url: str = ""
+    image_a1111_model: str = ""
+    image_generation_dir: Path = Path("./data/generated-images")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
