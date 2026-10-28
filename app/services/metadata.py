@@ -68,14 +68,14 @@ def validate_publication(draft: PublicationDraft) -> list[str]:
     if len(draft.tags) > MAX_TAGS: errors.append(f"Les etiquetes superen {MAX_TAGS} caràcters")
     if draft.language not in {"en", "ca", "es"}: errors.append("Idioma de publicació no admés")
     lines = [line.strip() for line in draft.chapters.splitlines() if line.strip()]
-    if lines and not re.match(r"^(0:00|00:00)\s+.+", lines[0]): errors.append("Els capítols han de començar en 0:00")
+    if not lines: errors.append("Els capítols són obligatoris")
+    elif not re.match(r"^(0:00|00:00)\s+.+", lines[0]): errors.append("Els capítols han de començar en 0:00")
     return errors
 
 
 def write_publication_files(folder: Path, draft: PublicationDraft, data: dict) -> None:
     errors = validate_publication(draft)
-    if errors:
-        raise ValueError("; ".join(errors))
+    if errors: raise ValueError("; ".join(errors))
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "title.txt").write_text(draft.title.strip() + "\n", encoding="utf-8")
     (folder / "description.txt").write_text(draft.description.rstrip() + "\n", encoding="utf-8")
@@ -96,6 +96,5 @@ def build_publication_zip(folder: Path) -> Path:
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name in PUBLICATION_FILES:
             path = folder / name
-            if path.is_file():
-                archive.write(path, arcname=name)
+            if path.is_file(): archive.write(path, arcname=name)
     return target
