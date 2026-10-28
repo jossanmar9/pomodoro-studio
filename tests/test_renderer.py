@@ -4,7 +4,7 @@ from app.services.renderer import AudioTrack, RenderSpec, build_ffmpeg_command, 
 from app.services.timer import build_timeline
 
 def test_timer_filters_use_timeline_segments():
-    filters=build_timer_filters(build_timeline(1,1,3)); assert "CONCENTRACIÓ" in filters and "DESCANS" in filters and "SESSIÓ 1" in filters; assert "%{eif\\:" in filters and "mod(floor" in filters and "DejaVu Sans" in filters
+    filters=build_timer_filters(build_timeline(1,1,3)); assert "CONCENTRACIÓ" in filters and "DESCANS" in filters and "SESSIÓ 1" in filters; assert "%{eif\\:" in filters and "mod(floor" in filters and "between(t\\," in filters and "DejaVu Sans" in filters
 
 def test_image_background_uses_loop_progress_and_exact_duration():
     timeline=build_timeline(1,1,2); command=build_ffmpeg_command(RenderSpec(Path("assets/backgrounds/prova.jpg"),Path("output/prova.mp4"),"1920x1080",timeline)); assert command[0]=="ffmpeg"; assert "-loop" in command and "-progress" in command; assert command[command.index("-t")+1]=="120"; assert command[-1]=="output/prova.mp4"
