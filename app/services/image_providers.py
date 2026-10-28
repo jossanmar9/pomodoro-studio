@@ -1,9 +1,14 @@
 """Interfície desacoblada per a generadors d'imatges opcionals."""
+import base64
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
+from uuid import uuid4
+
+import httpx
 
 from app.services.ambience_prompt import AmbiencePrompt
+
 
 @dataclass(frozen=True)
 class ImageGenerationRequest:
@@ -11,6 +16,9 @@ class ImageGenerationRequest:
     width: int = 1920
     height: int = 1080
     output_dir: Path | None = None
+    steps: int = 28
+    cfg_scale: float = 6.5
+
 
 @dataclass(frozen=True)
 class GeneratedImage:
@@ -19,11 +27,13 @@ class GeneratedImage:
     model: str = ""
     notes: str = ""
 
+
 class ImageProvider(Protocol):
     name: str
 
     def available(self) -> bool: ...
     def generate(self, request: ImageGenerationRequest) -> GeneratedImage: ...
+
 
 class ManualImageProvider:
     """Mode explícit sense IA: el prompt es copia i la imatge s'importa després."""
@@ -35,6 +45,72 @@ class ManualImageProvider:
     def generate(self, request: ImageGenerationRequest) -> GeneratedImage:
         raise RuntimeError("El mode manual no genera imatges; usa el prompt en l'eina que preferisques i importa el resultat")
 
+
+class A1111ImageProvider:
+    """Connector local compatible amb AUTOMATIC1111 i Forge via /sdapi/v1."""
+    name = "a1111"
+
+    def __init__(self, base_url: str, model: str = "", timeout: float = 180.0):
+        self.base_url = base_url.rstrip("/")
+        self.model = model.strip()
+        self.timeout = timeout
+
+    def available(self) -> bool:
+        if not self.base_url:
+            return False
+        try:
+            response = httpx.get(f"{self.base_url}/sdapi/v1/options", timeout=2.0)
+            return response.status_code < 400
+        except httpx.HTTPError:
+            return False
+
+    def generate(self, request: ImageGenerationRequest) -> GeneratedImage:
+        if not self.base_url:
+            raise RuntimeError("El proveïdor A1111/Forge no està configurat")
+        if request.output_dir is None:
+            raise ValueError("Cal indicar una carpeta d'eixida per a la imatge generada")
+        if not 256 <= request.width <= 2048 or not 256 <= request.height <= 2048:
+            raise ValueError("La mida de generació ha d'estar entre 256 i 2048 píxels")
+        if not 1 <= request.steps <= 100 or not 1 <= request.cfg_scale <= 30:
+            raise ValueError("Paràmetres de generació fora dels límits admesos")
+
+        request.output_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "prompt": request.prompt.positive,
+            "negative_prompt": request.prompt.negative,
+            "width": request.width,
+            "height": request.height,
+            "steps": request.steps,
+            "cfg_scale": request.cfg_scale,
+            "batch_size": 1,
+            "n_iter": 1,
+        }
+        if self.model:
+            payload["override_settings"] = {"sd_model_checkpoint": self.model}
+            payload["override_settings_restore_afterwards"] = True
+
+        try:
+            response = httpx.post(f"{self.base_url}/sdapi/v1/txt2img", json=payload, timeout=self.timeout)
+            response.raise_for_status()
+            data = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise RuntimeError(f"Ha fallat la generació local A1111/Forge: {exc}") from exc
+
+        images = data.get("images") or []
+        if not images:
+            raise RuntimeError("A1111/Forge no ha retornat cap imatge")
+        encoded = images[0].split(",", 1)[-1]
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+        except (ValueError, TypeError) as exc:
+            raise RuntimeError("A1111/Forge ha retornat una imatge no vàlida") from exc
+
+        path = request.output_dir / f"generated-{uuid4().hex[:12]}.png"
+        path.write_bytes(raw)
+        info = data.get("info", "")
+        return GeneratedImage(path=path, provider=self.name, model=self.model, notes=str(info)[:2000])
+
+
 _PROVIDERS: dict[str, ImageProvider] = {"manual": ManualImageProvider()}
 
 
@@ -43,6 +119,14 @@ def register_provider(provider: ImageProvider) -> None:
     if not name or name == "manual":
         raise ValueError("Nom de proveïdor reservat o no vàlid")
     _PROVIDERS[name] = provider
+
+
+def configure_a1111(base_url: str, model: str = "") -> None:
+    """Registra el connector local només quan hi ha una URL configurada."""
+    if base_url.strip():
+        _PROVIDERS["a1111"] = A1111ImageProvider(base_url, model)
+    else:
+        _PROVIDERS.pop("a1111", None)
 
 
 def provider_names() -> tuple[str, ...]:
