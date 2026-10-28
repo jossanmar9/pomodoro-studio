@@ -11,9 +11,15 @@ def test_default_publication_is_ready_for_youtube():
     draft = default_publication(theme="Bosc", focus=25, pause=5, duration=120, timeline=timeline)
     assert draft.title
     assert len(draft.title) <= 100
-    assert draft.chapters.startswith("0:00")
+    assert draft.chapters.startswith("00:00:00")
     assert "pomodoro" in draft.tags.lower()
     assert validate_publication(draft) == []
+
+
+def test_validation_accepts_supported_zero_timestamps():
+    for chapters in ("0:00 Focus", "00:00 Focus", "00:00:00 Focus"):
+        draft = PublicationDraft("Focus", "Description", chapters, "pomodoro", "en")
+        assert validate_publication(draft) == []
 
 
 def test_validation_rejects_limits_and_bad_chapters():
