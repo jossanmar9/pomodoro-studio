@@ -10,7 +10,7 @@ class RenderSpec: background:Path; output:Path; resolution:str; timeline:Timelin
 
 def _escape_drawtext(text:str)->str: return text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'")
 def build_timer_filters(timeline:TimelineSummary)->str:
-    """Crea fase, compte arrere M:SS/ M:S i sessió per a cada segment."""
+    """Crea fase, compte arrere i sessió per a cada segment."""
     filters=[]
     for segment in timeline.segments:
         start,end=segment.start_seconds,segment.end_seconds; remaining=f"floor({end}-t)"; minutes=f"floor(({end}-t)/60)"; seconds=f"{remaining}-60*floor(({end}-t)/60)"; timer=f"%{{eif\\:{minutes}\\:d}}\\:%{{eif\\:{seconds}\\:d}}"; phase="CONCENTRACIÓ" if segment.kind.value=="FOCUS" else "DESCANS"; session=f"SESSIÓ {segment.session}"; enable=f"between(t\\,{start}\\,{max(start,end-.001)})"; prefix=f"drawtext=font='{FONT}':"
