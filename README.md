@@ -8,7 +8,7 @@ Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus
 
 Pomodoro Studio permet crear un projecte, triar una ambientació, configurar intervals de concentració i descans, seleccionar un fons i àudios locals i generar un vídeo amb temporitzador mitjançant FFmpeg.
 
-La interfície i la documentació del projecte estan en valencià. Els títols i descripcions de publicació poden adaptar-se posteriorment al mercat internacional.
+La interfície i la documentació estan en valencià. Els textos de publicació es podran internacionalitzar en versions posteriors.
 
 ## Funcions de la v0.1
 
@@ -19,7 +19,7 @@ La interfície i la documentació del projecte estan en valencià. Els títols i
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua simple d'un renderitzat concurrent.
-- Progrés, estimació de temps i cancel·lació.
+- Barra de progrés actualitzada automàticament, temps transcorregut/estimació i cancel·lació.
 - Historial de projectes en SQLite.
 - Carpetes de resultat sense sobreescriure treballs anteriors.
 - `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
@@ -61,10 +61,8 @@ Els recursos apareixen automàticament en la interfície. El backend resol únic
 3. Tria el fons, els sons ambientals i, opcionalment, música.
 4. Ajusta els volums.
 5. Inicia el renderitzat.
-6. Consulta l'estat del treball o cancel·la'l.
+6. Seguix la barra de progrés o cancel·la el treball.
 7. Troba els fitxers generats dins de `output/`.
-
-Cada treball usa una carpeta semblant a:
 
 ```text
 output/2026-10-28-biblioteca-medieval-001/
@@ -80,7 +78,7 @@ output/2026-10-28-biblioteca-medieval-001/
 
 `app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construeix les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
-FFmpeg s'executa sense `shell=True` i rep els arguments com una llista. La cua inicial executa un únic vídeo cada vegada per evitar saturar la màquina.
+FFmpeg s'executa sense `shell=True`. El progrés s'obté amb l'eixida estructurada de FFmpeg i la interfície el consulta periòdicament. La cua inicial executa un únic vídeo cada vegada per evitar saturar la màquina.
 
 ## Proves
 
@@ -93,7 +91,7 @@ Per a validar el renderitzat real cal tindre FFmpeg instal·lat i almenys un fon
 ## Full de ruta
 
 - **v0.1:** flux mínim complet de projecte i renderitzat.
-- **v0.2:** plantilles d'ambientació i millor panell de progrés.
+- **v0.2:** plantilles d'ambientació i presets reutilitzables.
 - **v0.3:** metadades internacionals i presets de publicació.
 - **v0.4:** NVIDIA NVENC opcional.
 - **v0.5:** generació assistida d'ambientacions originals amb IA.
