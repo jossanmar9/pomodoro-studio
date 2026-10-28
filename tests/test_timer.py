@@ -36,9 +36,19 @@ def test_invalid_values_are_rejected() -> None:
 def test_chapters_match_timeline() -> None:
     chapters = build_chapters(build_timeline(25, 5, 60))
     assert chapters.splitlines() == [
-        "00:00:00 Session 1",
+        "00:00:00 Sessió 1",
+        "00:25:00 Descans",
+        "00:30:00 Sessió 2",
+        "00:55:00 Descans",
+    ]
+
+
+def test_english_chapters_match_timeline() -> None:
+    chapters = build_chapters(build_timeline(25, 5, 60), language="en")
+    assert chapters.splitlines() == [
+        "00:00:00 Focus session 1",
         "00:25:00 Break",
-        "00:30:00 Session 2",
+        "00:30:00 Focus session 2",
         "00:55:00 Break",
     ]
 
