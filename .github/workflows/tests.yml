@@ -9,6 +9,8 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: Baixa el codi
         uses: actions/checkout@v4
@@ -22,4 +24,4 @@ jobs:
       - name: Instal·la dependències
         run: pip install -r requirements.txt
       - name: Executa proves unitàries i renderitzat curt
-        run: pytest -q
+        run: python -m pytest -q
