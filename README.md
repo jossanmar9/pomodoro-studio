@@ -18,7 +18,7 @@ Pomodoro Studio permet crear un projecte, triar una ambientació, configurar int
 - Cua d'un renderitzat concurrent, barra de progrés, estimació i cancel·lació.
 - Historial de projectes i estat final del renderitzat en SQLite.
 - Resultats sense sobreescriure: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
-- Miniatura 1280×720 automàtica.
+- Miniatura 1280×720 automàtica i neteja de la carpeta si falla la preparació inicial.
 - Docker i Docker Compose, amb FFmpeg i DejaVu instal·lats al contenidor.
 - Tests del timeline, FFmpeg i metadades.
 
