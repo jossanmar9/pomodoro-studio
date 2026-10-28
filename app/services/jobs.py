@@ -12,6 +12,18 @@ from app.services.encoding import EncodingOptions, select_encoding
 from app.services.renderer import RenderSpec, build_ffmpeg_command
 
 STATUS_MAP = {"EN_CUA": "QUEUED", "GENERANT": "GENERATING", "COMPLETAT": "COMPLETED", "ERROR": "FAILED", "CANCEL·LAT": "CANCELLED"}
+ACTIVE_DB_STATUSES = {"QUEUED", "GENERATING"}
+
+
+def recover_interrupted_projects() -> int:
+    """Marca com a fallits els treballs que no poden continuar després d'un reinici."""
+    with SessionLocal() as db:
+        projects = db.query(Project).filter(Project.status.in_(ACTIVE_DB_STATUSES)).all()
+        for project in projects:
+            project.status = "FAILED"
+        if projects:
+            db.commit()
+        return len(projects)
 
 
 def _persist_status(project_id: int, status: str) -> None:
