@@ -9,11 +9,11 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import SessionLocal, init_db
-from app.models import Preset, Project, RenderConfig
+from app.models import Preset, Project, PublicationMetadata, RenderConfig
 from app.services.assets import catalog, resolve_asset
 from app.services.encoding import ENGINES, QUALITY_PROFILES, EncodingOptions, nvenc_available
 from app.services.jobs import render_queue
-from app.services.metadata import create_output_dir, write_metadata
+from app.services.metadata import PublicationDraft, build_publication_zip, create_output_dir, default_publication, validate_publication, write_metadata
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
@@ -21,14 +21,13 @@ from app.themes import THEMES, publication_theme
 
 RESOLUTIONS = {"1920x1080", "2560x1440"}
 STATUSES = {"DRAFT", "QUEUED", "GENERATING", "COMPLETED", "FAILED", "CANCELLED"}
-OUTPUT_FILES = {"video.mp4", "thumbnail.jpg", "title.txt", "description.txt", "chapters.txt", "metadata.json"}
+OUTPUT_FILES = {"video.mp4", "thumbnail.jpg", "title.txt", "description.txt", "chapters.txt", "tags.txt", "metadata.json", "publication-package.zip"}
 
 
 def validate_project_config(theme: str, focus_minutes: int, break_minutes: int, duration_minutes: int, resolution: str) -> None:
     if theme not in THEMES: raise HTTPException(400, "Ambientació no vàlida")
     if resolution not in RESOLUTIONS: raise HTTPException(400, "Resolució no vàlida")
-    if not 1 <= focus_minutes <= 180 or not 0 <= break_minutes <= 60 or not 1 <= duration_minutes <= 720:
-        raise HTTPException(400, "Configuració Pomodoro fora dels límits admesos")
+    if not 1 <= focus_minutes <= 180 or not 0 <= break_minutes <= 60 or not 1 <= duration_minutes <= 720: raise HTTPException(400, "Configuració Pomodoro fora dels límits admesos")
     build_timeline(focus_minutes, break_minutes, duration_minutes)
 
 
@@ -37,6 +36,13 @@ def output_file(project: Project, filename: str) -> Path:
     root = Path(project.output_path).resolve(); path = (root / filename).resolve()
     if path.parent != root or not path.is_file(): raise HTTPException(404, "Fitxer no disponible")
     return path
+
+
+def publication_for(project: Project, saved: PublicationMetadata | None) -> PublicationDraft:
+    timeline = build_timeline(project.focus_minutes, project.break_minutes, project.duration_minutes)
+    if saved:
+        return PublicationDraft(saved.title, saved.description, saved.chapters, saved.tags, saved.language)
+    return default_publication(theme=project.theme, focus=project.focus_minutes, pause=project.break_minutes, duration=project.duration_minutes, timeline=timeline)
 
 
 @asynccontextmanager
@@ -112,9 +118,10 @@ def duplicate_project(project_id:int):
         if not source: raise HTTPException(404,"Projecte no trobat")
         duplicate=Project(theme=source.theme,focus_minutes=source.focus_minutes,break_minutes=source.break_minutes,duration_minutes=source.duration_minutes,resolution=source.resolution); db.add(duplicate); db.commit(); db.refresh(duplicate)
         source_config=db.query(RenderConfig).filter(RenderConfig.project_id==source.id).first()
-        if source_config:
-            db.add(RenderConfig(project_id=duplicate.id,engine=source_config.engine,quality=source_config.quality)); db.commit()
-        duplicate_id=duplicate.id
+        if source_config: db.add(RenderConfig(project_id=duplicate.id,engine=source_config.engine,quality=source_config.quality))
+        source_meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==source.id).first()
+        if source_meta: db.add(PublicationMetadata(project_id=duplicate.id,title=source_meta.title,description=source_meta.description,chapters=source_meta.chapters,tags=source_meta.tags,language=source_meta.language))
+        db.commit(); duplicate_id=duplicate.id
     return RedirectResponse(f"/projects/{duplicate_id}",303)
 
 @app.get("/projects/{project_id}",response_class=HTMLResponse)
@@ -122,11 +129,47 @@ def project_view(project_id:int,request:Request):
     with SessionLocal() as db:
         project=db.get(Project,project_id)
         if not project: raise HTTPException(404,"Projecte no trobat")
-        render_config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
+        render_config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first(); saved_meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first()
+        publication=publication_for(project,saved_meta)
     timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); available_outputs=[]
     if project.output_path:
         root=Path(project.output_path); available_outputs=[name for name in OUTPUT_FILES if (root/name).is_file()]
-    return templates.TemplateResponse(request,"project.html",{"project":project,"timeline":timeline,"chapters":build_chapters(timeline),"duration":format_timestamp(timeline.total_seconds),"focus_total":timeline.focus_seconds//60,"break_total":timeline.break_seconds//60,"assets":catalog(),"job":render_queue.jobs.get(project_id),"themes":list(THEMES),"available_outputs":sorted(available_outputs),"render_config":render_config,"nvenc_available":nvenc_available()})
+    return templates.TemplateResponse(request,"project.html",{"project":project,"timeline":timeline,"chapters":build_chapters(timeline),"duration":format_timestamp(timeline.total_seconds),"focus_total":timeline.focus_seconds//60,"break_total":timeline.break_seconds//60,"assets":catalog(),"job":render_queue.jobs.get(project_id),"themes":list(THEMES),"available_outputs":sorted(available_outputs),"render_config":render_config,"nvenc_available":nvenc_available(),"publication":publication,"publication_errors":validate_publication(publication)})
+
+@app.post("/projects/{project_id}/publication")
+def save_publication(project_id:int,title:str=Form(...),description:str=Form(""),chapters:str=Form(""),tags:str=Form(""),language:str=Form("en")):
+    draft=PublicationDraft(title.strip(),description,chapters,tags,language); errors=validate_publication(draft)
+    if errors: raise HTTPException(400,"; ".join(errors))
+    with SessionLocal() as db:
+        project=db.get(Project,project_id)
+        if not project: raise HTTPException(404,"Projecte no trobat")
+        saved=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first()
+        if not saved: saved=PublicationMetadata(project_id=project_id); db.add(saved)
+        saved.title=draft.title; saved.description=draft.description; saved.chapters=draft.chapters; saved.tags=draft.tags; saved.language=draft.language; db.commit()
+        output_path=project.output_path
+    if output_path:
+        timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes)
+        write_metadata(Path(output_path),theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline,draft=draft)
+    return RedirectResponse(f"/projects/{project_id}",303)
+
+@app.post("/projects/{project_id}/publication/regenerate")
+def regenerate_publication(project_id:int):
+    with SessionLocal() as db:
+        project=db.get(Project,project_id)
+        if not project or not project.output_path: raise HTTPException(404,"No hi ha cap resultat per regenerar")
+        saved=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first(); draft=publication_for(project,saved)
+    timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes)
+    write_metadata(Path(project.output_path),theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline,draft=draft)
+    return RedirectResponse(f"/projects/{project_id}",303)
+
+@app.get("/projects/{project_id}/publication/package")
+def publication_package(project_id:int):
+    with SessionLocal() as db: project=db.get(Project,project_id)
+    if not project or not project.output_path: raise HTTPException(404,"Paquet no disponible")
+    folder=Path(project.output_path).resolve()
+    if not folder.is_dir(): raise HTTPException(404,"Paquet no disponible")
+    path=build_publication_zip(folder)
+    return FileResponse(path,filename=f"pomodoro-studio-{project_id}-publication.zip",media_type="application/zip")
 
 @app.get("/projects/{project_id}/files/{filename}")
 def project_output(project_id:int,filename:str):
@@ -141,21 +184,22 @@ def start_render(project_id:int,background:str=Form(...),ambience:list[str]|None
     if not 0<=ambience_volume<=1 or not 0<=music_volume<=1: raise HTTPException(400,"Els volums han d'estar entre 0 i 1")
     if engine not in ENGINES: raise HTTPException(400,"Motor de renderitzat no vàlid")
     if quality not in QUALITY_PROFILES: raise HTTPException(400,"Perfil de qualitat no vàlid")
-    with SessionLocal() as db: project=db.get(Project,project_id)
+    with SessionLocal() as db:
+        project=db.get(Project,project_id); saved_meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first() if project else None
+        if project: draft=publication_for(project,saved_meta)
     if not project: raise HTTPException(404,"Projecte no trobat")
     try:
         bg=resolve_asset("backgrounds",background); amb=[AudioTrack(resolve_asset("ambience",n),ambience_volume) for n in (ambience or [])]; mus=AudioTrack(resolve_asset("music",music),music_volume) if music else None
     except ValueError as exc: raise HTTPException(400,str(exc)) from exc
     timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); folder=create_output_dir(project.id,project.theme)
     try:
-        write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline)
+        write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline,draft=draft)
         generate_thumbnail(bg,folder/"thumbnail.jpg",f"{publication_theme(project.theme).upper()} - {project.duration_minutes} MIN - {project.focus_minutes}/{project.break_minutes}")
     except Exception as exc:
         shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
     with SessionLocal() as db:
         saved=db.get(Project,project_id); config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
-        if not config:
-            config=RenderConfig(project_id=project_id); db.add(config)
+        if not config: config=RenderConfig(project_id=project_id); db.add(config)
         config.engine=engine; config.quality=quality; config.actual_engine=None; saved.status="QUEUED"; saved.output_path=str(folder); db.commit()
     render_queue.enqueue(project.id,RenderSpec(bg,folder/"video.mp4",project.resolution,timeline,ambience=amb,music=mus,encoding=EncodingOptions(engine,quality)))
     return RedirectResponse(f"/projects/{project_id}",303)
@@ -164,8 +208,7 @@ def start_render(project_id:int,background:str=Form(...),ambience:list[str]|None
 def render_status(project_id:int):
     job=render_queue.jobs.get(project_id)
     if not job:
-        with SessionLocal() as db:
-            project=db.get(Project,project_id); config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
+        with SessionLocal() as db: project=db.get(Project,project_id); config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
         if not project: raise HTTPException(404,"Projecte no trobat")
         return {"status":project.status,"progress":100 if project.status=="COMPLETED" else 0,"engine":config.actual_engine if config else None}
     return {"status":job.status,"progress":round(job.progress,1),"elapsed":round(job.elapsed),"eta":round(job.eta) if job.eta is not None else None,"error":job.error,"output":job.output,"engine":job.engine,"fallback_used":job.fallback_used}
