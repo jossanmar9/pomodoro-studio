@@ -12,6 +12,7 @@ from app.services.assets import catalog, resolve_asset
 from app.services.jobs import render_queue
 from app.services.metadata import create_output_dir, write_metadata
 from app.services.renderer import AudioTrack, RenderSpec
+from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 
 @asynccontextmanager
@@ -39,18 +40,14 @@ def create_project(theme: str = Form(...), focus_minutes: int = Form(25), break_
     build_timeline(focus_minutes, break_minutes, duration_minutes)
     with SessionLocal() as db:
         project = Project(theme=theme, focus_minutes=focus_minutes, break_minutes=break_minutes, duration_minutes=duration_minutes, resolution=resolution)
-        db.add(project)
-        db.commit()
-        db.refresh(project)
-        project_id = project.id
+        db.add(project); db.commit(); db.refresh(project); project_id = project.id
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 def project_view(project_id: int, request: Request):
     with SessionLocal() as db:
         project = db.get(Project, project_id)
-    if not project:
-        raise HTTPException(404, "Projecte no trobat")
+    if not project: raise HTTPException(404, "Projecte no trobat")
     timeline = build_timeline(project.focus_minutes, project.break_minutes, project.duration_minutes)
     return templates.TemplateResponse(request, "project.html", {"project": project, "timeline": timeline, "chapters": build_chapters(timeline), "duration": format_timestamp(timeline.total_seconds), "focus_total": timeline.focus_seconds // 60, "break_total": timeline.break_seconds // 60, "assets": catalog(), "job": render_queue.jobs.get(project_id)})
 
@@ -58,8 +55,7 @@ def project_view(project_id: int, request: Request):
 def start_render(project_id: int, background: str = Form(...), ambience: list[str] = Form(default=[]), music: str = Form(""), ambience_volume: float = Form(0.25), music_volume: float = Form(0.12)):
     with SessionLocal() as db:
         project = db.get(Project, project_id)
-    if not project:
-        raise HTTPException(404, "Projecte no trobat")
+    if not project: raise HTTPException(404, "Projecte no trobat")
     try:
         bg = resolve_asset("backgrounds", background)
         amb = [AudioTrack(resolve_asset("ambience", name), ambience_volume) for name in ambience]
@@ -69,20 +65,20 @@ def start_render(project_id: int, background: str = Form(...), ambience: list[st
     timeline = build_timeline(project.focus_minutes, project.break_minutes, project.duration_minutes)
     folder = create_output_dir(project.id, project.theme)
     write_metadata(folder, theme=project.theme, focus=project.focus_minutes, pause=project.break_minutes, duration=project.duration_minutes, resolution=project.resolution, timeline=timeline)
+    try:
+        generate_thumbnail(bg, folder / "thumbnail.jpg", f"{project.theme.upper()} · {project.duration_minutes} MIN · {project.focus_minutes}/{project.break_minutes}")
+    except Exception:
+        pass
     spec = RenderSpec(bg, folder / "video.mp4", project.resolution, timeline, ambience=amb, music=mus)
     render_queue.enqueue(project.id, spec)
     with SessionLocal() as db:
-        saved = db.get(Project, project_id)
-        saved.status = "QUEUED"
-        saved.output_path = str(folder)
-        db.commit()
+        saved = db.get(Project, project_id); saved.status = "QUEUED"; saved.output_path = str(folder); db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
 @app.get("/api/projects/{project_id}/render")
 def render_status(project_id: int):
     job = render_queue.jobs.get(project_id)
-    if not job:
-        return {"status": "SENSE_RENDER", "progress": 0}
+    if not job: return {"status": "SENSE_RENDER", "progress": 0}
     return {"status": job.status, "progress": round(job.progress, 1), "elapsed": round(job.elapsed), "eta": round(job.eta) if job.eta is not None else None, "error": job.error, "output": job.output}
 
 @app.post("/projects/{project_id}/cancel")
