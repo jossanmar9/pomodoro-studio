@@ -2,7 +2,7 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.1 implementada en `develop/v0.1`. Pendent de la primera validació local amb Docker/FFmpeg abans de fusionar-la a `main`.
+> **Estat:** v0.1 implementada en `develop/v0.1`. El codi queda llest per a la validació local amb Docker/FFmpeg abans de fusionar-lo a `main`.
 
 ## Funcions de la v0.1
 
