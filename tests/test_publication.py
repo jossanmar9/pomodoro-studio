@@ -22,6 +22,11 @@ def test_validation_rejects_limits_and_bad_chapters():
     assert len(errors) == 5
 
 
+def test_validation_requires_chapters():
+    draft = PublicationDraft("Focus", "Description", "", "pomodoro", "en")
+    assert "Els capítols són obligatoris" in validate_publication(draft)
+
+
 def test_write_publication_files_keeps_editable_values(tmp_path: Path):
     draft = PublicationDraft("My title", "My description", "0:00 Focus", "pomodoro, focus", "en")
     write_publication_files(tmp_path, draft, {"tema": "Bosc"})
