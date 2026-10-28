@@ -47,7 +47,7 @@ docker compose exec pomodoro-studio ffmpeg -version
 docker compose exec pomodoro-studio ffmpeg -filters
 ```
 
-Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Després prova l'àudio i finalment una sessió llarga.
+Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. En esta primera prova és suficient un fons sense àudio; així s'aïlla el vídeo i el temporitzador. Quan passe, repetix amb un so ambiental i després amb música.
 
 ### Checklist abans de fusionar a main
 
