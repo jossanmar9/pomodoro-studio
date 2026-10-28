@@ -1,4 +1,12 @@
 import base64
+from io import BytesIO
+from PIL import Image
+
+def png_bytes():
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
 from pathlib import Path
 import pytest
 
@@ -20,7 +28,7 @@ class FakeResponse:
     status_code = 200
     def raise_for_status(self): return None
     def json(self):
-        return {"images": [base64.b64encode(b"fake-png").decode()], "info": "ok"}
+        return {"images": [base64.b64encode(png_bytes()).decode()], "info": "ok"}
 
 
 def test_manual_provider_is_always_present():
@@ -52,7 +60,7 @@ def test_a1111_generation_writes_returned_image(tmp_path, monkeypatch):
         AmbiencePrompt("original library", "logos", ()),
         width=1024, height=576, output_dir=tmp_path,
     ))
-    assert result.path.read_bytes() == b"fake-png"
+    assert result.path.read_bytes() == png_bytes()
     assert result.provider == "a1111"
     assert result.model == "model.safetensors"
     assert calls["json"]["prompt"] == "original library"
@@ -71,3 +79,14 @@ def test_configure_a1111_is_optional():
     assert "a1111" in provider_names()
     configure_a1111("")
     assert "a1111" not in provider_names()
+
+
+
+@pytest.mark.parametrize("payload", [[], {"images": "bad"}, {"images": [None]}, {"images": ["!!!"]}, {"images": [base64.b64encode(b"not png").decode()]}, {"images": []}])
+def test_a1111_invalid_response_does_not_write_files(tmp_path, monkeypatch, payload):
+    response = FakeResponse()
+    monkeypatch.setattr(response, "json", lambda: payload)
+    monkeypatch.setattr("app.services.image_providers.httpx.post", lambda *a, **k: response)
+    with pytest.raises(RuntimeError):
+        A1111ImageProvider("http://localhost").generate(ImageGenerationRequest(AmbiencePrompt("scene", "", ()), output_dir=tmp_path))
+    assert not list(tmp_path.iterdir())

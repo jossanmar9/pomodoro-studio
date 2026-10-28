@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.services.ambience_web import router as ambience_router
 from app.config import settings
 from app.database import SessionLocal, init_db
 from app.models import Preset, Project, PublicationMetadata, RenderConfig, YouTubePublication
@@ -181,3 +182,6 @@ def render_status(project_id:int):
 def cancel_render(project_id:int):
     if not render_queue.cancel(project_id): raise HTTPException(404,"No hi ha cap renderitzat actiu")
     return RedirectResponse(f"/projects/{project_id}",303)
+
+
+app.include_router(ambience_router)

@@ -1,5 +1,7 @@
 """Interfície desacoblada per a generadors d'imatges opcionals."""
 import base64
+from io import BytesIO
+from PIL import Image, UnidentifiedImageError
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -70,11 +72,22 @@ class A1111ImageProvider:
             response = httpx.post(f"{self.base_url}/sdapi/v1/txt2img", json=payload, timeout=self.timeout); response.raise_for_status(); data = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise RuntimeError(f"Ha fallat la generació local A1111/Forge: {exc}") from exc
+        if not isinstance(data, dict): raise RuntimeError("Resposta A1111/Forge no vàlida")
         images = data.get("images") or []
+        if not isinstance(images, list): raise RuntimeError("Resposta A1111/Forge no vàlida")
         if not images: raise RuntimeError("A1111/Forge no ha retornat cap imatge")
         try: raw = base64.b64decode(images[0].split(",", 1)[-1], validate=True)
-        except (ValueError, TypeError) as exc: raise RuntimeError("A1111/Forge ha retornat una imatge no vàlida") from exc
-        path = request.output_dir / f"generated-{uuid4().hex[:12]}.png"; path.write_bytes(raw)
+        except (ValueError, TypeError, AttributeError) as exc: raise RuntimeError("A1111/Forge ha retornat una imatge no vàlida") from exc
+        try:
+            if len(raw) > 32 * 1024 * 1024: raise ValueError("Imatge massa gran")
+            with Image.open(BytesIO(raw)) as image:
+                if image.format != "PNG" or image.width * image.height > 16777216:
+                    raise ValueError("Format o mida no admés")
+                image.verify()
+        except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError) as exc:
+            raise RuntimeError("A1111/Forge ha retornat una imatge no vàlida") from exc
+        path = request.output_dir / f"generated-{uuid4().hex[:12]}.png"; 
+        with path.open("xb") as f: f.write(raw)
         return GeneratedImage(path=path, provider=self.name, model=self.model, notes=str(data.get("info", ""))[:2000])
 
 
@@ -110,3 +123,4 @@ def generate_image(provider_name: str, prompt: AmbiencePrompt, *, width: int = 1
 
 
 configure_a1111(settings.image_a1111_url, settings.image_a1111_model)
+

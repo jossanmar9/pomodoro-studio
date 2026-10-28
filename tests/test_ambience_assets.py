@@ -42,3 +42,14 @@ def test_import_does_not_overwrite(tmp_path: Path):
     import_background(source, assets, "same", provenance)
     with pytest.raises(ValueError, match="existeix"):
         import_background(source, assets, "same", provenance)
+
+
+
+def test_orphan_metadata_is_not_overwritten(tmp_path):
+    source = tmp_path / "generated.png"; source.write_bytes(b"png")
+    assets = tmp_path / "assets"; assets.mkdir()
+    metadata = assets / "same.png.json"; metadata.write_text("original")
+    with pytest.raises(ValueError, match="existeix"):
+        import_background(source, assets, "same", AssetProvenance(prompt="x"))
+    assert metadata.read_text() == "original"
+    assert not (assets / "same.png").exists()

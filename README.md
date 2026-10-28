@@ -160,3 +160,8 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 ## Drets d'autor
 
 Pomodoro Studio està dissenyat per a contingut original o correctament llicenciat. No descarrega ni republica vídeos de tercers, música protegida o elements de franquícies sense autorització. Evita usar noms, personatges, logotips o altres elements distintius de franquícies com a substitut d'una ambientació original.
+
+
+### Generació opcional d’ambientacions
+
+La vista del projecte permet generar amb A1111/Forge, previsualitzar i acceptar explícitament un resultat com a fons amb metadades de procedència. El mode manual continua disponible sense IA. Vegeu [v0.8](docs/v0.8.md).
