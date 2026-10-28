@@ -10,7 +10,7 @@ Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus
 - Interfície i documentació en valencià.
 - Historial de projectes reobrible.
 - Fons JPG, JPEG, PNG, WebP, MP4, MOV, MKV o WebM en bucle.
-- Temporitzador de minuts i segons, fase i número de sessió sobre el vídeo.
+- Compte arrere de minuts i segons, fase i número de sessió sobre el vídeo.
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua d'un treball, protecció contra dobles enviaments, barra de progrés, estimació i cancel·lació.
