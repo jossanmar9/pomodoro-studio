@@ -19,7 +19,7 @@ Pomodoro Studio permet crear un projecte, triar una ambientació, configurar int
 - Historial de projectes en SQLite.
 - Resultats sense sobreescriure: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
 - Miniatura 1280×720 automàtica.
-- Docker i Docker Compose.
+- Docker i Docker Compose, amb FFmpeg i DejaVu instal·lats al contenidor.
 - Tests del timeline, FFmpeg i metadades.
 
 ## Tecnologia
@@ -27,8 +27,6 @@ Pomodoro Studio permet crear un projecte, triar una ambientació, configurar int
 Python 3.12+ · FastAPI · Jinja2 · SQLAlchemy · SQLite · FFmpeg · Docker
 
 ## Posada en marxa
-
-Amb Docker només cal:
 
 ```bash
 docker compose up -d --build
