@@ -53,3 +53,12 @@ def test_publication_zip_only_adds_existing_known_files(tmp_path: Path):
     assert "title.txt" in names
     assert "thumbnail.jpg" in names
     assert "secret.txt" not in names
+
+
+def test_publication_zip_does_not_recompress_mp4(tmp_path: Path):
+    (tmp_path / "video.mp4").write_bytes(b"fake-video" * 100)
+    (tmp_path / "title.txt").write_text("Focus", encoding="utf-8")
+    archive = build_publication_zip(tmp_path)
+    with zipfile.ZipFile(archive) as zf:
+        assert zf.getinfo("video.mp4").compress_type == zipfile.ZIP_STORED
+        assert zf.getinfo("title.txt").compress_type == zipfile.ZIP_DEFLATED
