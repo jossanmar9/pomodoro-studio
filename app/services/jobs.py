@@ -7,16 +7,11 @@ from pathlib import Path
 from time import monotonic
 
 from app.database import SessionLocal
-from app.models import Project
+from app.models import Project, RenderConfig
+from app.services.encoding import EncodingOptions, select_encoding
 from app.services.renderer import RenderSpec, build_ffmpeg_command
 
-STATUS_MAP = {
-    "EN_CUA": "QUEUED",
-    "GENERANT": "GENERATING",
-    "COMPLETAT": "COMPLETED",
-    "ERROR": "FAILED",
-    "CANCEL·LAT": "CANCELLED",
-}
+STATUS_MAP = {"EN_CUA": "QUEUED", "GENERANT": "GENERATING", "COMPLETAT": "COMPLETED", "ERROR": "FAILED", "CANCEL·LAT": "CANCELLED"}
 
 
 def _persist_status(project_id: int, status: str) -> None:
@@ -30,8 +25,15 @@ def _persist_status(project_id: int, status: str) -> None:
             db.commit()
 
 
+def _persist_engine(project_id: int, engine: str) -> None:
+    with SessionLocal() as db:
+        config = db.query(RenderConfig).filter(RenderConfig.project_id == project_id).first()
+        if config:
+            config.actual_engine = engine
+            db.commit()
+
+
 def _cleanup_output(output: Path) -> None:
-    """Elimina una eixida parcial i, si és possible, la carpeta preparada."""
     output.unlink(missing_ok=True)
     folder = output.parent
     if folder.exists():
@@ -47,6 +49,8 @@ class RenderJob:
     eta: float | None = None
     error: str | None = None
     output: str | None = None
+    engine: str | None = None
+    fallback_used: bool = False
     cancel_requested: bool = False
     process: subprocess.Popen[str] | None = field(default=None, repr=False)
 
@@ -94,39 +98,47 @@ class RenderQueue:
                 continue
             self._execute(job, spec)
 
+    def _run_ffmpeg(self, job: RenderJob, spec: RenderSpec, command: list[str], start: float) -> tuple[int, list[str]]:
+        command[1:1] = ["-loglevel", "error"]
+        job.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        assert job.process.stdout is not None
+        log_tail: list[str] = []
+        for raw in job.process.stdout:
+            line = raw.strip()
+            log_tail = (log_tail + [line])[-40:]
+            key, _, value = line.partition("=")
+            if key in {"out_time_us", "out_time_ms"}:
+                try:
+                    seconds = int(value) / 1_000_000
+                    job.progress = min(100.0, seconds / spec.timeline.total_seconds * 100)
+                    job.elapsed = monotonic() - start
+                    if job.progress > 0:
+                        job.eta = max(0.0, job.elapsed * (100 - job.progress) / job.progress)
+                except ValueError:
+                    pass
+            if job.cancel_requested and job.process.poll() is None:
+                job.process.terminate()
+        return job.process.wait(), log_tail
+
     def _execute(self, job: RenderJob, spec: RenderSpec) -> None:
         start = monotonic()
         job.status = "GENERANT"
         _persist_status(job.project_id, job.status)
         try:
-            command = build_ffmpeg_command(spec)
-            command[1:1] = ["-loglevel", "error"]
-            job.process = subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-            assert job.process.stdout is not None
-            log_tail: list[str] = []
-            for raw in job.process.stdout:
-                line = raw.strip()
-                log_tail.append(line)
-                log_tail = log_tail[-40:]
-                key, _, value = line.partition("=")
-                if key in {"out_time_us", "out_time_ms"}:
-                    try:
-                        seconds = int(value) / 1_000_000
-                        job.progress = min(100.0, seconds / spec.timeline.total_seconds * 100)
-                        job.elapsed = monotonic() - start
-                        if job.progress > 0:
-                            job.eta = max(0.0, job.elapsed * (100 - job.progress) / job.progress)
-                    except ValueError:
-                        pass
-                if job.cancel_requested and job.process.poll() is None:
-                    job.process.terminate()
-            returncode = job.process.wait()
+            plan = select_encoding(spec.encoding)
+            job.engine = plan.engine
+            _persist_engine(job.project_id, plan.engine)
+            returncode, log_tail = self._run_ffmpeg(job, spec, build_ffmpeg_command(spec, plan=plan), start)
+
+            if returncode != 0 and not job.cancel_requested and plan.engine == "nvenc":
+                job.fallback_used = True
+                job.engine = "cpu"
+                job.progress = 0.0
+                job.eta = None
+                _persist_engine(job.project_id, "cpu")
+                cpu_plan = select_encoding(EncodingOptions("cpu", spec.encoding.quality), has_nvenc=False)
+                returncode, log_tail = self._run_ffmpeg(job, spec, build_ffmpeg_command(spec, plan=cpu_plan), start)
+
             job.elapsed = monotonic() - start
             if job.cancel_requested:
                 job.status = "CANCEL·LAT"
