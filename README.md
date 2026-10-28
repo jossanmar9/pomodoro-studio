@@ -2,32 +2,34 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** desenvolupament de la v0.1 complet en `develop/v0.1`. Falta executar la checklist local amb Docker/FFmpeg abans de fusionar la PR a `main`.
+> **Estat:** v0.1 funcional en `develop/v0.1`, amb proves automàtiques i prova d'integració real de FFmpeg abans de fusionar a `main`.
 
-## Funcions de la v0.1
+## Què fa la v0.1
 
 - Projectes Pomodoro 25/5, 50/10 o personalitzats, amb duració configurable.
-- Interfície i documentació en valencià.
-- Historial de projectes reobrible.
+- Interfície, README i documentació en valencià.
+- Historial de projectes reobrible amb SQLite.
 - Fons JPG, JPEG, PNG, WebP, MP4, MOV, MKV o WebM en bucle.
 - Compte arrere MM:SS, fase i número de sessió sobre el vídeo.
-- Sons ambientals múltiples i música opcional amb volum independent.
+- Sons ambientals múltiples i música opcional amb control de volum.
 - Renderitzat H.264/AAC amb FFmpeg.
 - Cua d'un treball, protecció contra dobles enviaments, barra de progrés, estimació i cancel·lació.
-- Estat final sincronitzat amb SQLite i recuperable després de reiniciar la web.
 - Miniatura 1280×720 automàtica.
-- Fitxers finals: vídeo, miniatura, títol, descripció, capítols i metadata JSON.
-- Noms de carpeta segurs i únics, validació de paràmetres i recursos restringits a assets.
+- `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
+- Metadades públiques en anglés per defecte i interfície interna en valencià.
+- Noms de carpeta segurs i únics i recursos restringits a `assets/`.
+- Registre de llicències dels recursos per a facilitar un ús monetitzable responsable.
 - Docker i Docker Compose amb FFmpeg i DejaVu.
-- Tests del timeline, FFmpeg i metadades.
+- GitHub Actions amb proves unitàries i un renderitzat FFmpeg curt real.
 
 ## Posada en marxa
 
 ```bash
+cp .env.example .env
 docker compose up -d --build
 ```
 
-Obri `http://localhost:8000`. El fitxer `.env` és opcional.
+Obri `http://localhost:8000`.
 
 ## Recursos
 
@@ -38,30 +40,17 @@ assets/music/         # música opcional
 assets/fonts/         # tipografies pròpies o compatibles
 ```
 
-## Primera prova recomanada
+Abans de publicar o monetitzar un vídeo, registra l'origen i la llicència de cada recurs en `assets/REGISTRE_RECURSOS.md`.
 
-```bash
-docker compose up -d --build
-docker compose exec pomodoro-studio pytest
-docker compose exec pomodoro-studio ffmpeg -version
-docker compose exec pomodoro-studio ffmpeg -filters
-```
+## Flux d'ús
 
-Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. En esta primera prova és suficient un fons sense àudio; quan passe, repetix amb un so ambiental i després amb música.
-
-### Checklist abans de fusionar a main
-
-- Tests verds.
-- Contenidor arranca sense `.env`.
-- La web obri i permet crear/reobrir projectes.
-- Es detecta el fons d'`assets/backgrounds/`.
-- Es genera `thumbnail.jpg`.
-- FFmpeg genera un `video.mp4` reproduïble i amb la duració esperada.
-- El compte arrere i els canvis de fase són visibles.
-- La barra de progrés arriba al 100 %.
-- Cancel·lar elimina el vídeo parcial i actualitza l'estat.
-- Els sons ambientals i la música es mesclen correctament.
-- Es creen `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
+1. Afig els recursos multimèdia a `assets/`.
+2. Crea un projecte des de la web.
+3. Selecciona fons, ambient i música.
+4. Inicia el renderitzat.
+5. Consulta el progrés o cancel·la'l si és necessari.
+6. Revisa els fitxers creats en `output/`.
+7. Publica manualment quan hages verificat vídeo, miniatura, metadades i llicències.
 
 ## Resultat esperat
 
@@ -75,33 +64,44 @@ output/2026-10-28-biblioteca-medieval-001/
 └── metadata.json
 ```
 
+## Proves
+
+```bash
+docker compose exec pomodoro-studio pytest -q
+```
+
+La CI instal·la FFmpeg i DejaVu, executa les proves unitàries i genera un MP4 curt real per a detectar errors del filtre `drawtext`, del còdec o de la construcció de l'ordre.
+
 ## Documentació
 
+- `docs/GUIA_US.md`: instal·lació i ús pas a pas.
 - `docs/arquitectura.md`: components, flux i decisions tècniques.
-- `docs/recursos-i-llicencies.md`: criteris per als recursos multimèdia i drets d'ús.
+- `docs/recursos-i-llicencies.md`: criteris de drets d'ús.
+- `assets/REGISTRE_RECURSOS.md`: registre pràctic dels recursos emprats.
 
 ## Arquitectura
 
-`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
+`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura; `themes.py` separa els noms interns en valencià dels noms públics internacionals.
 
-FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simultani. El temporitzador usa `drawtext` i expressions basades en el temps; el progrés usa l'eixida estructurada de FFmpeg.
+FFmpeg s'executa sense `shell=True`, amb `-nostdin`, i la cua limita el sistema a un vídeo simultani. El temporitzador usa `drawtext` i expressions temporals. El progrés es llig amb l'eixida estructurada de `-progress pipe:1`.
 
 ## Limitacions conegudes
 
-- Si l'aplicació es reinicia durant un renderitzat actiu, eixe procés no es reprén automàticament; l'estat dels treballs ja finalitzats sí que queda en SQLite.
-- La v0.1 usa CPU (`libx264`).
-- Encara no hi ha publicació automàtica en YouTube ni altres xarxes.
+- Si l'aplicació es reinicia durant un renderitzat actiu, el procés no es reprén automàticament.
+- La v0.1 usa CPU (`libx264`). NVIDIA NVENC queda per a una versió posterior.
+- La publicació a YouTube, Instagram o TikTok és manual en la v0.1.
+- La generació d'imatges, vídeo o música amb IA no forma part del nucli inicial.
 
 ## Full de ruta
 
-- **v0.1:** flux mínim complet de projecte i renderitzat.
-- **v0.2:** plantilles d'ambientació, persistència avançada de treballs i presets reutilitzables.
-- **v0.3:** metadades internacionals i presets de publicació.
+- **v0.1:** flux complet local de projecte, renderitzat i fitxers finals.
+- **v0.2:** plantilles d'ambientació, presets reutilitzables i persistència avançada de treballs.
+- **v0.3:** presets de publicació, SEO i variants de metadades.
 - **v0.4:** NVIDIA NVENC opcional.
 - **v0.5:** generació assistida d'ambientacions originals amb IA.
-- **v0.6:** clips promocionals 9:16.
+- **v0.6:** clips promocionals 9:16 per a Shorts/Reels/TikTok.
 - **v1.0:** flux estable de producció i publicació assistida.
 
 ## Drets d'autor
 
-Pomodoro Studio està dissenyat per a contingut original o correctament llicenciat. No descarrega ni republica vídeos de tercers, música protegida o elements de franquícies sense autorització. Consulta també `docs/recursos-i-llicencies.md`.
+Pomodoro Studio està dissenyat per a contingut original o correctament llicenciat. No descarrega ni republica vídeos de tercers, música protegida o elements de franquícies sense autorització. Evita usar noms o elements distintius de franquícies com a substitut d'una ambientació original.
