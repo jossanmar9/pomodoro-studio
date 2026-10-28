@@ -75,6 +75,11 @@ output/2026-10-28-biblioteca-medieval-001/
 └── metadata.json
 ```
 
+## Documentació
+
+- `docs/arquitectura.md`: components, flux i decisions tècniques.
+- `docs/recursos-i-llicencies.md`: criteris per als recursos multimèdia i drets d'ús.
+
 ## Arquitectura
 
 `app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
