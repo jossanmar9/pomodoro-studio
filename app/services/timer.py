@@ -29,18 +29,18 @@ class TimelineSummary:
 
 
 def build_timeline(focus_minutes: int, break_minutes: int, total_minutes: int) -> TimelineSummary:
-    """Build a Pomodoro timeline that never exceeds the requested duration.
+    """Construeix una línia temporal Pomodoro sense superar la duració demanada.
 
-    A final focus segment may be shorter than the configured focus interval so the
-    generated media can end exactly at the requested duration. A break is added
-    only when time remains for it after a focus segment.
+    L'últim tram de concentració pot ser més curt que l'interval configurat perquè
+    el vídeo acabe exactament en la duració indicada. Només s'afig un descans si
+    queda temps disponible després d'un tram de concentració.
     """
     if focus_minutes <= 0:
-        raise ValueError("focus_minutes must be greater than zero")
+        raise ValueError("focus_minutes ha de ser major que zero")
     if break_minutes < 0:
-        raise ValueError("break_minutes cannot be negative")
+        raise ValueError("break_minutes no pot ser negatiu")
     if total_minutes <= 0:
-        raise ValueError("total_minutes must be greater than zero")
+        raise ValueError("total_minutes ha de ser major que zero")
 
     focus = focus_minutes * 60
     pause = break_minutes * 60
@@ -77,6 +77,6 @@ def format_timestamp(seconds: int) -> str:
 def build_chapters(timeline: TimelineSummary) -> str:
     lines: list[str] = []
     for segment in timeline.segments:
-        label = f"Session {segment.session}" if segment.kind is SegmentType.FOCUS else "Break"
+        label = f"Sessió {segment.session}" if segment.kind is SegmentType.FOCUS else "Descans"
         lines.append(f"{format_timestamp(segment.start_seconds)} {label}")
     return "\n".join(lines)
