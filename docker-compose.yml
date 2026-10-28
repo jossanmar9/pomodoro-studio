@@ -1,0 +1,15 @@
+services:
+  pomodoro-studio:
+    build: .
+    container_name: pomodoro-studio
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./assets:/app/assets
+      - ./output:/app/output
+      - ./logs:/app/logs
+    restart: unless-stopped
