@@ -61,19 +61,24 @@ output/2026-10-28-biblioteca-medieval-001/
 └── metadata.json
 ```
 
+## Primera prova recomanada
+
+Abans de generar hores de vídeo, comprova la base:
+
+```bash
+docker compose up -d --build
+docker compose exec pomodoro-studio pytest
+docker compose exec pomodoro-studio ffmpeg -version
+docker compose exec pomodoro-studio ffmpeg -filters
+```
+
+Afig un fons a `assets/backgrounds/` i crea primer un projecte d'1 o 2 minuts. Comprova el compte arrere, els canvis de fase, la miniatura, l'àudio i els fitxers de `output/`. Després ja es poden provar sessions llargues.
+
 ## Arquitectura
 
 `app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
 FFmpeg s'executa sense `shell=True`. El progrés s'obté amb `-progress pipe:1` i la interfície el consulta periòdicament. La cua executa un únic vídeo cada vegada per evitar saturar la màquina.
-
-## Proves
-
-```bash
-pytest
-```
-
-La validació definitiva de la v0.1 requerix una prova real amb Docker/FFmpeg i recursos multimèdia locals; GitHub no executa el renderitzat per si mateix.
 
 ## Limitacions conegudes
 
