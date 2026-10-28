@@ -6,6 +6,10 @@ def test_publication_theme_is_international():
     assert publication_theme("Biblioteca medieval") == "Medieval Library"
 
 
+def test_custom_theme_has_safe_public_name():
+    assert publication_theme("Personalitzada") == "Custom Focus Ambience"
+
+
 def test_chapters_can_be_generated_in_english():
     timeline = build_timeline(25, 5, 60)
     chapters = build_chapters(timeline, language="en")

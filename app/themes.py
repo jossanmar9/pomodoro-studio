@@ -22,6 +22,7 @@ THEMES: dict[str, str] = {
     "Bosc": "Enchanted Forest",
     "Observatori": "Night Observatory",
     "Cafeteria acollidora": "Cozy Coffee Shop",
+    "Personalitzada": "Custom Focus Ambience",
 }
 
 
