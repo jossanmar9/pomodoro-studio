@@ -22,10 +22,23 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 THEMES = [
-    "Medieval Library", "Wizard Library", "Elven Library", "Medieval Tavern",
-    "Alchemist Tower", "Gothic Castle", "Rainy Cabin", "Victorian Library",
-    "Pirate Ship", "Ancient Rome", "Ancient Greece", "Feudal Japan",
-    "Spaceship", "Post-apocalyptic Bunker", "Forest", "Observatory", "Coffee Shop",
+    "Biblioteca medieval",
+    "Biblioteca màgica",
+    "Biblioteca èlfica",
+    "Taverna medieval",
+    "Torre de l'alquimista",
+    "Castell gòtic",
+    "Cabana amb pluja",
+    "Biblioteca victoriana",
+    "Vaixell pirata",
+    "Roma antiga",
+    "Grècia antiga",
+    "Japó feudal",
+    "Nau espacial",
+    "Búnquer postapocalíptic",
+    "Bosc",
+    "Observatori",
+    "Cafeteria acollidora",
 ]
 
 
