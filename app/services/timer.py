@@ -29,12 +29,7 @@ class TimelineSummary:
 
 
 def build_timeline(focus_minutes: int, break_minutes: int, total_minutes: int) -> TimelineSummary:
-    """Construeix una línia temporal Pomodoro sense superar la duració demanada.
-
-    L'últim tram de concentració pot ser més curt que l'interval configurat perquè
-    el vídeo acabe exactament en la duració indicada. Només s'afig un descans si
-    queda temps disponible després d'un tram de concentració.
-    """
+    """Construeix una línia temporal Pomodoro sense superar la duració demanada."""
     if focus_minutes <= 0:
         raise ValueError("focus_minutes ha de ser major que zero")
     if break_minutes < 0:
@@ -55,7 +50,6 @@ def build_timeline(focus_minutes: int, break_minutes: int, total_minutes: int) -
         cursor += focus_duration
         if cursor >= target:
             break
-
         break_duration = min(pause, target - cursor)
         if break_duration:
             segments.append(TimelineSegment(SegmentType.BREAK, session, cursor, break_duration))
@@ -74,9 +68,15 @@ def format_timestamp(seconds: int) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
-def build_chapters(timeline: TimelineSummary) -> str:
+def build_chapters(timeline: TimelineSummary, language: str = "va") -> str:
+    """Genera capítols per a la UI (valencià) o la publicació (anglés)."""
+    if language not in {"va", "en"}:
+        raise ValueError("Idioma de capítols no compatible")
     lines: list[str] = []
     for segment in timeline.segments:
-        label = f"Sessió {segment.session}" if segment.kind is SegmentType.FOCUS else "Descans"
+        if language == "en":
+            label = f"Focus session {segment.session}" if segment.kind is SegmentType.FOCUS else "Break"
+        else:
+            label = f"Sessió {segment.session}" if segment.kind is SegmentType.FOCUS else "Descans"
         lines.append(f"{format_timestamp(segment.start_seconds)} {label}")
     return "\n".join(lines)
