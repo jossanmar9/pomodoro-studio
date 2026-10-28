@@ -39,7 +39,7 @@ def project_view(project_id:int,request:Request):
     timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes)
     return templates.TemplateResponse(request,"project.html",{"project":project,"timeline":timeline,"chapters":build_chapters(timeline),"duration":format_timestamp(timeline.total_seconds),"focus_total":timeline.focus_seconds//60,"break_total":timeline.break_seconds//60,"assets":catalog(),"job":render_queue.jobs.get(project_id)})
 @app.post("/projects/{project_id}/render")
-def start_render(project_id:int,background:str=Form(...),ambience:list[str]=Form(default=[]),music:str=Form(""),ambience_volume:float=Form(.25),music_volume:float=Form(.12)):
+def start_render(project_id:int,background:str=Form(...),ambience:list[str]=Form([]),music:str=Form(""),ambience_volume:float=Form(.25),music_volume:float=Form(.12)):
     current=render_queue.jobs.get(project_id)
     if current and current.status in {"EN_CUA","GENERANT"}: return RedirectResponse(f"/projects/{project_id}",status_code=303)
     if not 0<=ambience_volume<=1 or not 0<=music_volume<=1: raise HTTPException(400,"Els volums han d'estar entre 0 i 1")
