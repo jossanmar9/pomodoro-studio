@@ -28,6 +28,16 @@ def test_presets_are_provider_independent():
     assert "observatory" in prompt.positive
 
 
+def test_thumbnail_variant_reserves_text_space():
+    prompt = build_prompt(AmbiencePromptSpec(subject="quiet old library", composition="thumbnail-left"))
+    assert "negative space on the left" in prompt.positive
+
+
+def test_rejects_invalid_composition():
+    with pytest.raises(ValueError, match="Composició"):
+        build_prompt(AmbiencePromptSpec(subject="forest study room", composition="poster"))
+
+
 def test_rejects_direct_franchise_reference():
     spec = AmbiencePromptSpec(subject="library at Hogwarts")
     with pytest.raises(ValueError, match="franquícies"):
