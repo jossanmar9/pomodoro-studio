@@ -4,22 +4,22 @@ Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus
 
 > **Estat:** v0.1 implementada i preparada per a la primera prova de renderitzat real.
 
-## Què fa
-
-Pomodoro Studio permet crear un projecte, triar una ambientació, configurar intervals de concentració i descans, seleccionar un fons i àudios locals i generar un vídeo amb temporitzador mitjançant FFmpeg. La interfície i la documentació estan en valencià.
-
 ## Funcions de la v0.1
 
-- Cicles Pomodoro 25/5, 50/10 o personalitzats i duració total configurable.
+- Projectes Pomodoro 25/5, 50/10 o personalitzats, amb duració configurable.
+- Interfície i documentació en valencià.
+- Historial de projectes reobrible des de la pàgina principal.
 - Fons JPG, JPEG, PNG, WebP, MP4, MOV, MKV o WebM en bucle.
 - Temporitzador, fase i número de sessió sobre el vídeo.
 - Sons ambientals múltiples i música opcional amb volum independent.
 - Renderitzat H.264/AAC amb FFmpeg.
-- Cua d'un renderitzat concurrent, barra de progrés, estimació i cancel·lació.
-- Historial de projectes i estat final del renderitzat en SQLite.
-- Resultats sense sobreescriure: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
-- Miniatura 1280×720 automàtica i neteja de la carpeta si falla la preparació inicial.
-- Docker i Docker Compose, amb FFmpeg i DejaVu instal·lats al contenidor.
+- Cua d'un treball, protecció contra dobles enviaments, barra de progrés, estimació i cancel·lació.
+- Estat final del renderitzat sincronitzat amb SQLite.
+- Miniatura 1280×720 automàtica.
+- Resultats: `video.mp4`, `thumbnail.jpg`, `title.txt`, `description.txt`, `chapters.txt` i `metadata.json`.
+- Noms de carpeta segurs i únics; els accents valencians es transliteren correctament.
+- Validació de paràmetres, recursos restringits a `assets/` i neteja si falla la preparació.
+- Docker i Docker Compose amb FFmpeg i DejaVu.
 - Tests del timeline, FFmpeg i metadades.
 
 ## Posada en marxa
@@ -28,7 +28,7 @@ Pomodoro Studio permet crear un projecte, triar una ambientació, configurar int
 docker compose up -d --build
 ```
 
-Després obri `http://localhost:8000`. El fitxer `.env` és opcional.
+Obri `http://localhost:8000`. El fitxer `.env` és opcional.
 
 ## Recursos
 
@@ -41,15 +41,17 @@ assets/fonts/         # tipografies pròpies o compatibles
 
 Els recursos apareixen automàticament en la interfície i el backend només resol fitxers existents dins de les carpetes autoritzades.
 
-## Flux de treball
+## Primera prova recomanada
 
-1. Crea un projecte.
-2. Revisa la línia temporal i els capítols.
-3. Tria fons, sons ambientals i música opcional.
-4. Ajusta els volums.
-5. Inicia el renderitzat.
-6. Seguix la barra de progrés o cancel·la el treball.
-7. Troba els resultats en `output/`.
+```bash
+docker compose up -d --build
+docker compose exec pomodoro-studio pytest
+docker compose exec pomodoro-studio ffmpeg -version
+```
+
+Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
+
+## Resultat esperat
 
 ```text
 output/2026-10-28-biblioteca-medieval-001/
@@ -61,26 +63,16 @@ output/2026-10-28-biblioteca-medieval-001/
 └── metadata.json
 ```
 
-## Primera prova recomanada
-
-```bash
-docker compose up -d --build
-docker compose exec pomodoro-studio pytest
-docker compose exec pomodoro-studio ffmpeg -version
-```
-
-Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. La duració continua sent completament personalitzable i la interfície oferix suggeriments per a 1, 2, 3 i 4 hores. En la prova curta comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després ja es poden provar sessions llargues i afegir àudio.
-
 ## Arquitectura
 
-`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta el progrés; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
+`app/main.py` exposa la interfície i els endpoints. `services/timer.py` calcula la línia temporal; `services/assets.py` controla els recursos; `services/renderer.py` construïx les ordres FFmpeg; `services/jobs.py` executa la cua i interpreta `-progress pipe:1`; `services/metadata.py` prepara els resultats; `services/thumbnail.py` genera la miniatura.
 
-FFmpeg s'executa sense `shell=True`. El progrés s'obté amb `-progress pipe:1` i la interfície el consulta periòdicament. La cua executa un únic vídeo cada vegada per evitar saturar la màquina.
+FFmpeg s'executa sense `shell=True` i la cua limita el sistema a un vídeo simultani.
 
 ## Limitacions conegudes
 
 - La cua i el percentatge de progrés viuen en memòria; si es reinicia l'aplicació, un treball actiu no es reprén automàticament.
-- La v0.1 usa CPU (`libx264`); NVENC queda reservat per a una versió posterior.
+- La v0.1 usa CPU (`libx264`).
 - Encara no hi ha publicació automàtica en YouTube ni altres xarxes.
 
 ## Full de ruta
