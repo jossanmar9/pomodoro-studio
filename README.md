@@ -2,7 +2,7 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.1 implementada. Pendent únicament de validació amb un renderitzat real en una màquina amb Docker/FFmpeg.
+> **Estat:** v0.1 implementada en `develop/v0.1`. Pendent de la primera validació local amb Docker/FFmpeg abans de fusionar-la a `main`.
 
 ## Funcions de la v0.1
 
@@ -47,7 +47,7 @@ docker compose exec pomodoro-studio ffmpeg -version
 docker compose exec pomodoro-studio ffmpeg -filters
 ```
 
-En l'última ordre comprova que apareix el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
+Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
 
 ## Resultat esperat
 
