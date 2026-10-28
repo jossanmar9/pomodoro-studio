@@ -48,7 +48,7 @@ def start_render(project_id:int,background:str=Form(...),ambience:list[str]=Form
     try: bg=resolve_asset("backgrounds",background); amb=[AudioTrack(resolve_asset("ambience",name),ambience_volume) for name in ambience]; mus=AudioTrack(resolve_asset("music",music),music_volume) if music else None
     except ValueError as exc: raise HTTPException(400,str(exc)) from exc
     timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); folder=create_output_dir(project.id,project.theme)
-    try: write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline); generate_thumbnail(bg,folder/"thumbnail.jpg",f"{project.theme.upper()} · {project.duration_minutes} MIN · {project.focus_minutes}/{project.break_minutes}")
+    try: write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline); generate_thumbnail(bg,folder/"thumbnail.jpg",f"{project.theme.upper()} - {project.duration_minutes} MIN - {project.focus_minutes}/{project.break_minutes}")
     except Exception as exc: shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
     render_queue.enqueue(project.id,RenderSpec(bg,folder/"video.mp4",project.resolution,timeline,ambience=amb,music=mus))
     with SessionLocal() as db: saved=db.get(Project,project_id); saved.status="QUEUED"; saved.output_path=str(folder); db.commit()
