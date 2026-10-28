@@ -21,18 +21,36 @@ class EncodingPlan:
 
 
 def nvenc_available() -> bool:
-    """Comprova si la instal·lació de FFmpeg anuncia l'encoder h264_nvenc."""
+    """Comprova que h264_nvenc existeix i pot inicialitzar-se realment.
+
+    Algunes compilacions de FFmpeg anuncien l'encoder encara que la màquina no
+    tinga el driver/CUDA necessari. Una prova mínima evita seleccionar NVENC en
+    eixe cas (per exemple, en runners de CI sense GPU NVIDIA).
+    """
     try:
-        result = subprocess.run(
+        encoders = subprocess.run(
             ["ffmpeg", "-hide_banner", "-encoders"],
             capture_output=True,
             text=True,
             timeout=8,
             check=False,
         )
+        if encoders.returncode != 0 or "h264_nvenc" not in encoders.stdout:
+            return False
+        probe = subprocess.run(
+            [
+                "ffmpeg", "-hide_banner", "-loglevel", "error",
+                "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.05",
+                "-frames:v", "1", "-c:v", "h264_nvenc", "-f", "null", "-",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=8,
+            check=False,
+        )
     except (OSError, subprocess.SubprocessError):
         return False
-    return result.returncode == 0 and "h264_nvenc" in result.stdout
+    return probe.returncode == 0
 
 
 def select_encoding(options: EncodingOptions, *, has_nvenc: bool | None = None) -> EncodingPlan:
