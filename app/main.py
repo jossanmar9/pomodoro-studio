@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import SessionLocal, init_db
-from app.models import Preset, Project, PublicationMetadata, RenderConfig
+from app.models import Preset, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.assets import catalog, resolve_asset
 from app.services.encoding import ENGINES, QUALITY_PROFILES, EncodingOptions, nvenc_available
 from app.services.jobs import render_queue
@@ -17,73 +17,53 @@ from app.services.metadata import PublicationDraft, build_publication_zip, creat
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
+from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, upload_video, youtube_configured
 from app.themes import THEMES, publication_theme
 
-RESOLUTIONS = {"1920x1080", "2560x1440"}
-STATUSES = {"DRAFT", "QUEUED", "GENERATING", "COMPLETED", "FAILED", "CANCELLED"}
-OUTPUT_FILES = {"video.mp4", "thumbnail.jpg", "title.txt", "description.txt", "chapters.txt", "tags.txt", "metadata.json", "publication-package.zip"}
+RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
 
-
-def validate_project_config(theme: str, focus_minutes: int, break_minutes: int, duration_minutes: int, resolution: str) -> None:
-    if theme not in THEMES: raise HTTPException(400, "Ambientació no vàlida")
-    if resolution not in RESOLUTIONS: raise HTTPException(400, "Resolució no vàlida")
-    if not 1 <= focus_minutes <= 180 or not 0 <= break_minutes <= 60 or not 1 <= duration_minutes <= 720: raise HTTPException(400, "Configuració Pomodoro fora dels límits admesos")
-    build_timeline(focus_minutes, break_minutes, duration_minutes)
-
-
-def output_file(project: Project, filename: str) -> Path:
-    if filename not in OUTPUT_FILES or not project.output_path: raise HTTPException(404, "Fitxer no disponible")
-    root = Path(project.output_path).resolve(); path = (root / filename).resolve()
-    if path.parent != root or not path.is_file(): raise HTTPException(404, "Fitxer no disponible")
+def validate_project_config(theme,focus_minutes,break_minutes,duration_minutes,resolution):
+    if theme not in THEMES: raise HTTPException(400,"Ambientació no vàlida")
+    if resolution not in RESOLUTIONS: raise HTTPException(400,"Resolució no vàlida")
+    if not 1<=focus_minutes<=180 or not 0<=break_minutes<=60 or not 1<=duration_minutes<=720: raise HTTPException(400,"Configuració Pomodoro fora dels límits admesos")
+    build_timeline(focus_minutes,break_minutes,duration_minutes)
+def output_file(project,filename):
+    if filename not in OUTPUT_FILES or not project.output_path: raise HTTPException(404,"Fitxer no disponible")
+    root=Path(project.output_path).resolve(); path=(root/filename).resolve()
+    if path.parent!=root or not path.is_file(): raise HTTPException(404,"Fitxer no disponible")
     return path
-
-
-def publication_for(project: Project, saved: PublicationMetadata | None) -> PublicationDraft:
-    timeline = build_timeline(project.focus_minutes, project.break_minutes, project.duration_minutes)
-    if saved:
-        return PublicationDraft(saved.title, saved.description, saved.chapters, saved.tags, saved.language)
-    return default_publication(theme=project.theme, focus=project.focus_minutes, pause=project.break_minutes, duration=project.duration_minutes, timeline=timeline)
-
-
+def publication_for(project,saved):
+    timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes)
+    return PublicationDraft(saved.title,saved.description,saved.chapters,saved.tags,saved.language) if saved else default_publication(theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,timeline=timeline)
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    init_db(); yield
-
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
-
+async def lifespan(_): init_db(); yield
+app=FastAPI(title=settings.app_name,lifespan=lifespan); app.mount("/static",StaticFiles(directory="app/static"),name="static"); templates=Jinja2Templates(directory="app/templates")
 @app.get("/health")
-def health(): return {"status": "ok"}
-
+def health(): return {"status":"ok"}
 @app.get("/assets/{kind}/{name}")
-def asset_file(kind: str, name: str):
-    try: path = resolve_asset(kind, name)
-    except ValueError as exc: raise HTTPException(404, str(exc)) from exc
+def asset_file(kind,name):
+    try: path=resolve_asset(kind,name)
+    except ValueError as exc: raise HTTPException(404,str(exc)) from exc
     return FileResponse(path)
-
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request, status: str = Query(""), theme: str = Query("")):
+@app.get("/",response_class=HTMLResponse)
+def home(request:Request,status:str=Query(""),theme:str=Query("")):
     with SessionLocal() as db:
-        query = db.query(Project)
+        query=db.query(Project)
         if status:
-            if status not in STATUSES: raise HTTPException(400, "Estat no vàlid")
-            query = query.filter(Project.status == status)
+            if status not in STATUSES: raise HTTPException(400,"Estat no vàlid")
+            query=query.filter(Project.status==status)
         if theme:
-            if theme not in THEMES: raise HTTPException(400, "Ambientació no vàlida")
-            query = query.filter(Project.theme == theme)
-        projects = query.order_by(Project.id.desc()).limit(100).all(); presets = db.query(Preset).order_by(Preset.name.asc()).all()
-    return templates.TemplateResponse(request, "index.html", {"themes": list(THEMES), "projects": projects, "presets": presets, "status_filter": status, "theme_filter": theme, "statuses": sorted(STATUSES)})
-
+            if theme not in THEMES: raise HTTPException(400,"Ambientació no vàlida")
+            query=query.filter(Project.theme==theme)
+        projects=query.order_by(Project.id.desc()).limit(100).all(); presets=db.query(Preset).order_by(Preset.name.asc()).all()
+    return templates.TemplateResponse(request,"index.html",{"themes":list(THEMES),"projects":projects,"presets":presets,"status_filter":status,"theme_filter":theme,"statuses":sorted(STATUSES)})
 @app.post("/projects")
-def create_project(theme: str = Form(...), focus_minutes: int = Form(25), break_minutes: int = Form(5), duration_minutes: int = Form(120), resolution: str = Form("1920x1080")):
-    validate_project_config(theme, focus_minutes, break_minutes, duration_minutes, resolution)
-    with SessionLocal() as db:
-        project=Project(theme=theme,focus_minutes=focus_minutes,break_minutes=break_minutes,duration_minutes=duration_minutes,resolution=resolution); db.add(project); db.commit(); db.refresh(project); project_id=project.id
-    return RedirectResponse(f"/projects/{project_id}",303)
-
+def create_project(theme:str=Form(...),focus_minutes:int=Form(25),break_minutes:int=Form(5),duration_minutes:int=Form(120),resolution:str=Form("1920x1080")):
+    validate_project_config(theme,focus_minutes,break_minutes,duration_minutes,resolution)
+    with SessionLocal() as db: project=Project(theme=theme,focus_minutes=focus_minutes,break_minutes=break_minutes,duration_minutes=duration_minutes,resolution=resolution); db.add(project); db.commit(); db.refresh(project); pid=project.id
+    return RedirectResponse(f"/projects/{pid}",303)
 @app.post("/projects/{project_id}/edit")
-def edit_project(project_id:int, theme:str=Form(...), focus_minutes:int=Form(...), break_minutes:int=Form(...), duration_minutes:int=Form(...), resolution:str=Form(...)):
+def edit_project(project_id:int,theme:str=Form(...),focus_minutes:int=Form(...),break_minutes:int=Form(...),duration_minutes:int=Form(...),resolution:str=Form(...)):
     validate_project_config(theme,focus_minutes,break_minutes,duration_minutes,resolution)
     with SessionLocal() as db:
         project=db.get(Project,project_id)
@@ -92,17 +72,15 @@ def edit_project(project_id:int, theme:str=Form(...), focus_minutes:int=Form(...
         if current and current.status in {"EN_CUA","GENERANT"}: raise HTTPException(409,"No es pot editar mentre hi ha un renderitzat actiu")
         project.theme=theme; project.focus_minutes=focus_minutes; project.break_minutes=break_minutes; project.duration_minutes=duration_minutes; project.resolution=resolution; project.status="DRAFT"; project.output_path=None; db.commit()
     return RedirectResponse(f"/projects/{project_id}",303)
-
 @app.post("/presets")
 def create_preset(name:str=Form(...),theme:str=Form(...),focus_minutes:int=Form(25),break_minutes:int=Form(5),duration_minutes:int=Form(120),resolution:str=Form("1920x1080")):
-    clean_name=name.strip()
-    if not clean_name or len(clean_name)>80: raise HTTPException(400,"El nom del preset ha de tindre entre 1 i 80 caràcters")
+    clean=name.strip()
+    if not clean or len(clean)>80: raise HTTPException(400,"El nom del preset ha de tindre entre 1 i 80 caràcters")
     validate_project_config(theme,focus_minutes,break_minutes,duration_minutes,resolution)
     with SessionLocal() as db:
-        if db.query(Preset).filter(Preset.name==clean_name).first(): raise HTTPException(409,"Ja existeix un preset amb este nom")
-        db.add(Preset(name=clean_name,theme=theme,focus_minutes=focus_minutes,break_minutes=break_minutes,duration_minutes=duration_minutes,resolution=resolution)); db.commit()
+        if db.query(Preset).filter(Preset.name==clean).first(): raise HTTPException(409,"Ja existeix un preset amb este nom")
+        db.add(Preset(name=clean,theme=theme,focus_minutes=focus_minutes,break_minutes=break_minutes,duration_minutes=duration_minutes,resolution=resolution)); db.commit()
     return RedirectResponse("/",303)
-
 @app.post("/presets/{preset_id}/delete")
 def delete_preset(preset_id:int):
     with SessionLocal() as db:
@@ -110,109 +88,95 @@ def delete_preset(preset_id:int):
         if not preset: raise HTTPException(404,"Preset no trobat")
         db.delete(preset); db.commit()
     return RedirectResponse("/",303)
-
 @app.post("/projects/{project_id}/duplicate")
 def duplicate_project(project_id:int):
     with SessionLocal() as db:
         source=db.get(Project,project_id)
         if not source: raise HTTPException(404,"Projecte no trobat")
-        duplicate=Project(theme=source.theme,focus_minutes=source.focus_minutes,break_minutes=source.break_minutes,duration_minutes=source.duration_minutes,resolution=source.resolution); db.add(duplicate); db.commit(); db.refresh(duplicate)
-        source_config=db.query(RenderConfig).filter(RenderConfig.project_id==source.id).first()
-        if source_config: db.add(RenderConfig(project_id=duplicate.id,engine=source_config.engine,quality=source_config.quality))
-        source_meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==source.id).first()
-        if source_meta: db.add(PublicationMetadata(project_id=duplicate.id,title=source_meta.title,description=source_meta.description,chapters=source_meta.chapters,tags=source_meta.tags,language=source_meta.language))
-        db.commit(); duplicate_id=duplicate.id
-    return RedirectResponse(f"/projects/{duplicate_id}",303)
-
+        dup=Project(theme=source.theme,focus_minutes=source.focus_minutes,break_minutes=source.break_minutes,duration_minutes=source.duration_minutes,resolution=source.resolution); db.add(dup); db.commit(); db.refresh(dup)
+        cfg=db.query(RenderConfig).filter(RenderConfig.project_id==source.id).first(); meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==source.id).first()
+        if cfg: db.add(RenderConfig(project_id=dup.id,engine=cfg.engine,quality=cfg.quality))
+        if meta: db.add(PublicationMetadata(project_id=dup.id,title=meta.title,description=meta.description,chapters=meta.chapters,tags=meta.tags,language=meta.language))
+        db.commit(); did=dup.id
+    return RedirectResponse(f"/projects/{did}",303)
 @app.get("/projects/{project_id}",response_class=HTMLResponse)
 def project_view(project_id:int,request:Request):
     with SessionLocal() as db:
         project=db.get(Project,project_id)
         if not project: raise HTTPException(404,"Projecte no trobat")
-        render_config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first(); saved_meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first()
-        publication=publication_for(project,saved_meta)
-    timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); available_outputs=[]
-    if project.output_path:
-        root=Path(project.output_path); available_outputs=[name for name in OUTPUT_FILES if (root/name).is_file()]
-    return templates.TemplateResponse(request,"project.html",{"project":project,"timeline":timeline,"chapters":build_chapters(timeline),"duration":format_timestamp(timeline.total_seconds),"focus_total":timeline.focus_seconds//60,"break_total":timeline.break_seconds//60,"assets":catalog(),"job":render_queue.jobs.get(project_id),"themes":list(THEMES),"available_outputs":sorted(available_outputs),"render_config":render_config,"nvenc_available":nvenc_available(),"publication":publication,"publication_errors":validate_publication(publication)})
-
+        cfg=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first(); meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first(); yt=db.query(YouTubePublication).filter(YouTubePublication.project_id==project_id).first(); publication=publication_for(project,meta)
+    timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); outputs=[]
+    if project.output_path: outputs=[n for n in OUTPUT_FILES if (Path(project.output_path)/n).is_file()]
+    return templates.TemplateResponse(request,"project.html",{"project":project,"timeline":timeline,"chapters":build_chapters(timeline),"duration":format_timestamp(timeline.total_seconds),"focus_total":timeline.focus_seconds//60,"break_total":timeline.break_seconds//60,"assets":catalog(),"job":render_queue.jobs.get(project_id),"themes":list(THEMES),"available_outputs":sorted(outputs),"render_config":cfg,"nvenc_available":nvenc_available(),"publication":publication,"publication_errors":validate_publication(publication),"youtube":yt,"youtube_configured":youtube_configured()})
 @app.post("/projects/{project_id}/publication")
 def save_publication(project_id:int,title:str=Form(...),description:str=Form(""),chapters:str=Form(""),tags:str=Form(""),language:str=Form("en")):
     draft=PublicationDraft(title.strip(),description,chapters,tags,language); errors=validate_publication(draft)
     if errors: raise HTTPException(400,"; ".join(errors))
     with SessionLocal() as db:
-        project=db.get(Project,project_id)
-        if not project: raise HTTPException(404,"Projecte no trobat")
-        saved=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first()
-        if not saved: saved=PublicationMetadata(project_id=project_id); db.add(saved)
-        saved.title=draft.title; saved.description=draft.description; saved.chapters=draft.chapters; saved.tags=draft.tags; saved.language=draft.language; db.commit()
-        output_path=project.output_path
-    if output_path:
-        timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes)
-        write_metadata(Path(output_path),theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline,draft=draft)
+        p=db.get(Project,project_id)
+        if not p: raise HTTPException(404,"Projecte no trobat")
+        saved=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first() or PublicationMetadata(project_id=project_id); db.add(saved); saved.title=draft.title; saved.description=draft.description; saved.chapters=draft.chapters; saved.tags=draft.tags; saved.language=draft.language
+        vals=(p.output_path,p.theme,p.focus_minutes,p.break_minutes,p.duration_minutes,p.resolution); db.commit()
+    if vals[0]:
+        tl=build_timeline(vals[2],vals[3],vals[4]); write_metadata(Path(vals[0]),theme=vals[1],focus=vals[2],pause=vals[3],duration=vals[4],resolution=vals[5],timeline=tl,draft=draft)
     return RedirectResponse(f"/projects/{project_id}",303)
-
 @app.post("/projects/{project_id}/publication/regenerate")
 def regenerate_publication(project_id:int):
     with SessionLocal() as db:
-        project=db.get(Project,project_id)
-        if not project or not project.output_path: raise HTTPException(404,"No hi ha cap resultat per regenerar")
-        saved=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first(); draft=publication_for(project,saved)
-    timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes)
-    write_metadata(Path(project.output_path),theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline,draft=draft)
-    return RedirectResponse(f"/projects/{project_id}",303)
-
+        p=db.get(Project,project_id)
+        if not p or not p.output_path: raise HTTPException(404,"No hi ha cap resultat per regenerar")
+        meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first(); draft=publication_for(p,meta); vals=(p.output_path,p.theme,p.focus_minutes,p.break_minutes,p.duration_minutes,p.resolution)
+    tl=build_timeline(vals[2],vals[3],vals[4]); write_metadata(Path(vals[0]),theme=vals[1],focus=vals[2],pause=vals[3],duration=vals[4],resolution=vals[5],timeline=tl,draft=draft); return RedirectResponse(f"/projects/{project_id}",303)
 @app.get("/projects/{project_id}/publication/package")
 def publication_package(project_id:int):
-    with SessionLocal() as db: project=db.get(Project,project_id)
-    if not project or not project.output_path: raise HTTPException(404,"Paquet no disponible")
-    folder=Path(project.output_path).resolve()
-    if not folder.is_dir(): raise HTTPException(404,"Paquet no disponible")
-    path=build_publication_zip(folder)
-    return FileResponse(path,filename=f"pomodoro-studio-{project_id}-publication.zip",media_type="application/zip")
-
+    with SessionLocal() as db:
+        p=db.get(Project,project_id); output=p.output_path if p else None
+    if not output or not Path(output).is_dir(): raise HTTPException(404,"Paquet no disponible")
+    return FileResponse(build_publication_zip(Path(output).resolve()),filename=f"pomodoro-studio-{project_id}-publication.zip",media_type="application/zip")
 @app.get("/projects/{project_id}/files/{filename}")
 def project_output(project_id:int,filename:str):
-    with SessionLocal() as db: project=db.get(Project,project_id)
-    if not project: raise HTTPException(404,"Projecte no trobat")
-    path=output_file(project,filename); return FileResponse(path,filename=path.name)
-
+    with SessionLocal() as db: p=db.get(Project,project_id)
+    if not p: raise HTTPException(404,"Projecte no trobat")
+    path=output_file(p,filename); return FileResponse(path,filename=path.name)
+@app.post("/projects/{project_id}/youtube")
+def publish_youtube(project_id:int,privacy:str=Form("private"),category_id:str=Form("27")):
+    with SessionLocal() as db:
+        p=db.get(Project,project_id)
+        if not p or not p.output_path: raise HTTPException(409,"Primer has de generar el vídeo")
+        meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first(); draft=publication_for(p,meta); root=Path(p.output_path); record=db.query(YouTubePublication).filter(YouTubePublication.project_id==project_id).first() or YouTubePublication(project_id=project_id); db.add(record); record.privacy=privacy; record.category_id=category_id; record.status="UPLOADING"; record.error=None; db.commit()
+    spec=YouTubeUploadSpec(root/"video.mp4",draft.title,draft.description+"\n\n"+draft.chapters,[x.strip() for x in draft.tags.split(",") if x.strip()],category_id,draft.language,privacy,(root/"thumbnail.jpg") if (root/"thumbnail.jpg").is_file() else None)
+    try: video_id=upload_video(spec)
+    except (ValueError,YouTubeUnavailable,Exception) as exc:
+        with SessionLocal() as db:
+            record=db.query(YouTubePublication).filter(YouTubePublication.project_id==project_id).first(); record.status="FAILED"; record.error=str(exc)[:2000]; db.commit()
+        return RedirectResponse(f"/projects/{project_id}",303)
+    with SessionLocal() as db:
+        record=db.query(YouTubePublication).filter(YouTubePublication.project_id==project_id).first(); record.status="PUBLISHED"; record.video_id=video_id; record.error=None; db.commit()
+    return RedirectResponse(f"/projects/{project_id}",303)
 @app.post("/projects/{project_id}/render")
 def start_render(project_id:int,background:str=Form(...),ambience:list[str]|None=Form(None),music:str=Form(""),ambience_volume:float=Form(.25),music_volume:float=Form(.12),engine:str=Form("auto"),quality:str=Form("balanced")):
     current=render_queue.jobs.get(project_id)
     if current and current.status in {"EN_CUA","GENERANT"}: return RedirectResponse(f"/projects/{project_id}",303)
     if not 0<=ambience_volume<=1 or not 0<=music_volume<=1: raise HTTPException(400,"Els volums han d'estar entre 0 i 1")
-    if engine not in ENGINES: raise HTTPException(400,"Motor de renderitzat no vàlid")
-    if quality not in QUALITY_PROFILES: raise HTTPException(400,"Perfil de qualitat no vàlid")
-    with SessionLocal() as db:
-        project=db.get(Project,project_id); saved_meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first() if project else None
-        if project: draft=publication_for(project,saved_meta)
-    if not project: raise HTTPException(404,"Projecte no trobat")
-    try:
-        bg=resolve_asset("backgrounds",background); amb=[AudioTrack(resolve_asset("ambience",n),ambience_volume) for n in (ambience or [])]; mus=AudioTrack(resolve_asset("music",music),music_volume) if music else None
+    if engine not in ENGINES or quality not in QUALITY_PROFILES: raise HTTPException(400,"Configuració de renderitzat no vàlida")
+    with SessionLocal() as db: p=db.get(Project,project_id); meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first() if p else None; draft=publication_for(p,meta) if p else None
+    if not p: raise HTTPException(404,"Projecte no trobat")
+    try: bg=resolve_asset("backgrounds",background); amb=[AudioTrack(resolve_asset("ambience",n),ambience_volume) for n in (ambience or [])]; mus=AudioTrack(resolve_asset("music",music),music_volume) if music else None
     except ValueError as exc: raise HTTPException(400,str(exc)) from exc
-    timeline=build_timeline(project.focus_minutes,project.break_minutes,project.duration_minutes); folder=create_output_dir(project.id,project.theme)
-    try:
-        write_metadata(folder,theme=project.theme,focus=project.focus_minutes,pause=project.break_minutes,duration=project.duration_minutes,resolution=project.resolution,timeline=timeline,draft=draft)
-        generate_thumbnail(bg,folder/"thumbnail.jpg",f"{publication_theme(project.theme).upper()} - {project.duration_minutes} MIN - {project.focus_minutes}/{project.break_minutes}")
-    except Exception as exc:
-        shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
+    tl=build_timeline(p.focus_minutes,p.break_minutes,p.duration_minutes); folder=create_output_dir(p.id,p.theme)
+    try: write_metadata(folder,theme=p.theme,focus=p.focus_minutes,pause=p.break_minutes,duration=p.duration_minutes,resolution=p.resolution,timeline=tl,draft=draft); generate_thumbnail(bg,folder/"thumbnail.jpg",f"{publication_theme(p.theme).upper()} - {p.duration_minutes} MIN - {p.focus_minutes}/{p.break_minutes}")
+    except Exception as exc: shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
     with SessionLocal() as db:
-        saved=db.get(Project,project_id); config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
-        if not config: config=RenderConfig(project_id=project_id); db.add(config)
-        config.engine=engine; config.quality=quality; config.actual_engine=None; saved.status="QUEUED"; saved.output_path=str(folder); db.commit()
-    render_queue.enqueue(project.id,RenderSpec(bg,folder/"video.mp4",project.resolution,timeline,ambience=amb,music=mus,encoding=EncodingOptions(engine,quality)))
-    return RedirectResponse(f"/projects/{project_id}",303)
-
+        saved=db.get(Project,project_id); cfg=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first() or RenderConfig(project_id=project_id); db.add(cfg); cfg.engine=engine; cfg.quality=quality; cfg.actual_engine=None; saved.status="QUEUED"; saved.output_path=str(folder); db.commit()
+    render_queue.enqueue(p.id,RenderSpec(bg,folder/"video.mp4",p.resolution,tl,ambience=amb,music=mus,encoding=EncodingOptions(engine,quality))); return RedirectResponse(f"/projects/{project_id}",303)
 @app.get("/api/projects/{project_id}/render")
 def render_status(project_id:int):
     job=render_queue.jobs.get(project_id)
     if not job:
-        with SessionLocal() as db: project=db.get(Project,project_id); config=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
-        if not project: raise HTTPException(404,"Projecte no trobat")
-        return {"status":project.status,"progress":100 if project.status=="COMPLETED" else 0,"engine":config.actual_engine if config else None}
+        with SessionLocal() as db: p=db.get(Project,project_id); cfg=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first()
+        if not p: raise HTTPException(404,"Projecte no trobat")
+        return {"status":p.status,"progress":100 if p.status=="COMPLETED" else 0,"engine":cfg.actual_engine if cfg else None}
     return {"status":job.status,"progress":round(job.progress,1),"elapsed":round(job.elapsed),"eta":round(job.eta) if job.eta is not None else None,"error":job.error,"output":job.output,"engine":job.engine,"fallback_used":job.fallback_used}
-
 @app.post("/projects/{project_id}/cancel")
 def cancel_render(project_id:int):
     if not render_queue.cancel(project_id): raise HTTPException(404,"No hi ha cap renderitzat actiu")
