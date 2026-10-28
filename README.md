@@ -49,6 +49,8 @@ docker compose exec pomodoro-studio ffmpeg -filters
 
 Comprova que FFmpeg mostra el filtre `drawtext`. Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. Comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després prova l'àudio i finalment una sessió llarga.
 
+Abans de fusionar la PR a `main`, la prova curta ha de complir: vídeo reproduïble, temporitzador visible, duració correcta, miniatura generada, progrés fins al 100 %, cancel·lació funcional i tests verds.
+
 ## Resultat esperat
 
 ```text
