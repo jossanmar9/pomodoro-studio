@@ -63,16 +63,13 @@ output/2026-10-28-biblioteca-medieval-001/
 
 ## Primera prova recomanada
 
-Abans de generar hores de vídeo, comprova la base:
-
 ```bash
 docker compose up -d --build
 docker compose exec pomodoro-studio pytest
 docker compose exec pomodoro-studio ffmpeg -version
-docker compose exec pomodoro-studio ffmpeg -filters
 ```
 
-Afig un fons a `assets/backgrounds/` i crea primer un projecte d'1 o 2 minuts. Comprova el compte arrere, els canvis de fase, la miniatura, l'àudio i els fitxers de `output/`. Després ja es poden provar sessions llargues.
+Afig un fons a `assets/backgrounds/`, obri la web i crea un projecte de **2 minuts**. La duració continua sent completament personalitzable i la interfície oferix suggeriments per a 1, 2, 3 i 4 hores. En la prova curta comprova el compte arrere, la miniatura, la barra de progrés i els fitxers de `output/`. Després ja es poden provar sessions llargues i afegir àudio.
 
 ## Arquitectura
 
