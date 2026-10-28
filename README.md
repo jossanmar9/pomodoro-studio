@@ -2,7 +2,7 @@
 
 Aplicació privada i autohosteable per a crear vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.1 funcional en fase de proves.
+> **Estat:** v0.1 implementada i preparada per a la primera prova de renderitzat real.
 
 ## Què fa
 
@@ -22,17 +22,13 @@ Pomodoro Studio permet crear un projecte, triar una ambientació, configurar int
 - Docker i Docker Compose, amb FFmpeg i DejaVu instal·lats al contenidor.
 - Tests del timeline, FFmpeg i metadades.
 
-## Tecnologia
-
-Python 3.12+ · FastAPI · Jinja2 · SQLAlchemy · SQLite · FFmpeg · Docker
-
 ## Posada en marxa
 
 ```bash
 docker compose up -d --build
 ```
 
-Després obri `http://localhost:8000`. El fitxer `.env` és opcional; `.env.example` documenta els valors configurables.
+Després obri `http://localhost:8000`. El fitxer `.env` és opcional.
 
 ## Recursos
 
@@ -43,7 +39,7 @@ assets/music/         # música opcional
 assets/fonts/         # tipografies pròpies o compatibles
 ```
 
-Els recursos apareixen automàticament en la interfície. El backend resol únicament fitxers existents dins de les carpetes autoritzades.
+Els recursos apareixen automàticament en la interfície i el backend només resol fitxers existents dins de les carpetes autoritzades.
 
 ## Flux de treball
 
@@ -77,11 +73,11 @@ FFmpeg s'executa sense `shell=True`. El progrés s'obté amb `-progress pipe:1` 
 pytest
 ```
 
-Per a validar el renderitzat real cal tindre FFmpeg i almenys un fons dins de `assets/backgrounds/`.
+La validació definitiva de la v0.1 requerix una prova real amb Docker/FFmpeg i recursos multimèdia locals; GitHub no executa el renderitzat per si mateix.
 
-## Limitacions conegudes de la v0.1
+## Limitacions conegudes
 
-- La cua i el percentatge de progrés viuen en memòria; si es reinicia l'aplicació, un treball que estiguera actiu no es reprén automàticament.
+- La cua i el percentatge de progrés viuen en memòria; si es reinicia l'aplicació, un treball actiu no es reprén automàticament.
 - La v0.1 usa CPU (`libx264`); NVENC queda reservat per a una versió posterior.
 - Encara no hi ha publicació automàtica en YouTube ni altres xarxes.
 
