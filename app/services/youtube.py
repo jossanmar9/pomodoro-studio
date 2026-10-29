@@ -95,6 +95,11 @@ def _existing_upload(spec: YouTubeUploadSpec) -> str | None:
     return video_id or None
 
 
+def forget_upload(video: Path) -> None:
+    """Permet tornar a pujar un vídeo que YouTube ha eliminat (per exemple, per massa llarg)."""
+    (video.parent / UPLOAD_MARKER).unlink(missing_ok=True)
+
+
 def _remember_upload(spec: YouTubeUploadSpec, video_id: str) -> None:
     _marker_for(spec).write_text(video_id + "\n", encoding="utf-8")
 

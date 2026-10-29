@@ -38,7 +38,8 @@ Si Forge falla en escalar la imatge (per memòria de la GPU), es torna a provar 
 
 1. Seguix els passos de [v0.6](v0.6.md) per crear el client OAuth i guardar-lo com `data/youtube-client-secret.json`.
 2. Instal·la `pip install -r requirements-youtube.txt`.
-3. En la pàgina principal, prem **Connectar el canal** i tria **The Amber Window** en el navegador. Només cal fer-ho una vegada.
+3. **Verifica el canal amb el telèfon** en <https://www.youtube.com/verify>. Sense verificar, YouTube només admet vídeos de fins a 15 minuts i elimina els més llargs després de pujar-los («s'ha suprimit perquè era massa llarg»). En <https://www.youtube.com/features> ha d'aparéixer activat «Vídeos de més de 15 minuts».
+4. En la pàgina principal, prem **Connectar el canal** i tria **The Amber Window** en el navegador. Només cal fer-ho una vegada.
 
 > **Important: auditoria de l'API de YouTube.** Google bloqueja en **privat** tots els vídeos pujats des d'un projecte de l'API que no ha passat la seua auditoria, encara que demanes «Públic». Mentre el projecte no estiga verificat, els vídeos arribaran al canal en privat i caldrà canviar-los a públic des de YouTube Studio. Per publicar-los directament en públic cal sol·licitar l'auditoria (*YouTube API Services – Audit and Quota Extension Form*) des de Google Cloud.
 
@@ -59,4 +60,5 @@ L'error apareix en vermell en la llista de vídeos, en valencià i amb la causa.
 - **No hi ha cap fons de «…»**: obri Forge o afig una imatge amb el nom del tema.
 - **Falten els sons de l'entorn**: copia els àudios del catàleg en `assets/ambience/`.
 - **YouTube ha fallat**: el vídeo ja està fet; revisa la connexió i prem **Publicar ara**.
+- **YouTube diu que el vídeo s'ha suprimit perquè era massa llarg**: verifica el canal (pas 3 de YouTube) i prem **Tornar a pujar** en eixe vídeo.
 - **Interromput per un reinici**: si tanques l'aplicació a mitjan vídeo, cal tornar-lo a demanar.

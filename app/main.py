@@ -19,7 +19,7 @@ from app.services.metadata import PublicationDraft, build_publication_zip, creat
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
-from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, upload_video, youtube_configured
+from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
 from app.services.autopilot import autopilot, forge_ready, run_summary, youtube_connected
 from app.services.autopilot_plan import AUTO_THEMES, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, find_backgrounds
 from app.themes import THEMES, publication_theme
@@ -233,14 +233,19 @@ def auto_status():
 
 
 @app.post("/auto/{run_id}/publish")
-def auto_publish(run_id:int):
+def auto_publish(run_id:int,again:str=Form("")):
+    """Publica un vídeo ja fet. Amb again=1 el torna a pujar encara que ja s'haja pujat."""
+    if not youtube_connected(): return RedirectResponse("/?error="+quote("Primer connecta YouTube"),303)
     with SessionLocal() as db:
         run=db.get(AutoRun,run_id)
         if not run or not run.project_id: raise HTTPException(404,"Execució no trobada")
-        if run.step in AUTO_ACTIVE_STEPS or run.video_id: raise HTTPException(409,"Esta execució no es pot publicar ara")
+        if run.step in AUTO_ACTIVE_STEPS or (run.video_id and not again): raise HTTPException(409,"Esta execució no es pot publicar ara")
         project=db.get(Project,run.project_id)
-        if not project or project.status!="COMPLETED": raise HTTPException(409,"El vídeo no està acabat")
-    if not youtube_connected(): return RedirectResponse("/?error="+quote("Primer connecta YouTube"),303)
+        if not project or project.status!="COMPLETED" or not project.output_path: raise HTTPException(409,"El vídeo no està acabat")
+        if again:
+            forget_upload(Path(project.output_path)/"video.mp4")
+            run.video_id=None
+            db.commit()
     autopilot.submit_publish(run_id)
     return RedirectResponse("/",303)
 

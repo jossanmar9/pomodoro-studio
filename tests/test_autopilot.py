@@ -232,3 +232,22 @@ def test_home_page_and_form_create_a_run(env, monkeypatch):
     assert len(submitted) == 1
     run = status["runs"][0]
     assert run["theme"] == "Bosc" and run["pomodoro"] == "50/10" and run["privacy"] == "unlisted" and run["step"] == "QUEUED"
+
+
+def test_published_video_can_be_uploaded_again(env, monkeypatch):
+    run_id = make_run(env.session)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        folder = Path(db.get(Project, run.project_id).output_path)
+    (folder / ".youtube-video-id").write_text("abc123\n", encoding="utf-8")
+    submitted = []
+    monkeypatch.setattr(main.autopilot, "submit_publish", submitted.append)
+    with TestClient(main.app) as client:
+        assert client.post(f"/auto/{run_id}/publish").status_code == 409
+        response = client.post(f"/auto/{run_id}/publish", data={"again": "1"}, follow_redirects=False)
+    assert response.status_code == 303
+    assert submitted == [run_id]
+    assert not (folder / ".youtube-video-id").exists()
+    with env.session() as db:
+        assert db.get(AutoRun, run_id).video_id is None
