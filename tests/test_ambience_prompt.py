@@ -51,3 +51,17 @@ def test_detects_reference_case_insensitively():
 def test_rejects_invalid_aspect_ratio():
     with pytest.raises(ValueError, match="Relació"):
         build_prompt(AmbiencePromptSpec(subject="forest study room", aspect_ratio="4:3"))
+
+
+def test_scene_prompt_is_natural_language():
+    from app.services.ambience_prompt import build_scene_prompt
+    prompt = build_scene_prompt(AmbiencePromptSpec(
+        subject="old observatory", details="a brass telescope", time_of_day="night", weather="clear sky",
+        atmosphere="calm, cozy, no people",
+    ))
+    assert prompt.positive.startswith("A wide cinematic view of an old observatory, with a brass telescope.")
+    assert "era:" not in prompt.positive and "time:" not in prompt.positive
+    assert "no people, no text and no logos" in prompt.positive
+    assert "calm, cozy." in prompt.positive
+    with pytest.raises(ValueError):
+        build_scene_prompt(AmbiencePromptSpec(subject="hogwarts great hall"))

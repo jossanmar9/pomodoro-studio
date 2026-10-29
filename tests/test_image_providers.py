@@ -105,3 +105,41 @@ def test_a1111_hires_fix_is_sent_only_when_requested(tmp_path, monkeypatch):
     assert calls[1]["enable_hr"] is True and calls[1]["hr_scale"] == 1.5 and calls[1]["hr_upscaler"] == "Latent"
     with pytest.raises(ValueError):
         provider.generate(ImageGenerationRequest(AmbiencePrompt("scene", "", ()), output_dir=tmp_path, hires_scale=4))
+
+
+def test_model_profiles_are_detected_from_checkpoint_name():
+    from app.services.image_providers import detect_profile
+    assert detect_profile("flux1-schnell-fp8.safetensors [ead426278b]").name == "flux-schnell"
+    assert detect_profile("flux1-dev-bnb-nf4-v2.safetensors").name == "flux-dev"
+    assert detect_profile("sd_xl_base_1.0.safetensors").name == "sdxl"
+    assert detect_profile("").name == "sdxl"
+
+
+def test_flux_profile_sends_few_steps_no_cfg_and_no_negative(tmp_path, monkeypatch):
+    from app.services.image_providers import MODEL_PROFILES
+    calls = []
+    def fake_post(url, json, timeout):
+        calls.append(json)
+        return FakeResponse()
+    monkeypatch.setattr("app.services.image_providers.httpx.post", fake_post)
+    provider = A1111ImageProvider("http://127.0.0.1:7860")
+    prompt = AmbiencePrompt("a quiet library", "people, text", ())
+    provider.generate(ImageGenerationRequest(prompt, 1344, 768, tmp_path, hires_scale=1.5, profile=MODEL_PROFILES["flux-schnell"]))
+    provider.generate(ImageGenerationRequest(prompt, 1344, 768, tmp_path, hires_scale=1.5, profile=MODEL_PROFILES["sdxl"]))
+    flux, sdxl = calls
+    assert flux["steps"] == 4 and flux["cfg_scale"] == 1.0 and flux["negative_prompt"] == ""
+    assert flux["sampler_name"] == "Euler" and flux["scheduler"] == "Simple"
+    assert flux["hr_upscaler"] == "R-ESRGAN 4x+" and flux["denoising_strength"] == 0.3 and flux["hr_second_pass_steps"] == 4
+    assert sdxl["steps"] == 30 and sdxl["negative_prompt"] == "people, text" and sdxl["sampler_name"] == "DPM++ 2M"
+
+
+def test_profile_reads_the_loaded_checkpoint(monkeypatch):
+    class Options:
+        status_code = 200
+        def raise_for_status(self): return None
+        def json(self): return {"sd_model_checkpoint": "flux1-schnell-fp8.safetensors"}
+    monkeypatch.setattr("app.services.image_providers.httpx.get", lambda url, timeout: Options())
+    provider = A1111ImageProvider("http://127.0.0.1:7860")
+    assert provider.profile().name == "flux-schnell"
+    assert provider.profile("sdxl").name == "sdxl"
+    assert A1111ImageProvider("http://x", "sd_xl_base_1.0.safetensors").profile().name == "sdxl"

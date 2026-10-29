@@ -102,3 +102,32 @@ def build_from_preset(preset: str, **overrides) -> AmbiencePrompt:
     data = {"subject": subject, "details": details}
     data.update({key: value for key, value in overrides.items() if value not in (None, "")})
     return build_prompt(AmbiencePromptSpec(**data))
+
+
+SCENE_NEGATIVE = (
+    "people, person, face, hands, text, letters, watermark, signature, logo, frame, border, "
+    "blurry, low quality, jpeg artifacts, distorted perspective, duplicated objects, cartoon"
+)
+
+
+def _with_article(subject: str) -> str:
+    if subject.casefold().startswith(("a ", "an ", "the ")):
+        return subject
+    return ("an " if subject[:1].casefold() in "aeiou" else "a ") + subject
+
+
+def build_scene_prompt(spec: AmbiencePromptSpec) -> AmbiencePrompt:
+    """Descripció en frases normals, que els models moderns (FLUX, SDXL afinats) entenen millor."""
+    errors = validate_spec(spec)
+    if errors:
+        raise ValueError("; ".join(errors))
+    atmosphere = ", ".join(part.strip() for part in _clean(spec.atmosphere).split(",") if part.strip() and part.strip() != "no people")
+    sentences = [
+        f"A wide cinematic view of {_with_article(_clean(spec.subject))}" + (f", with {_clean(spec.details)}" if _clean(spec.details) else "") + ".",
+        f"It is {_clean(spec.time_of_day)}, {_clean(spec.weather)}." if spec.weather else f"It is {_clean(spec.time_of_day)}.",
+        f"The lighting is {_clean(spec.lighting)}.",
+        f"The mood is {atmosphere}." if atmosphere else "",
+        f"{_clean(spec.visual_style).capitalize()}, {_clean(spec.era)} setting, rich textures, depth and atmosphere, sharp details, balanced 16:9 composition with a calm empty center.",
+        "There are no people, no text and no logos in the image. Original design.",
+    ]
+    return AmbiencePrompt(positive=" ".join(s for s in sentences if s), negative=SCENE_NEGATIVE, warnings=())

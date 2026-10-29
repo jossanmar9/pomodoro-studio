@@ -72,6 +72,8 @@ ADDED_COLUMNS = {
         "noise": "VARCHAR(20)",
         "dim": "INTEGER NOT NULL DEFAULT 0",
         "motion": "INTEGER NOT NULL DEFAULT 1",
+        "new_background": "INTEGER NOT NULL DEFAULT 0",
+        "background": "VARCHAR(200)",
     },
 }
 

@@ -1,0 +1,13 @@
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:12px}
+.gallery figure{margin:0;background:#0d131c;border:1px solid #263244;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.gallery img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#080b10}
+.gallery figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;font-size:.85rem}
+.gallery figcaption form{margin:0}
+.candidate-actions{display:flex;gap:8px}
+.candidate-actions button{padding:8px 12px}
+.candidate-actions .keep{background:#e3a54a;border-color:#e3a54a;color:#1a1206}
+.notice{border:1px solid #3d6b47;background:#132018;border-radius:12px;padding:14px;margin-bottom:16px}
+details{border-top:1px solid #253042;padding:12px 0}
+details summary{cursor:pointer}
+.missing{color:#d08a8a}
+.placeholder{aspect-ratio:16/9;display:grid;place-items:center;color:#8e9baa;background:repeating-linear-gradient(45deg,#0d131c,#0d131c 10px,#111925 10px,#111925 20px)}

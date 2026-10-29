@@ -18,7 +18,7 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 
 | Pas | Què passa |
 |---|---|
-| Fons | Si Forge està obert, crea un fons nou i original amb el tema i l'entorn (llum, hora del dia, oratge). Si no, reutilitza un fons de `assets/backgrounds` que porte el nom del tema. |
+| Fons | Tria un fons guardat en la **Biblioteca de fons** (`/fons`) i evita repetir els dels últims vídeos. Si no n'hi ha cap, o marques **Generar un fons nou amb Forge**, el crea Forge sense revisar. Vegeu [fons i FLUX](FONS_I_FLUX.md). |
 | Ambient | Tria a l'atzar els sons de l'entorn (per exemple, una pluja i un foc) i els deixa baixets i igualats de volum. |
 | Música | Per defecte **no n'hi ha**. Si marques **Afegir música**, fa una llista amb peces diferents de `assets/music`, sense repetir-les i amb fosa entre elles. |
 | Avís | Si **Avís suau en acabar cada temporitzador** està marcat, sona una campaneta de dues notes: baixa en acabar la concentració i puja en acabar el descans. La genera l'aplicació, així que no té cap llicència. |
@@ -46,8 +46,7 @@ Els sons de ciutat, cafeteria, restaurant, bar, Japó i parc són de [BigSoundBa
 
 ### 2. Fons
 
-- **Amb Forge** (recomanat): obri Forge abans de prémer el botó. Cada vídeo tindrà un fons nou, que també es guarda en `assets/backgrounds/` amb la seua procedència.
-- **Sense Forge**: posa imatges en `assets/backgrounds/` amb el nom del tema, per exemple `biblioteca-medieval-01.png` o `cabana-amb-pluja-02.jpg`.
+Prepara uns quants fons per tema en la **Biblioteca de fons**: genera opcions amb Forge (millor amb FLUX.1 schnell) i guarda les bones, o importa imatges lliures. Vegeu la guia de [fons i FLUX](FONS_I_FLUX.md). També pots copiar imatges a `assets/backgrounds/` amb un nom que comence pel tema, per exemple `biblioteca-medieval-01.png`.
 
 Si Forge falla en escalar la imatge (per memòria de la GPU), es torna a provar sense escalar. Pots canviar-ho en `.env` amb `AUTO_HIRES_SCALE=1`.
 
@@ -67,15 +66,16 @@ Si YouTube no està connectat, el vídeo es fa igualment i apareix el botó **Pu
 ```text
 AUTO_DEFAULT_PRIVACY=public   # public, unlisted o private
 AUTO_MUSIC_DEFAULT=false      # true perquè «Afegir música» isca marcat
-AUTO_HIRES_SCALE=1.5          # 1 = sense escalar el fons de Forge
-IMAGE_A1111_UPSCALER=Latent   # escalador de Forge per al fons
+AUTO_HIRES_SCALE=1.5          # 1 = sense ampliar el fons de Forge
+IMAGE_A1111_UPSCALER=R-ESRGAN 4x+  # escalador de Forge per al fons
+IMAGE_MODEL_PROFILE=auto      # auto, flux-schnell, flux-dev o sdxl
 ```
 
 ## Si alguna cosa falla
 
 L'error apareix en vermell en la llista de vídeos, en valencià i amb la causa. Els casos més habituals:
 
-- **No hi ha cap fons de «…»**: obri Forge o afig una imatge amb el nom del tema.
+- **No hi ha cap fons de «…» en la biblioteca**: genera'n o importa'n en **Biblioteca de fons**.
 - **Falten els sons de l'entorn**: copia els àudios del catàleg en `assets/ambience/`.
 - **YouTube ha fallat**: el vídeo ja està fet; revisa la connexió i prem **Publicar ara**.
 - **YouTube diu que el vídeo s'ha suprimit perquè era massa llarg**: verifica el canal (pas 3 de YouTube) i prem **Tornar a pujar** en eixe vídeo.
