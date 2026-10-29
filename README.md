@@ -2,7 +2,17 @@
 
 Aplicació privada i autohosteable per a crear, renderitzar i publicar vídeos llargs originals de tipus **Pomodoro / Study With Me / Focus Ambience**, pensats principalment per a YouTube.
 
-> **Estat:** v0.8 fusionada en `main`: ambientacions originals amb generació local opcional, previsualització i acceptació explícita.
+> **Estat:** v0.9 — **mode automàtic**: tria tema, entorn i duració, prem un botó i el vídeo es genera i es publica sol. Vegeu la [guia del mode automàtic](docs/MODE_AUTOMATIC.md).
+
+## Mode automàtic
+
+La pàgina principal té tres preguntes i un botó:
+
+1. **Tema** (biblioteca medieval, cabana, nau espacial…).
+2. **Entorn** (pluja, tempesta, llar de foc, bosc, mar…).
+3. **Duració** (1–8 h, Pomodoro 25/5 o 50/10).
+
+En prémer **Generar i publicar**, Pomodoro Studio crea el fons amb Forge (o reutilitza un del tema), tria els efectes de l'entorn, munta una llista musical sense repeticions amb fosa entre peces, iguala els volums, escriu títol, descripció, capítols i crèdits en anglés, renderitza el vídeo i el puja a YouTube. L'estudi complet continua en **Mode avançat** (`/estudi`).
 
 ## Funcions actuals
 
@@ -32,7 +42,7 @@ cp -n .env.example .env
 docker compose up -d --build
 ```
 
-Obri `http://localhost:8000`.
+Obri `http://localhost:8000` (mode automàtic) o `http://localhost:8000/estudi` (mode avançat).
 
 Per a una instal·lació Python local:
 
@@ -66,7 +76,7 @@ Abans de publicar o monetitzar un vídeo, registra l'origen i la llicència de c
 6. Revisa vídeo, miniatura, metadades i llicències.
 7. Descarrega el paquet de publicació o publica opcionalment a YouTube.
 
-No es publica res automàticament.
+En el mode avançat no es publica res automàticament. En el mode automàtic, la publicació es fa en acabar el vídeo si la casella **Publicar a YouTube** està marcada.
 
 ## Fitxers generats
 
@@ -98,7 +108,9 @@ pip install -r requirements-youtube.txt
 5. Genera un vídeo i usa **Publicar a YouTube** des de la fitxa del projecte.
 6. En la primera autorització es guardarà el token local en `data/youtube-token.json`.
 
-Les credencials i el token estan exclosos de Git. La privacitat per defecte és **private** i la publicació sempre requerix una acció explícita.
+Les credencials i el token estan exclosos de Git. En el mode avançat la privacitat per defecte és **private**; en el mode automàtic es tria en la pàgina (per defecte, `AUTO_DEFAULT_PRIVACY`). El token també es pot crear amb el botó **Connectar el canal** de la pàgina principal.
+
+> Google manté en privat els vídeos pujats des d'un projecte de l'API sense auditar. Vegeu la [guia del mode automàtic](docs/MODE_AUTOMATIC.md#3-youtube).
 
 ## Proves
 
@@ -126,12 +138,15 @@ La CI usa Python 3.12, instal·la FFmpeg i DejaVu, executa les proves i genera u
 - `app/services/metadata.py`: metadades i paquet de publicació.
 - `app/services/thumbnail.py`: miniatura.
 - `app/services/youtube.py`: OAuth i publicació opcional a YouTube.
+- `app/services/autopilot_plan.py`: decisions del mode automàtic (entorns, sons, llista musical, crèdits i textos).
+- `app/services/autopilot.py`: procés automàtic en segon pla (fons → àudio → vídeo → YouTube).
 - `app/themes.py`: noms interns i noms públics d'ambientació.
 
 FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a un vídeo simultani i el progrés es llig des de `-progress pipe:1`.
 
 ## Documentació
 
+- [Mode automàtic](docs/MODE_AUTOMATIC.md).
 - [Guia d’ús](docs/GUIA_US.md).
 - [Linux Mint, Forge i correcció d’errors](docs/INSTAL_LINUX_MINT.md).
 - [Accessos directes en Linux](docs/ACCESSOS_DIRECTES.md).
@@ -153,10 +168,11 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 - **v0.6:** publicació opcional a YouTube amb OAuth 2.0.
 - **v0.7:** robustesa i comprovacions prèvies.
 - **v0.8:** ambientacions originals, generació local opcional, previsualització i procedència.
+- **v0.9:** mode automàtic d'un botó, llista musical amb fosa, volums normalitzats, crèdits automàtics i comptador en anglés per al canal.
 
 ## Full de ruta
 
-- **v0.9 — Shorts:** clips verticals 9:16.
+- **v0.10 — Shorts:** clips verticals 9:16.
 - **v1.0 — Estable:** migracions, còpies/restauració, configuració inicial guiada, seguretat i UX.
 
 ## Limitacions actuals
@@ -164,8 +180,8 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 - Un renderitzat interromput per un reinici no es reprén des del punt on estava.
 - Els clips verticals promocionals queden pendents per a v0.9.
 - La IA és opcional. La generació d’imatges té connector A1111/Forge; vídeo, efectes i música generats amb IA encara s’han d’importar manualment.
-- Es mesclen diversos efectes i una peça musical repetida; no hi ha llista musical amb alternança automàtica ni bucles sense costura garantits.
-- Els crèdits dels àudios es copien manualment a la descripció del vídeo.
+- En el mode avançat es mescla una sola peça musical repetida; el mode automàtic ja fa llistes sense repeticions. Els bucles dels efectes no tenen costura garantida.
+- En el mode avançat els crèdits dels àudios es copien manualment; el mode automàtic els afig sols a la descripció.
 - La integració directa de publicació està centrada en YouTube.
 
 ## Drets d'autor

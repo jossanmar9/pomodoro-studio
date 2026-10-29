@@ -90,3 +90,18 @@ def test_a1111_invalid_response_does_not_write_files(tmp_path, monkeypatch, payl
     with pytest.raises(RuntimeError):
         A1111ImageProvider("http://localhost").generate(ImageGenerationRequest(AmbiencePrompt("scene", "", ()), output_dir=tmp_path))
     assert not list(tmp_path.iterdir())
+
+
+def test_a1111_hires_fix_is_sent_only_when_requested(tmp_path, monkeypatch):
+    calls = []
+    def fake_post(url, json, timeout):
+        calls.append(json)
+        return FakeResponse()
+    monkeypatch.setattr("app.services.image_providers.httpx.post", fake_post)
+    provider = A1111ImageProvider("http://127.0.0.1:7860")
+    provider.generate(ImageGenerationRequest(AmbiencePrompt("scene", "", ()), output_dir=tmp_path))
+    provider.generate(ImageGenerationRequest(AmbiencePrompt("scene", "", ()), output_dir=tmp_path, hires_scale=1.5, hires_upscaler="Latent"))
+    assert "enable_hr" not in calls[0]
+    assert calls[1]["enable_hr"] is True and calls[1]["hr_scale"] == 1.5 and calls[1]["hr_upscaler"] == "Latent"
+    with pytest.raises(ValueError):
+        provider.generate(ImageGenerationRequest(AmbiencePrompt("scene", "", ()), output_dir=tmp_path, hires_scale=4))

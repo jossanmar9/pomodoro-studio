@@ -21,6 +21,9 @@ class ImageGenerationRequest:
     output_dir: Path | None = None
     steps: int = 28
     cfg_scale: float = 6.5
+    # >1 activa el "hires fix" d'A1111/Forge per a obtindre un fons més nítid.
+    hires_scale: float = 1.0
+    hires_upscaler: str = "Latent"
 
 
 @dataclass(frozen=True)
@@ -66,6 +69,9 @@ class A1111ImageProvider:
         if not 1 <= request.steps <= 100 or not 1 <= request.cfg_scale <= 30: raise ValueError("Paràmetres de generació fora dels límits admesos")
         request.output_dir.mkdir(parents=True, exist_ok=True)
         payload = {"prompt": request.prompt.positive, "negative_prompt": request.prompt.negative, "width": request.width, "height": request.height, "steps": request.steps, "cfg_scale": request.cfg_scale, "batch_size": 1, "n_iter": 1}
+        if request.hires_scale > 1:
+            if request.hires_scale > 2.5: raise ValueError("L'escalat hires ha d'estar entre 1 i 2,5")
+            payload.update({"enable_hr": True, "hr_scale": request.hires_scale, "hr_upscaler": request.hires_upscaler, "denoising_strength": 0.55, "hr_second_pass_steps": max(10, request.steps // 2)})
         if self.model:
             payload["override_settings"] = {"sd_model_checkpoint": self.model}; payload["override_settings_restore_afterwards"] = True
         try:
@@ -114,12 +120,12 @@ def get_provider(name: str) -> ImageProvider:
     return _PROVIDERS[key]
 
 
-def generate_image(provider_name: str, prompt: AmbiencePrompt, *, width: int = 1344, height: int = 768, steps: int = 28, cfg_scale: float = 6.5) -> GeneratedImage:
+def generate_image(provider_name: str, prompt: AmbiencePrompt, *, width: int = 1344, height: int = 768, steps: int = 28, cfg_scale: float = 6.5, hires_scale: float = 1.0) -> GeneratedImage:
     """Punt d'entrada únic perquè la UI no depenga de cap API concreta."""
     provider = get_provider(provider_name)
     if provider_name != "manual" and not provider.available():
         raise RuntimeError(f"El proveïdor {provider_name} no està disponible")
-    return provider.generate(ImageGenerationRequest(prompt, width, height, settings.image_generation_dir, steps, cfg_scale))
+    return provider.generate(ImageGenerationRequest(prompt, width, height, settings.image_generation_dir, steps, cfg_scale, hires_scale, settings.image_a1111_upscaler))
 
 
 configure_a1111(settings.image_a1111_url, settings.image_a1111_model)

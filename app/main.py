@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 import shutil
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -10,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app.services.ambience_web import router as ambience_router
 from app.config import settings
 from app.database import SessionLocal, init_db
-from app.models import Preset, Project, PublicationMetadata, RenderConfig, YouTubePublication
+from app.models import AUTO_ACTIVE_STEPS, AutoRun, Preset, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.assets import catalog, resolve_asset
 from app.services.encoding import ENGINES, QUALITY_PROFILES, EncodingOptions, nvenc_available
 from app.services.jobs import render_queue
@@ -18,7 +19,9 @@ from app.services.metadata import PublicationDraft, build_publication_zip, creat
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
-from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, upload_video, youtube_configured
+from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, upload_video, youtube_configured
+from app.services.autopilot import autopilot, forge_ready, run_summary, youtube_connected
+from app.services.autopilot_plan import AUTO_THEMES, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, find_backgrounds
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -46,7 +49,7 @@ def asset_file(kind,name):
     try: path=resolve_asset(kind,name)
     except ValueError as exc: raise HTTPException(404,str(exc)) from exc
     return FileResponse(path)
-@app.get("/",response_class=HTMLResponse)
+@app.get("/estudi",response_class=HTMLResponse)
 def home(request:Request,status:str=Query(""),theme:str=Query("")):
     with SessionLocal() as db:
         query=db.query(Project)
@@ -81,14 +84,14 @@ def create_preset(name:str=Form(...),theme:str=Form(...),focus_minutes:int=Form(
     with SessionLocal() as db:
         if db.query(Preset).filter(Preset.name==clean).first(): raise HTTPException(409,"Ja existeix un preset amb este nom")
         db.add(Preset(name=clean,theme=theme,focus_minutes=focus_minutes,break_minutes=break_minutes,duration_minutes=duration_minutes,resolution=resolution)); db.commit()
-    return RedirectResponse("/",303)
+    return RedirectResponse("/estudi",303)
 @app.post("/presets/{preset_id}/delete")
 def delete_preset(preset_id:int):
     with SessionLocal() as db:
         preset=db.get(Preset,preset_id)
         if not preset: raise HTTPException(404,"Preset no trobat")
         db.delete(preset); db.commit()
-    return RedirectResponse("/",303)
+    return RedirectResponse("/estudi",303)
 @app.post("/projects/{project_id}/duplicate")
 def duplicate_project(project_id:int):
     with SessionLocal() as db:
@@ -145,7 +148,8 @@ def publish_youtube(project_id:int,privacy:str=Form("private"),category_id:str=F
         p=db.get(Project,project_id)
         if not p or not p.output_path: raise HTTPException(409,"Primer has de generar el vídeo")
         meta=db.query(PublicationMetadata).filter(PublicationMetadata.project_id==project_id).first(); draft=publication_for(p,meta); root=Path(p.output_path); record=db.query(YouTubePublication).filter(YouTubePublication.project_id==project_id).first() or YouTubePublication(project_id=project_id); db.add(record); record.privacy=privacy; record.category_id=category_id; record.status="UPLOADING"; record.error=None; db.commit()
-    spec=YouTubeUploadSpec(root/"video.mp4",draft.title,draft.description+"\n\n"+draft.chapters,[x.strip() for x in draft.tags.split(",") if x.strip()],category_id,draft.language,privacy,(root/"thumbnail.jpg") if (root/"thumbnail.jpg").is_file() else None)
+    description=draft.description if not draft.chapters.strip() or draft.chapters.strip() in draft.description else draft.description+"\n\n"+draft.chapters
+    spec=YouTubeUploadSpec(root/"video.mp4",draft.title,description,[x.strip() for x in draft.tags.split(",") if x.strip()],category_id,draft.language,privacy,(root/"thumbnail.jpg") if (root/"thumbnail.jpg").is_file() else None)
     try: video_id=upload_video(spec)
     except (ValueError,YouTubeUnavailable,Exception) as exc:
         with SessionLocal() as db:
@@ -185,3 +189,65 @@ def cancel_render(project_id:int):
 
 
 app.include_router(ambience_router)
+
+
+# --- Mode automàtic: una pàgina, un botó ------------------------------------
+
+def _recent_runs(limit:int=12)->list[dict]:
+    with SessionLocal() as db:
+        return [run_summary(r) for r in db.query(AutoRun).order_by(AutoRun.id.desc()).limit(limit).all()]
+
+
+@app.get("/",response_class=HTMLResponse)
+def auto_home(request:Request,error:str=Query("")):
+    backgrounds=settings.assets_dir/"backgrounds"
+    themes=[{"name":t,"backgrounds":len(find_backgrounds(backgrounds,t))} for t in AUTO_THEMES]
+    environments=[{"key":k,"label":e.label} for k,e in ENVIRONMENTS.items()]
+    counts={"ambience":len(catalog().ambience),"music":len(catalog().music)}
+    return templates.TemplateResponse(request,"auto.html",{
+        "themes":themes,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
+        "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
+        "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"forge_ready":forge_ready(),
+        "counts":counts,"runs":_recent_runs(),"error":error[:300],
+    })
+
+
+@app.post("/auto")
+def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form("")):
+    if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
+    if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
+    if duration_minutes not in DURATION_CHOICES: raise HTTPException(400,"Duració no vàlida")
+    if pomodoro not in POMODORO_CHOICES: raise HTTPException(400,"Pomodoro no vàlid")
+    if privacy not in PRIVACY_CHOICES: raise HTTPException(400,"Privacitat no vàlida")
+    focus,pause=POMODORO_CHOICES[pomodoro]
+    with SessionLocal() as db:
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0)
+        db.add(run); db.commit(); run_id=run.id
+    autopilot.submit(run_id)
+    return RedirectResponse("/",303)
+
+
+@app.get("/api/auto")
+def auto_status():
+    return {"runs":_recent_runs(),"youtube_connected":youtube_connected()}
+
+
+@app.post("/auto/{run_id}/publish")
+def auto_publish(run_id:int):
+    with SessionLocal() as db:
+        run=db.get(AutoRun,run_id)
+        if not run or not run.project_id: raise HTTPException(404,"Execució no trobada")
+        if run.step in AUTO_ACTIVE_STEPS or run.video_id: raise HTTPException(409,"Esta execució no es pot publicar ara")
+        project=db.get(Project,run.project_id)
+        if not project or project.status!="COMPLETED": raise HTTPException(409,"El vídeo no està acabat")
+    if not youtube_connected(): return RedirectResponse("/?error="+quote("Primer connecta YouTube"),303)
+    autopilot.submit_publish(run_id)
+    return RedirectResponse("/",303)
+
+
+@app.post("/youtube/connect")
+def youtube_connect():
+    """Obri el navegador per autoritzar el canal una sola vegada i guarda el token."""
+    try: credentials()
+    except Exception as exc: return RedirectResponse("/?error="+quote(f"No s'ha pogut connectar YouTube: {exc}"),303)
+    return RedirectResponse("/",303)
