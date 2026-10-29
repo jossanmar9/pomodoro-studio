@@ -23,3 +23,9 @@ assets/ambience/*
 !assets/ambience/.gitkeep
 assets/music/*
 !assets/music/.gitkeep
+
+
+# Local automation configuration, ledger and process locks
+data/automation.json
+data/automation/
+data/.youtube-token-*

@@ -40,7 +40,7 @@ En cada subcarpeta de `llicencies`, conserva els fitxers del paquet corresponent
 - `CREDITS_PER_AL_VIDEO.txt`
 - `LLEGIX-ME.txt`
 
-Això evita sobreescriure registres amb el mateix nom. Conserva també una còpia dels comprovants fora del repositori com a còpia de seguretat. Pots afegir les entrades pertinents a [REGISTRE_RECURSOS.md](../assets/REGISTRE_RECURSOS.md). L’app no llig automàticament estos registres, ni copia els crèdits a la descripció.
+Això evita sobreescriure registres amb el mateix nom. Conserva també una còpia dels comprovants fora del repositori com a còpia de seguretat. Pots afegir les entrades pertinents a [REGISTRE_RECURSOS.md](../assets/REGISTRE_RECURSOS.md). El flux manual no llig automàticament estos registres, ni copia els crèdits a la descripció. El [programador opcional](AUTOMATITZACIO_YOUTUBE.md) usa el catàleg versionat i verifica els fitxers per SHA-256 abans d’incorporar-ne els crèdits; els recursos externs necessiten notes manuals.
 
 Recarrega la web i obri el projecte. En **Preparar vídeo**, selecciona els efectes i la música i escolta la previsualització. Comença amb efectes al 20–25% i música al 8–12%, i ajusta escoltant: els originals poden tindre nivells diferents.
 

@@ -91,3 +91,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Conserva `.env`, `data/`, els recursos i les llicències. Si Git detecta canvis locals, revisa’ls abans de continuar; no els descartes per força.
+
+## Vídeos i YouTube programats
+
+El [programador local opcional](AUTOMATITZACIO_YOUTUBE.md) prepara vídeos de 2 hores per a dilluns, dimecres i divendres a les 18:00 (Europe/Madrid). Requerix autoritzar el canal, revisar una prova privada i activar explícitament el calendari. Reutilitza la cua de render i registra l’estat persistentment; els controls manuals continuen disponibles.
