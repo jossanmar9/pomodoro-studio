@@ -1,0 +1,27 @@
+{
+  "enabled": false,
+  "timezone": "Europe/Madrid",
+  "weekdays": [0, 2, 4],
+  "hour": 18,
+  "minute": 0,
+  "lead_hours": 48,
+  "duration_minutes": 120,
+  "focus_minutes": 25,
+  "break_minutes": 5,
+  "resolution": "1920x1080",
+  "engine": "auto",
+  "quality": "balanced",
+  "expected_channel_id": "",
+  "scenes": [
+    {
+      "theme": "Cabana amb pluja",
+      "title": "Rainy Cabin by the Amber Window",
+      "background": "SUBSTITUIX-PEL-TEU-FONS.png",
+      "ambience": ["pluja-parabrisa.mp3", "foc-llar.mp3"],
+      "music": "peace-of-mind.mp3",
+      "credits": "",
+      "ambience_volume": 0.22,
+      "music_volume": 0.10
+    }
+  ]
+}

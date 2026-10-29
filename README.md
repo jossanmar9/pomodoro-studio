@@ -133,6 +133,7 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 ## Documentació
 
 - [Guia d’ús](docs/GUIA_US.md).
+- [Automatització local de vídeos i YouTube](docs/AUTOMATITZACIO_YOUTUBE.md).
 - [Linux Mint, Forge i correcció d’errors](docs/INSTAL_LINUX_MINT.md).
 - [Accessos directes en Linux](docs/ACCESSOS_DIRECTES.md).
 - [Generació local: imatges, clips, efectes i música](docs/GENERACIO_LOCAL.md).
@@ -165,7 +166,7 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 - Els clips verticals promocionals queden pendents per a v0.9.
 - La IA és opcional. La generació d’imatges té connector A1111/Forge; vídeo, efectes i música generats amb IA encara s’han d’importar manualment.
 - Es mesclen diversos efectes i una peça musical repetida; no hi ha llista musical amb alternança automàtica ni bucles sense costura garantits.
-- Els crèdits dels àudios es copien manualment a la descripció del vídeo.
+- En el flux manual, els crèdits es copien a la descripció. El programador opcional incorpora els del catàleg verificat i les notes configurades.
 - La integració directa de publicació està centrada en YouTube.
 
 ## Drets d'autor
@@ -176,3 +177,7 @@ Pomodoro Studio està dissenyat per a contingut original o correctament llicenci
 ### Generació opcional d’ambientacions
 
 La vista del projecte permet generar amb A1111/Forge, previsualitzar i acceptar explícitament un resultat com a fons amb metadades de procedència. El mode manual continua disponible sense IA. Vegeu [v0.8](docs/v0.8.md).
+
+### Automatització local opcional
+
+El programador optatiu prepara vídeos de 2 hores per a dilluns, dimecres i divendres a les 18:00 (Europe/Madrid), amb rotació d’escenes, crèdits dels àudios i pujada programada. Comença desactivat i requerix connexió OAuth, una prova privada revisada i activació explícita. Consulta la [guia completa](docs/AUTOMATITZACIO_YOUTUBE.md). Les pujades manuals continuen disponibles.

@@ -1,7 +1,9 @@
 """Integració opcional amb YouTube Data API v3."""
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import logging
 import os
+import tempfile
 from pathlib import Path
 from time import sleep
 
@@ -28,9 +30,16 @@ class YouTubeUploadSpec:
     language: str = "en"
     privacy: str = "private"
     thumbnail: Path | None = None
+    publish_at: datetime | None = None
+    interactive_auth: bool = True
 
 
 def validate_upload(spec: YouTubeUploadSpec) -> None:
+    if spec.publish_at is not None:
+        if spec.privacy != "private" or spec.publish_at.tzinfo is None:
+            raise ValueError("La publicació programada requerix vídeo privat i data amb zona horària")
+        if spec.publish_at <= datetime.now(timezone.utc):
+            raise ValueError("La data de publicació ha de ser futura")
     if spec.privacy not in VALID_PRIVACY:
         raise ValueError("Privacitat de YouTube no vàlida")
     if not spec.video.is_file():
@@ -63,23 +72,28 @@ def youtube_configured() -> bool:
     return settings.youtube_client_secrets.is_file()
 
 
-def credentials():
+def credentials(*, interactive: bool = True, scopes: list[str] | None = None, force_login: bool = False):
     Request, Credentials, InstalledAppFlow, _, _ = google_libraries()
+    scopes = scopes or [YOUTUBE_UPLOAD_SCOPE]
     token = settings.youtube_token_file
-    creds = Credentials.from_authorized_user_file(str(token), [YOUTUBE_UPLOAD_SCOPE]) if token.is_file() else None
+    creds = Credentials.from_authorized_user_file(str(token), scopes) if token.is_file() and not force_login else None
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
     if not creds or not creds.valid:
+        if not interactive:
+            raise YouTubeUnavailable("Cal autoritzar YouTube manualment abans d’executar el programador")
         if not settings.youtube_client_secrets.is_file():
             raise YouTubeUnavailable("Falta data/youtube-client-secret.json")
-        flow = InstalledAppFlow.from_client_secrets_file(str(settings.youtube_client_secrets), [YOUTUBE_UPLOAD_SCOPE])
+        flow = InstalledAppFlow.from_client_secrets_file(str(settings.youtube_client_secrets), scopes)
         creds = flow.run_local_server(port=0, access_type="offline", prompt="consent")
     token.parent.mkdir(parents=True, exist_ok=True)
-    token.write_text(creds.to_json(), encoding="utf-8")
+    fd, temporary = tempfile.mkstemp(prefix=".youtube-token-", dir=token.parent)
     try:
-        os.chmod(token, 0o600)
-    except OSError:
-        logger.warning("No s'han pogut restringir els permisos del token OAuth")
+        with os.fdopen(fd, "w", encoding="utf-8") as target:
+            target.write(creds.to_json())
+        os.replace(temporary, token)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
     return creds
 
 
@@ -105,6 +119,24 @@ def _http_status(exc: Exception) -> int | None:
 
 
 def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
+    """Serialize uploads across the web process and the local worker."""
+    validate_upload(spec)
+    existing = _existing_upload(spec)
+    if existing:
+        return existing
+    lock = spec.video.parent / ".youtube-upload.lock"
+    try:
+        fd = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        raise YouTubeUnavailable("Hi ha una pujada activa o interrompuda; revisa YouTube Studio abans de reintentar") from None
+    os.close(fd)
+    try:
+        return _upload_video(spec, max_retries=max_retries)
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def _upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
     """Publica una vegada i reutilitza l'ID local si el vídeo ja es va pujar."""
     validate_upload(spec)
     existing = _existing_upload(spec)
@@ -112,8 +144,12 @@ def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
         logger.info("S'evita una pujada duplicada a YouTube: %s", existing)
         return existing
 
+    uncertain = spec.video.parent / ".youtube-upload-uncertain"
+    if uncertain.exists():
+        raise YouTubeUnavailable("Una pujada anterior no està confirmada; revisa Studio abans de repetir-la")
     _, _, _, build, MediaFileUpload = google_libraries()
-    service = build("youtube", "v3", credentials=credentials(), cache_discovery=False)
+    creds = credentials() if spec.interactive_auth else credentials(interactive=False)
+    service = build("youtube", "v3", credentials=creds, cache_discovery=False)
     body = {
         "snippet": {
             "title": spec.title.strip(),
@@ -124,7 +160,13 @@ def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
         },
         "status": {"privacyStatus": spec.privacy},
     }
+    if spec.publish_at is not None:
+        body["status"]["publishAt"] = spec.publish_at.astimezone(timezone.utc).isoformat()
     media = MediaFileUpload(str(spec.video), mimetype="video/mp4", resumable=True, chunksize=8 * 1024 * 1024)
+    # Persist remote-call intent. If the final response is lost, another process
+    # must not start a new insert for this folder automatically.
+    with uncertain.open("x") as flag:
+        flag.write("Check YouTube Studio before retrying this upload.\n")
     request = service.videos().insert(part="snippet,status", body=body, media_body=media)
     response = None
     retries = 0
@@ -148,6 +190,7 @@ def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
     # El marcador s'escriu abans de la miniatura: una fallada posterior no pot
     # provocar que el mateix vídeo es torne a pujar.
     _remember_upload(spec, video_id)
+    uncertain.unlink(missing_ok=True)
     if spec.thumbnail:
         try:
             service.thumbnails().set(
@@ -158,3 +201,4 @@ def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
             logger.exception("El vídeo %s s'ha publicat, però la miniatura ha fallat", video_id)
 
     return video_id
+
