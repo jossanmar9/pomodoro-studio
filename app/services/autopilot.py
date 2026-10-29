@@ -7,6 +7,7 @@ Només s'executa una execució alhora; la resta esperen en cua.
 from __future__ import annotations
 
 from datetime import datetime
+import json
 import logging
 from pathlib import Path
 import random
@@ -76,8 +77,8 @@ def choose_background(theme: str, environment: str, rng: random.Random, fmt: str
     """Tria un fons aprovat de la biblioteca; si no n'hi ha (o es demana), en genera un amb Forge."""
     library = find_backgrounds(settings.assets_dir / "backgrounds", theme)
     if library and not force_new:
-        fresh = [path for path in library if path.name not in (recent or set())]
-        return rng.choice(fresh or library), "Fons de la biblioteca"
+        fresh = [path for path in library if path.name not in (recent or set())] or library
+        return rng.choice(best_matches(fresh, environment, fmt)), "Fons de la biblioteca"
     if forge_ready():
         try:
             return _generate_background(theme, environment, fmt), "Fons nou generat amb Forge (sense revisar)"
@@ -92,6 +93,26 @@ def choose_background(theme: str, environment: str, rng: random.Random, fmt: str
         f"{reason}no hi ha cap fons de «{theme}» en la biblioteca. "
         f"Genera'n i guarda'n en «Biblioteca de fons», o afig una imatge el nom de la qual comence per «{slugify(theme)}»."
     )
+
+
+def _background_tags(path: Path) -> tuple[str | None, str | None]:
+    """Format i entorn per als quals es va fer el fons (de la seua fitxa .json)."""
+    try:
+        data = json.loads(path.with_suffix(path.suffix + ".json").read_text(encoding="utf-8"))
+        generation = data.get("generation") or {}
+        return generation.get("format"), generation.get("environment")
+    except (OSError, ValueError, AttributeError):
+        return None, None
+
+
+def best_matches(paths: list[Path], environment: str, fmt: str) -> list[Path]:
+    """Prioritza els fons fets per al mateix format i entorn; si no n'hi ha, qualsevol del tema."""
+    tags = {path: _background_tags(path) for path in paths}
+    for wanted in (lambda f, e: f == fmt and e == environment, lambda f, e: f == fmt, lambda f, e: e == environment):
+        chosen = [path for path, (f, e) in tags.items() if wanted(f, e)]
+        if chosen:
+            return chosen
+    return paths
 
 
 def recent_backgrounds(theme: str, limit: int = 5) -> set[str]:
