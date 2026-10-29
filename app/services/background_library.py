@@ -78,7 +78,7 @@ def generate_one(theme: str, environment: str, fmt: str, output_dir: Path) -> tu
         "model": result.model,
         "license": "Generat localment amb Forge",
         "source_notes": result.notes,
-        "generation": {"profile": profile.name if profile else "", "hires_scale": hires},
+        "generation": {"profile": profile.name if profile else "", "hires_scale": hires, "format": fmt, "environment": environment},
     }
     return target, provenance
 

@@ -124,3 +124,17 @@ def test_library_page_and_api(dirs, monkeypatch):
         assert "bosc-importat-" in client.get("/fons").text
         home = client.get("/")
         assert "Biblioteca de fons" in home.text and "2 fons" in home.text
+
+
+def test_automatic_mode_prefers_backgrounds_made_for_the_same_format_and_environment(dirs):
+    root = lib.library_dir()
+    for name, fmt, env in (("bosc-a", "pomodoro", "bosc"), ("bosc-b", "dormir", "nit"), ("bosc-c", "dormir", "bosc"), ("bosc-d", None, None)):
+        png(root / f"{name}.png")
+        if fmt:
+            (root / f"{name}.png.json").write_text(json.dumps({"generation": {"format": fmt, "environment": env}}))
+    pick = lambda env, fmt: {auto.choose_background("Bosc", env, random.Random(s), fmt)[0].name for s in range(12)}
+    assert pick("bosc", "dormir") == {"bosc-c.png"}
+    assert pick("nit", "dormir") == {"bosc-b.png"}
+    assert pick("pluja", "dormir") == {"bosc-b.png", "bosc-c.png"}
+    assert pick("bosc", "rol") == {"bosc-a.png", "bosc-c.png"}
+    assert pick("vent", "rol") == {"bosc-a.png", "bosc-b.png", "bosc-c.png", "bosc-d.png"}
