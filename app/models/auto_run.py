@@ -40,6 +40,7 @@ class AutoRun(Base):
     format: Mapped[str] = mapped_column(String(20), default="pomodoro")
     noise: Mapped[str | None] = mapped_column(String(20), nullable=True)
     dim: Mapped[int] = mapped_column(Integer, default=0)
+    motion: Mapped[int] = mapped_column(Integer, default=1)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

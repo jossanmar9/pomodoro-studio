@@ -20,7 +20,7 @@ from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, Render
 from app.services.ambience_assets import AssetProvenance, import_background
 from app.services.ambience_prompt import build_prompt
 from app.services.autopilot_plan import (
-    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
+    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     choose_ambience, find_backgrounds, load_catalog, prompt_spec, slugify,
 )
 from app.services.encoding import EncodingOptions
@@ -138,6 +138,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         preferred = [name for name in (run.ambience_files or "").split(",") if name]
         fmt = run.format if run.format in FORMATS else "pomodoro"
         run_noise = run.noise
+        with_motion = bool(run.motion)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
         if fmt != "pomodoro":
@@ -216,6 +217,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
             noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
+            motion=with_motion, flicker=with_motion and has_fire(ambience),
         ))
         _wait_for_render(project_id)
         if music_track:

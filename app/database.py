@@ -71,6 +71,7 @@ ADDED_COLUMNS = {
         "format": "VARCHAR(20) NOT NULL DEFAULT 'pomodoro'",
         "noise": "VARCHAR(20)",
         "dim": "INTEGER NOT NULL DEFAULT 0",
+        "motion": "INTEGER NOT NULL DEFAULT 1",
     },
 }
 

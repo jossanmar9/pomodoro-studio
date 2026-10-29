@@ -219,7 +219,7 @@ def auto_home(request:Request,error:str=Query("")):
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form("")):
+def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
     if format=="soroll":
@@ -236,7 +236,7 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)

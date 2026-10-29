@@ -43,6 +43,33 @@ class RenderSpec:
     # Soroll generat per FFmpeg: "white", "pink" o "brown" (None = cap).
     noise: str | None = None
     noise_loudness: float = -30.0
+    # Deriva molt lenta de càmera sobre un fons d'imatge fixa.
+    motion: bool = False
+    # Parpelleig suau de la llum (escenes amb foc).
+    flicker: bool = False
+
+
+# Marge d'ampliació perquè la càmera puga moure's sense mostrar vores.
+MOTION_MARGIN = 1.06
+# Períodes en segons de la deriva horitzontal i vertical (primers entre si: no es repetix de manera visible).
+MOTION_PERIODS = (97, 131)
+
+
+def motion_filters(width: int, height: int) -> list[str]:
+    """Amplia un 6 % i desplaça la finestra lentament (moviment de Lissajous)."""
+    big_w = int(width * MOTION_MARGIN) // 2 * 2
+    big_h = int(height * MOTION_MARGIN) // 2 * 2
+    px, py = MOTION_PERIODS
+    return [
+        f"scale={big_w}:{big_h}:force_original_aspect_ratio=increase",
+        f"crop={big_w}:{big_h}",
+        f"crop={width}:{height}:x='(iw-ow)/2*(1+sin(2*PI*t/{px}))':y='(ih-oh)/2*(1+sin(2*PI*t/{py}))'",
+        "setsar=1",
+    ]
+
+
+# Dues ones de freqüència diferent: la llum oscil·la sense semblar un pols regular.
+FLICKER_FILTER = "eq=brightness='0.018*sin(2*PI*t*0.73)+0.011*sin(2*PI*t*1.91)+0.006*sin(2*PI*t*3.7)':eval=frame"
 
 
 NOISE_COLORS = {"white", "pink", "brown"}
@@ -167,7 +194,12 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
                 chimes.append((next_input, times))
                 next_input += 1
 
-    video = [f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"]
+    if spec.motion and suffix in SUPPORTED_IMAGE_SUFFIXES:
+        video = motion_filters(width, height)
+    else:
+        video = [f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"]
+    if spec.flicker:
+        video.append(FLICKER_FILTER)
     if spec.show_timer:
         timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts)
         if timer:

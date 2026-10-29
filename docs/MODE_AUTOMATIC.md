@@ -22,6 +22,7 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 | Ambient | Tria a l'atzar els sons de l'entorn (per exemple, una pluja i un foc) i els deixa baixets i igualats de volum. |
 | Música | Per defecte **no n'hi ha**. Si marques **Afegir música**, fa una llista amb peces diferents de `assets/music`, sense repetir-les i amb fosa entre elles. |
 | Avís | Si **Avís suau en acabar cada temporitzador** està marcat, sona una campaneta de dues notes: baixa en acabar la concentració i puja en acabar el descans. La genera l'aplicació, així que no té cap llicència. |
+| Moviment | Si **Moviment suau** està marcat, la càmera es desplaça molt a poc a poc sobre el fons (amplia un 6 % i va i ve en uns dos minuts), i en escenes amb foc la llum parpelleja lleugerament. El comptador no es mou. Fa el renderitzat una mica més lent. |
 | Tipografia | Cada ambientació té la seua tipografia lliure (llibre antic, gòtica, romana, màquina d'escriure…). Vegeu `assets/fonts/README.md`. |
 | Textos | Títol, descripció, capítols i etiquetes en anglés, amb els **crèdits de cada so (i de la música, si n'hi ha)** (autor, llicència i enllaç) agafats de `assets/audio-catalog.json`. |
 | Vídeo | Renderitza en 1080p i fa la miniatura. En format Pomodoro, amb el comptador en anglés (FOCUS / BREAK / SESSION); en els altres, sense comptador i amb capítols cada hora. |

@@ -589,3 +589,8 @@ def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chi
     parts.append(f"{''.join(mix)}amix=inputs={len(mix)}:duration=longest:normalize=0,alimiter=limit=0.95,afade=t=out:st={seconds - 2}:d=2[out]")
     command += ["-filter_complex", ";".join(parts), "-map", "[out]", "-t", str(seconds), "-c:a", "libmp3lame", "-q:a", "4", str(output)]
     return command
+
+
+def has_fire(layers: list[AmbienceLayer]) -> bool:
+    """Si l'ambient porta foc, la llum del vídeo parpelleja suaument."""
+    return any(layer.path.stem.startswith("foc-") for layer in layers)

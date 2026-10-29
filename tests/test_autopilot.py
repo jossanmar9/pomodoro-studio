@@ -263,6 +263,37 @@ def test_rpg_environments_and_themes_are_ready():
         assert "no people" in build_prompt(prompt_spec(theme, "soroll", "dormir")).positive
 
 
+def test_motion_and_flicker_filters(tmp_path):
+    from app.services.autopilot_plan import AmbienceLayer, has_fire
+    spec = RenderSpec(touch(tmp_path / "bg.png"), tmp_path / "v.mp4", "1920x1080", build_timeline(25, 5, 60), motion=True, flicker=True)
+    graph = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    graph = graph[graph.index("-filter_complex") + 1]
+    assert "scale=2034:1144" in graph and "crop=1920:1080:x=" in graph and "sin(2*PI*t/97)" in graph
+    assert "eq=brightness=" in graph
+    assert graph.index("crop=1920:1080:x=") < graph.index("drawtext")  # el comptador no es mou
+    still = build_ffmpeg_command(RenderSpec(spec.background, spec.output, "1920x1080", spec.timeline))
+    assert "sin(2*PI*t/97)" not in still[still.index("-filter_complex") + 1]
+    video = RenderSpec(touch(tmp_path / "bg.mp4"), spec.output, "1920x1080", spec.timeline, motion=True)
+    assert "sin(2*PI*t/97)" not in build_ffmpeg_command(video)[build_ffmpeg_command(video).index("-filter_complex") + 1]
+    assert has_fire([AmbienceLayer(Path("pluja-pedra.mp3"), -30), AmbienceLayer(Path("foc-llar.mp3"), -36)])
+    assert not has_fire([AmbienceLayer(Path("pluja-pedra.mp3"), -30)])
+
+
+def test_real_render_with_motion_moves_the_picture(tmp_path):
+    import subprocess
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=640x360", "-frames:v", "1", str(background)], check=True)
+    output = tmp_path / "motion.mp4"
+    spec = RenderSpec(background, output, "320x180", build_timeline(1, 0, 1), show_timer=False, motion=True, flicker=True, noise="pink")
+    subprocess.run(build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu", "fast"), has_nvenc=False)), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    def frame(second):
+        return subprocess.run(["ffmpeg", "-loglevel", "error", "-ss", str(second), "-i", str(output), "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True, check=True).stdout
+    first, later = frame(1), frame(40)
+    assert len(first) == len(later) == 320 * 180
+    changed = sum(1 for a, b in zip(first, later) if abs(a - b) > 20)
+    assert changed > len(first) * 0.05
+
+
 # --- Procés complet amb tot simulat --------------------------------------------
 
 @pytest.fixture
@@ -345,10 +376,21 @@ def test_noise_run_has_no_timer_no_ambience_and_dims(env):
     spec = env.rendered["spec"]
     assert spec.noise == "brown" and spec.ambience == [] and spec.music is None
     assert spec.show_timer is False and spec.chime is False and spec.dim_after == 1800
+    assert spec.motion is True and spec.flicker is False
     assert spec.timeline.total_seconds == 7200 and project.break_minutes == 0
     upload = env.uploads[0]
     assert "Brown Noise" in upload.title and "Dark Screen" in upload.title
     assert upload.category_id == "22" and record.category_id == "22"
+
+
+def test_fire_scene_flickers_and_motion_can_be_turned_off(env):
+    touch(auto.settings.assets_dir / "ambience" / "foc-llar.mp3")
+    run_id = make_run(env.session, environment="llar")
+    auto.execute(run_id, rng=random.Random(0))
+    assert env.rendered["spec"].motion is True and env.rendered["spec"].flicker is True
+    run_id = make_run(env.session, environment="llar", motion=0)
+    auto.execute(run_id, rng=random.Random(0))
+    assert env.rendered["spec"].motion is False and env.rendered["spec"].flicker is False
 
 
 def test_sleep_and_rpg_runs_use_ambience_without_timer(env):
@@ -412,13 +454,13 @@ def test_preview_endpoint_returns_playable_audio(env, monkeypatch):
 def test_noise_form_and_preview(env, monkeypatch):
     submitted = []
     monkeypatch.setattr(main.autopilot, "submit", submitted.append)
-    monkeypatch.chdir(env.tmp)
     with TestClient(main.app) as client:
         assert "Soroll de color" in client.get("/").text
         response = client.post("/auto", data={"format": "soroll", "theme": "Bosc", "noise": "rosa", "duration_minutes": "480", "dim": "1", "chime": "1"}, follow_redirects=False)
         assert response.status_code == 303
         assert client.post("/auto", data={"format": "soroll", "theme": "Bosc", "noise": "verd", "duration_minutes": "60"}).status_code == 400
         assert client.post("/auto", data={"format": "tik-tok", "theme": "Bosc", "environment": "bosc", "duration_minutes": "60"}).status_code == 400
+        monkeypatch.chdir(env.tmp)  # les mostres es guarden en data/ de la carpeta de proves
         preview = client.post("/api/auto/preview", data={"format": "soroll", "noise": "marro"})
         assert preview.status_code == 200, preview.text
         assert preview.json()["files"] == [] and preview.json()["sounds"] == ["Soroll marró"]
@@ -426,6 +468,7 @@ def test_noise_form_and_preview(env, monkeypatch):
     with env.session() as db:
         run = db.get(AutoRun, status["runs"][0]["id"])
     assert run.format == "soroll" and run.noise == "rosa" and run.dim == 1 and run.chime == 0 and run.environment == "soroll"
+    assert run.motion == 0  # la casella no s'ha enviat
     assert status["runs"][0]["environment_label"] == "Soroll rosa"
 
 
