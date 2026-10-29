@@ -29,6 +29,10 @@ def recover_interrupted_states() -> int:
         result = connection.execute(
             text("UPDATE projects SET status = 'FAILED' WHERE status IN ('QUEUED', 'GENERATING')")
         )
+        connection.execute(text(
+            "UPDATE auto_runs SET step = 'FAILED', error = 'Interromput per un reinici de l''aplicació' "
+            "WHERE step IN ('QUEUED', 'BACKGROUND', 'AUDIO', 'RENDERING', 'PUBLISHING')"
+        ))
         return result.rowcount or 0
 
 

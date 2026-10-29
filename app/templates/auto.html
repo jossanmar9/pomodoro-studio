@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ca-valencia">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pomodoro Studio · Mode automàtic</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/auto.css">
+</head>
+<body>
+<main class="shell auto">
+  <header class="auto-header">
+    <div>
+      <p class="eyebrow">THE AMBER WINDOW · POMODORO STUDIO</p>
+      <h1>Un botó, un vídeo.</h1>
+      <p class="muted">Tria el tema, l'entorn i la duració. La resta es fa sola: fons, efectes, música, renderitzat i publicació.</p>
+    </div>
+    <a class="back" href="/estudi">Mode avançat →</a>
+  </header>
+
+  {% if error %}<div class="warning">{{ error }}</div>{% endif %}
+
+  <section class="status-bar">
+    <div class="pill {{ 'ok' if forge_ready else 'warn' }}">
+      <strong>Fons</strong>
+      <span>{% if forge_ready %}Forge obert: es crea un fons nou per a cada vídeo{% else %}Forge tancat: es reutilitzen fons existents{% endif %}</span>
+    </div>
+    <div class="pill {{ 'ok' if counts.ambience and counts.music else 'warn' }}">
+      <strong>So</strong>
+      <span>{{ counts.ambience }} efectes · {{ counts.music }} peces musicals</span>
+    </div>
+    <div class="pill {{ 'ok' if youtube_connected else 'warn' }}">
+      <strong>YouTube</strong>
+      {% if youtube_connected %}
+        <span>Canal connectat</span>
+      {% elif youtube_configured %}
+        <form action="/youtube/connect" method="post"><button type="submit" class="mini">Connectar el canal</button></form>
+      {% else %}
+        <span>Falta <code>data/youtube-client-secret.json</code> (vegeu la guia)</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <form action="/auto" method="post" class="card auto-form" id="auto-form">
+    <fieldset class="choice-block">
+      <legend>1 · Tema</legend>
+      <div class="choices themes">
+        {% for t in themes %}
+        <label class="choice">
+          <input type="radio" name="theme" value="{{ t.name }}" {% if loop.first %}checked{% endif %} required>
+          <span>{{ t.name }}{% if not forge_ready %}<small class="{{ 'muted' if t.backgrounds else 'missing' }}">{{ t.backgrounds }} fons</small>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="choice-block">
+      <legend>2 · Entorn</legend>
+      <div class="choices">
+        {% for e in environments %}
+        <label class="choice">
+          <input type="radio" name="environment" value="{{ e.key }}" {% if loop.first %}checked{% endif %} required>
+          <span>{{ e.label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="choice-block">
+      <legend>3 · Duració</legend>
+      <div class="choices compact">
+        {% for d in durations %}
+        <label class="choice">
+          <input type="radio" name="duration_minutes" value="{{ d }}" {% if d == 120 %}checked{% endif %} required>
+          <span>{{ d // 60 }} h</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="choices compact">
+        {% for p in pomodoros %}
+        <label class="choice">
+          <input type="radio" name="pomodoro" value="{{ p }}" {% if loop.first %}checked{% endif %}>
+          <span>{{ p }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="go">
+      <div class="publish-options">
+        <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
+        <label>Visibilitat
+          <select name="privacy">
+            {% for key, label in privacy_choices.items() %}<option value="{{ key }}" {% if key == default_privacy %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="button" class="secondary" id="random">🎲 A l'atzar</button>
+      </div>
+      <button type="submit" class="big" id="go">Generar i publicar</button>
+    </div>
+  </form>
+
+  <section class="card">
+    <h2>Vídeos</h2>
+    <div id="runs" class="runs">
+      {% if not runs %}<p class="muted">Encara no hi ha cap vídeo. Tria les opcions i prem el botó.</p>{% endif %}
+    </div>
+  </section>
+</main>
+<script>window.__RUNS__ = {{ runs | tojson }};</script>
+<script src="/static/auto.js"></script>
+</body>
+</html>

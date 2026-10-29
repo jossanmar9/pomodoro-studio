@@ -15,6 +15,8 @@ FONT = "DejaVu Sans"
 class AudioTrack:
     path: Path
     volume: float = .25
+    # Sonoritat objectiu en LUFS; si s'indica, la pista es normalitza abans del volum.
+    loudness: float | None = None
 
 
 @dataclass(frozen=True)
@@ -27,21 +29,31 @@ class RenderSpec:
     ambience: list[AudioTrack] = field(default_factory=list)
     music: AudioTrack | None = None
     encoding: EncodingOptions = field(default_factory=EncodingOptions)
+    # Idioma dels textos del comptador: "va" (per defecte) o "en" per al públic del canal.
+    timer_language: str = "va"
+
+
+TIMER_LABELS = {
+    "va": ("CONCENTRACIÓ", "DESCANS", "SESSIÓ"),
+    "en": ("FOCUS", "BREAK", "SESSION"),
+}
 
 
 def _escape_drawtext(text: str) -> str:
     return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
 
-def build_timer_filters(timeline: TimelineSummary) -> str:
+def build_timer_filters(timeline: TimelineSummary, language: str = "va") -> str:
+    if language not in TIMER_LABELS: raise ValueError("Idioma del comptador no compatible")
+    focus_label, break_label, session_label = TIMER_LABELS[language]
     filters = []
     for segment in timeline.segments:
         start, end = segment.start_seconds, segment.end_seconds
         minutes = f"floor(({end}-t)/60)"; seconds = f"floor({end}-t)-60*floor(({end}-t)/60)"
         timer = f"%{{eif\\:{minutes}\\:d\\:2}}\\:%{{eif\\:{seconds}\\:d\\:2}}"
-        phase = "CONCENTRACIÓ" if segment.kind.value == "FOCUS" else "DESCANS"
+        phase = focus_label if segment.kind.value == "FOCUS" else break_label
         enable = f"between(t\\,{start}\\,{max(start, end-.001)})"; prefix = f"drawtext=font='{FONT}':"
-        filters += [f"{prefix}text='{_escape_drawtext(phase)}':fontcolor=white@0.88:fontsize=h/32:x=(w-text_w)/2:y=h*0.37:enable='{enable}'", f"{prefix}text='{timer}':fontcolor=white:fontsize=h/9:borderw=2:bordercolor=black@0.35:x=(w-text_w)/2:y=(h-text_h)/2:enable='{enable}'", f"{prefix}text='SESSIÓ {segment.session}':fontcolor=white@0.72:fontsize=h/44:x=(w-text_w)/2:y=h*0.62:enable='{enable}'"]
+        filters += [f"{prefix}text='{_escape_drawtext(phase)}':fontcolor=white@0.88:fontsize=h/32:x=(w-text_w)/2:y=h*0.37:enable='{enable}'", f"{prefix}text='{timer}':fontcolor=white:fontsize=h/9:borderw=2:bordercolor=black@0.35:x=(w-text_w)/2:y=(h-text_h)/2:enable='{enable}'", f"{prefix}text='{session_label} {segment.session}':fontcolor=white@0.72:fontsize=h/44:x=(w-text_w)/2:y=h*0.62:enable='{enable}'"]
     return ",".join(filters)
 
 
@@ -64,11 +76,12 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     for track in audio_tracks:
         _validate_audio(track); command += ["-stream_loop", "-1", "-i", str(track.path)]
 
-    base = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"; timer = build_timer_filters(spec.timeline)
+    base = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"; timer = build_timer_filters(spec.timeline, spec.timer_language)
     parts = [f"[0:v]{base},{timer}[vout]" if timer else f"[0:v]{base}[vout]"]
     fade_out = max(0, spec.timeline.total_seconds - 2)
     for i, track in enumerate(audio_tracks, 1):
-        parts.append(f"[{i}:a]volume={track.volume},afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2[a{i}]")
+        normalize = f"loudnorm=I={track.loudness:g}:TP=-2:LRA=11,aresample=48000," if track.loudness is not None else ""
+        parts.append(f"[{i}:a]{normalize}volume={track.volume},afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2[a{i}]")
     if audio_tracks:
         inputs = "".join(f"[a{i}]" for i in range(1, len(audio_tracks) + 1)); parts.append(f"{inputs}amix=inputs={len(audio_tracks)}:duration=longest:normalize=0,alimiter=limit=0.95[aout]")
     command += ["-filter_complex", ";".join(parts), "-map", "[vout]"]

@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     image_a1111_url: str = ""
     image_a1111_model: str = ""
     image_generation_dir: Path = Path("./data/generated-images")
+    image_a1111_upscaler: str = "Latent"
+    # Mode automàtic: escalat del fons generat (1 = sense hires fix).
+    auto_hires_scale: float = 1.5
+    # Privacitat per defecte en publicar des del mode automàtic.
+    auto_default_privacy: str = "public"
+    audio_catalog: Path = Path("./assets/audio-catalog.json")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
