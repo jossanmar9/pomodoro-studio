@@ -199,6 +199,70 @@ def test_preview_is_a_real_30_second_mp3(tmp_path):
     assert 29 <= float(probe.stdout) <= 31
 
 
+def test_texts_for_every_format_fit_youtube():
+    from app.services.autopilot_plan import NOISE_COLORS, plain_chapters
+    chapters = plain_chapters(8 * 3600, 1800)
+    for fmt, environment, noise in (("dormir", "pluja-llar", None), ("rol", "taverna", None), ("soroll", "soroll", "marro")):
+        texts = build_texts(public_theme="Enchanted Wizard Library", environment=environment, duration=480, focus=480, pause=0,
+                            chapters=chapters, credits="", fmt=fmt, noise=noise, dim=fmt != "rol", music=False)
+        assert len(texts.title) <= 100, texts.title
+        assert "Pomodoro" not in texts.title and "pomodoro" not in texts.tags
+        assert len(texts.description.encode("utf-8")) <= MAX_DESCRIPTION_BYTES
+        assert "00:00:00 Hour 1" in texts.description and "The Amber Window" in texts.description
+        assert "\n\n\n" not in texts.description
+    assert "Brown Noise" in build_texts(public_theme="Rainy Cabin", environment="soroll", duration=480, focus=480, pause=0, chapters=chapters, credits="", fmt="soroll", noise="marro", dim=True).title
+    assert "Dark Screen" in build_texts(public_theme="Rainy Cabin", environment="pluja", duration=480, focus=480, pause=0, chapters=chapters, credits="", fmt="dormir", dim=True).title
+    assert "Tabletop RPG" in build_texts(public_theme="Ancient Dungeon", environment="masmorra", duration=180, focus=180, pause=0, chapters=chapters, credits="", fmt="rol").title
+    with pytest.raises(ValueError):
+        build_texts(public_theme="x", environment="soroll", duration=60, focus=60, pause=0, chapters=chapters, credits="", fmt="soroll", noise="verd")
+
+
+def test_plain_chapters_every_hour_with_dark_screen_mark():
+    from app.services.autopilot_plan import plain_chapters
+    assert plain_chapters(3 * 3600) == "00:00:00 Hour 1\n01:00:00 Hour 2\n02:00:00 Hour 3"
+    assert plain_chapters(3600, 1800) == "00:00:00 Part 1\n00:15:00 Part 2\n00:30:00 Dark screen\n00:45:00 Part 4"
+
+
+def test_render_without_timer_with_noise_and_dark_screen(tmp_path):
+    spec = RenderSpec(touch(tmp_path / "bg.png"), tmp_path / "v.mp4", "1920x1080", build_timeline(120, 0, 120),
+                      show_timer=False, dim_after=1800, noise="brown", noise_loudness=-26)
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    graph = command[command.index("-filter_complex") + 1]
+    assert "drawtext" not in graph
+    assert "fade=t=out:st=1800" in graph
+    assert any(arg.startswith("anoisesrc=c=brown") for arg in command)
+    assert "loudnorm=I=-26" in graph and "-an" not in command
+    with pytest.raises(ValueError):
+        build_ffmpeg_command(RenderSpec(spec.background, spec.output, "1920x1080", spec.timeline, noise="green"))
+
+
+def test_real_noise_render_fades_to_black(tmp_path):
+    import subprocess
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0xc08040:s=320x180", "-frames:v", "1", str(background)], check=True)
+    output = tmp_path / "noise.mp4"
+    spec = RenderSpec(background, output, "320x180", build_timeline(1, 0, 1), show_timer=False, dim_after=5, noise="pink")
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu", "fast"), has_nvenc=False))
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(output)], capture_output=True, text=True, check=True)
+    assert 59 <= float(probe.stdout) <= 61
+    def brightness(second):
+        frame = subprocess.run(["ffmpeg", "-loglevel", "error", "-ss", str(second), "-i", str(output), "-frames:v", "1", "-vf", "scale=1:1", "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True, check=True).stdout
+        return frame[0]
+    assert brightness(1) > 60 and brightness(59.5) < 10
+    volume = subprocess.run(["ffmpeg", "-nostats", "-ss", "10", "-t", "10", "-i", str(output), "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True).stderr
+    assert "mean_volume" in volume and "-inf" not in volume.split("mean_volume")[1][:20]
+
+
+def test_rpg_environments_and_themes_are_ready():
+    from app.services.fonts import THEME_FONTS
+    for key in ("masmorra", "campament", "tempesta-mar", "taverna"):
+        assert key in ENVIRONMENTS
+    for theme in ("Masmorra", "Campament d'aventurers", "Cova del drac"):
+        assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS
+        assert "no people" in build_prompt(prompt_spec(theme, "soroll", "dormir")).positive
+
+
 # --- Procés complet amb tot simulat --------------------------------------------
 
 @pytest.fixture
@@ -270,6 +334,35 @@ def test_full_run_renders_in_english_and_publishes(env):
     assert "Music:" not in upload.description
 
 
+def test_noise_run_has_no_timer_no_ambience_and_dims(env):
+    run_id = make_run(env.session, format="soroll", environment="soroll", noise="marro", dim=1, chime=1, duration_minutes=120)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        assert run.step == "DONE", run.error
+        project = db.get(Project, run.project_id)
+        record = db.query(YouTubePublication).filter_by(project_id=run.project_id).one()
+    spec = env.rendered["spec"]
+    assert spec.noise == "brown" and spec.ambience == [] and spec.music is None
+    assert spec.show_timer is False and spec.chime is False and spec.dim_after == 1800
+    assert spec.timeline.total_seconds == 7200 and project.break_minutes == 0
+    upload = env.uploads[0]
+    assert "Brown Noise" in upload.title and "Dark Screen" in upload.title
+    assert upload.category_id == "22" and record.category_id == "22"
+
+
+def test_sleep_and_rpg_runs_use_ambience_without_timer(env):
+    for fmt, category in (("dormir", "22"), ("rol", "20")):
+        run_id = make_run(env.session, format=fmt, environment="pluja", dim=1)
+        auto.execute(run_id, rng=random.Random(0))
+        with env.session() as db:
+            assert db.get(AutoRun, run_id).step == "DONE"
+        spec = env.rendered["spec"]
+        assert spec.show_timer is False and spec.chime is False and spec.ambience and spec.noise is None
+        assert (spec.dim_after == 1800) is (fmt == "dormir")
+        assert env.uploads[-1].category_id == category
+
+
 def test_run_with_music_mixes_a_playlist(env):
     run_id = make_run(env.session, music=1, chime=0)
     auto.execute(run_id, rng=random.Random(0))
@@ -314,6 +407,26 @@ def test_preview_endpoint_returns_playable_audio(env, monkeypatch):
         assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
         assert client.get("/api/auto/preview/../../etc/passwd").status_code == 404
         assert client.post("/api/auto/preview", data={"environment": "mar"}).status_code == 409
+
+
+def test_noise_form_and_preview(env, monkeypatch):
+    submitted = []
+    monkeypatch.setattr(main.autopilot, "submit", submitted.append)
+    monkeypatch.chdir(env.tmp)
+    with TestClient(main.app) as client:
+        assert "Soroll de color" in client.get("/").text
+        response = client.post("/auto", data={"format": "soroll", "theme": "Bosc", "noise": "rosa", "duration_minutes": "480", "dim": "1", "chime": "1"}, follow_redirects=False)
+        assert response.status_code == 303
+        assert client.post("/auto", data={"format": "soroll", "theme": "Bosc", "noise": "verd", "duration_minutes": "60"}).status_code == 400
+        assert client.post("/auto", data={"format": "tik-tok", "theme": "Bosc", "environment": "bosc", "duration_minutes": "60"}).status_code == 400
+        preview = client.post("/api/auto/preview", data={"format": "soroll", "noise": "marro"})
+        assert preview.status_code == 200, preview.text
+        assert preview.json()["files"] == [] and preview.json()["sounds"] == ["Soroll marró"]
+        status = client.get("/api/auto").json()
+    with env.session() as db:
+        run = db.get(AutoRun, status["runs"][0]["id"])
+    assert run.format == "soroll" and run.noise == "rosa" and run.dim == 1 and run.chime == 0 and run.environment == "soroll"
+    assert status["runs"][0]["environment_label"] == "Soroll rosa"
 
 
 def test_home_page_and_form_create_a_run(env, monkeypatch):

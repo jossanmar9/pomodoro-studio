@@ -36,6 +36,30 @@ class RenderSpec:
     fonts: ResolvedFonts | None = None
     # Campaneta suau en acabar cada concentració i cada descans.
     chime: bool = False
+    # False per a vídeos sense comptador (per a dormir, partides de rol, soroll).
+    show_timer: bool = True
+    # Segon a partir del qual la pantalla es fon a negre (None = mai).
+    dim_after: int | None = None
+    # Soroll generat per FFmpeg: "white", "pink" o "brown" (None = cap).
+    noise: str | None = None
+    noise_loudness: float = -30.0
+
+
+NOISE_COLORS = {"white", "pink", "brown"}
+DIM_FADE_SECONDS = 90
+
+
+def noise_source(color: str, seconds: int | None = None) -> str:
+    """Font de soroll de FFmpeg. No usa cap fitxer ni llicència de tercers."""
+    if color not in NOISE_COLORS:
+        raise ValueError("Color de soroll no vàlid")
+    duration = f":d={seconds}" if seconds else ""
+    return f"anoisesrc=c={color}:r=48000:a=0.5{duration}"
+
+
+def noise_filter(loudness: float) -> str:
+    # Sense subgreus inaudibles i sense aguts aspres; després s'iguala la sonoritat.
+    return f"highpass=f=25,lowpass=f=16000,loudnorm=I={loudness:g}:TP=-2:LRA=7,aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo"
 
 
 def _bell(first: float, second: float, gain: float = 0.16) -> str:
@@ -130,21 +154,38 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     audio_tracks = [*spec.ambience, *([spec.music] if spec.music else [])]
     for track in audio_tracks:
         _validate_audio(track); command += ["-stream_loop", "-1", "-i", str(track.path)]
+    next_input = len(audio_tracks) + 1
+    noise_input: int | None = None
+    if spec.noise:
+        command += ["-f", "lavfi", "-i", noise_source(spec.noise, spec.timeline.total_seconds)]
+        noise_input, next_input = next_input, next_input + 1
     chimes: list[tuple[int, list[int]]] = []
     if spec.chime:
         for notes, times in zip((CHIME_FOCUS_END, CHIME_BREAK_END), chime_times(spec.timeline)):
             if times:
                 command += ["-f", "lavfi", "-i", _bell(*notes)]
-                chimes.append((len(audio_tracks) + len(chimes) + 1, times))
+                chimes.append((next_input, times))
+                next_input += 1
 
-    base = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"; timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts)
-    parts = [f"[0:v]{base},{timer}[vout]" if timer else f"[0:v]{base}[vout]"]
+    video = [f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"]
+    if spec.show_timer:
+        timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts)
+        if timer:
+            video.append(timer)
+    if spec.dim_after is not None and spec.dim_after < spec.timeline.total_seconds:
+        fade = min(DIM_FADE_SECONDS, spec.timeline.total_seconds - spec.dim_after)
+        video.append(f"fade=t=out:st={spec.dim_after}:d={fade}:color=black")
+    parts = [f"[0:v]{','.join(video)}[vout]"]
     fade_out = max(0, spec.timeline.total_seconds - 2)
+    edges = f"afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2"
     mix: list[str] = []
     for i, track in enumerate(audio_tracks, 1):
         normalize = f"loudnorm=I={track.loudness:g}:TP=-2:LRA=11,aresample=48000," if track.loudness is not None else ""
-        parts.append(f"[{i}:a]{normalize}volume={track.volume},afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2[a{i}]")
+        parts.append(f"[{i}:a]{normalize}volume={track.volume},{edges}[a{i}]")
         mix.append(f"[a{i}]")
+    if noise_input is not None:
+        parts.append(f"[{noise_input}:a]{noise_filter(spec.noise_loudness)},{edges}[noise]")
+        mix.append("[noise]")
     for index, times in chimes:
         labels = [f"c{index}_{n}" for n in range(len(times))]
         parts.append(f"[{index}:a]asplit={len(times)}" + "".join(f"[{l}s]" for l in labels) if len(times) > 1 else f"[{index}:a]anull[{labels[0]}s]")

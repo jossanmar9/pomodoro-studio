@@ -49,3 +49,5 @@ button.big:hover{background:#f0b862}
 .sound-check label{min-width:170px}
 .sound-check audio{height:40px;flex:1 1 260px}
 .sound-check small{flex-basis:100%}
+[hidden]{display:none!important}
+.formats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}

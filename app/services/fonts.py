@@ -62,6 +62,9 @@ THEME_FONTS: dict[str, FontStyle] = {
     "Cafeteria a París": FontStyle("París", PLAYFAIR, PLAYFAIR),
     "Parc a la ciutat": FontStyle("Parc", CORMORANT, CORMORANT),
     "Apartament a la ciutat": FontStyle("Apartament", LORA, LORA),
+    "Masmorra": FontStyle("Masmorra", FRAKTUR, CINZEL, uppercase_labels=False),
+    "Campament d'aventurers": FontStyle("Aventura", MEDIEVAL_SHARP, MEDIEVAL_SHARP),
+    "Cova del drac": FontStyle("Drac", CINZEL_DECO, CINZEL),
 }
 
 

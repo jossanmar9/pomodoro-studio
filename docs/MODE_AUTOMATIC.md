@@ -2,7 +2,12 @@
 
 La pàgina principal (`http://localhost:8000`) és ara el mode automàtic. Només cal triar:
 
-1. **Tema**: biblioteca medieval, cabana, nau espacial…
+0. **Format**:
+   - **Pomodoro**: comptador de concentració i descans, amb campaneta opcional.
+   - **Per a dormir**: només l'ambient, sense comptador ni campaneta. La pantalla es pot enfosquir a poc a poc als 30 minuts.
+   - **Partida de rol**: ambient de fons per a partides (taverna, masmorra, campament, tempesta al mar…), sense comptador.
+   - **Soroll de color**: soroll marró, rosa o blanc generat per l'aplicació mateixa (sense cap so de tercers), amb pantalla enfosquida opcional.
+1. **Tema**: biblioteca medieval, cabana, nau espacial, masmorra, campament d'aventurers, cova del drac…
 2. **Entorn**: pluja, tempesta, llar de foc, pluja i llar de foc, nit, bosc, rierol, mar, vent, cafeteria plena, taverna plena, cafeteria i carrer, trànsit de ciutat, pluja a la ciutat, ciutat de nit, parc i plaça, carrers del Japó o només música.
    - Tria el **volum de l'ambient** (molt baix, baix o normal) i prem **🔊 Escoltar mostra** per sentir 30 segons tal com sonarà el vídeo, campaneta inclosa. El vídeo usarà exactament els sons de la mostra; **🔁 Altres sons** en tria uns altres.
 3. **Duració**: 1, 2, 3, 4 o 8 hores, amb Pomodoro 25/5 o 50/10.
@@ -19,8 +24,8 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 | Avís | Si **Avís suau en acabar cada temporitzador** està marcat, sona una campaneta de dues notes: baixa en acabar la concentració i puja en acabar el descans. La genera l'aplicació, així que no té cap llicència. |
 | Tipografia | Cada ambientació té la seua tipografia lliure (llibre antic, gòtica, romana, màquina d'escriure…). Vegeu `assets/fonts/README.md`. |
 | Textos | Títol, descripció, capítols i etiquetes en anglés, amb els **crèdits de cada so (i de la música, si n'hi ha)** (autor, llicència i enllaç) agafats de `assets/audio-catalog.json`. |
-| Vídeo | Renderitza en 1080p amb el comptador en anglés (FOCUS / BREAK / SESSION) i fa la miniatura. |
-| YouTube | Puja el vídeo i la miniatura al canal amb la visibilitat triada. |
+| Vídeo | Renderitza en 1080p i fa la miniatura. En format Pomodoro, amb el comptador en anglés (FOCUS / BREAK / SESSION); en els altres, sense comptador i amb capítols cada hora. |
+| YouTube | Puja el vídeo i la miniatura al canal amb la visibilitat triada, en la categoria del format: Educació (Pomodoro), Gent i blogs (dormir i soroll) o Videojocs (rol). |
 
 Pots tancar la pàgina mentre treballa; en tornar a obrir-la veuràs com va cada vídeo. Si demanes diversos vídeos, es fan d'un en un.
 

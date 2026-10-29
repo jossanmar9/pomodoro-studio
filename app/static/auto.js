@@ -86,7 +86,7 @@
 
   async function preview(keep) {
     const data = new FormData();
-    for (const name of ["environment", "ambience_level", "music", "chime"]) {
+    for (const name of ["format", "environment", "noise", "ambience_level", "music", "chime"]) {
       const field = form.querySelector(`[name="${name}"]:checked, select[name="${name}"]`);
       if (field && !(field.type === "checkbox" && !field.checked)) data.set(name, field.value);
     }
@@ -101,7 +101,8 @@
       audio.src = result.url;
       audio.hidden = false;
       reshuffle.hidden = !result.files.length;
-      info.textContent = (result.sounds.length ? `Sons: ${result.sounds.join(" · ")}` : "") + (form.chime?.checked ? " · campaneta als 10 s i als 20 s" : "") + ". El vídeo usarà estos mateixos sons.";
+      const withChime = currentFormat() === "pomodoro" && form.chime?.checked;
+      info.textContent = (result.sounds.length ? `Sons: ${result.sounds.join(" · ")}` : "") + (withChime ? " · campaneta als 10 s i als 20 s" : "") + ". El vídeo usarà estos mateixos sons.";
       audio.play().catch(() => {});
     } catch (error) {
       info.textContent = `No s'ha pogut fer la mostra: ${error.message}`;
@@ -109,12 +110,22 @@
       previewBtn.disabled = reshuffle.disabled = false;
     }
   }
+  // Format: mostra només les opcions que li corresponen.
+  const currentFormat = () => form?.querySelector('input[name="format"]:checked')?.value || "pomodoro";
+  function applyFormat() {
+    const format = currentFormat();
+    form.querySelectorAll("[data-show-for]").forEach((el) => { el.hidden = !el.dataset.showFor.split(" ").includes(format); });
+    form.querySelectorAll("[data-hide-for]").forEach((el) => { el.hidden = el.dataset.hideFor.split(" ").includes(format); });
+  }
+  form?.querySelectorAll('input[name="format"], input[name="noise"]').forEach((el) => el.addEventListener("change", () => { applyFormat(); forgetSounds(); }));
+  if (form) applyFormat();
+
   previewBtn?.addEventListener("click", () => preview(true));
   reshuffle?.addEventListener("click", () => { files.value = ""; preview(false); });
   form?.querySelectorAll('input[name="environment"]').forEach((el) => el.addEventListener("change", forgetSounds));
 
   document.querySelector("#random")?.addEventListener("click", () => {
-    for (const name of ["theme", "environment"]) {
+    for (const name of ["theme", "environment", "noise"]) {
       const options = [...form.querySelectorAll(`input[name="${name}"]`)];
       options[Math.floor(Math.random() * options.length)].checked = true;
     }

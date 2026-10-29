@@ -68,6 +68,9 @@ ADDED_COLUMNS = {
         "chime": "INTEGER NOT NULL DEFAULT 1",
         "ambience_level": "INTEGER NOT NULL DEFAULT 0",
         "ambience_files": "TEXT",
+        "format": "VARCHAR(20) NOT NULL DEFAULT 'pomodoro'",
+        "noise": "VARCHAR(20)",
+        "dim": "INTEGER NOT NULL DEFAULT 0",
     },
 }
 
