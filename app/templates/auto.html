@@ -13,7 +13,7 @@
     <div>
       <p class="eyebrow">THE AMBER WINDOW · POMODORO STUDIO</p>
       <h1>Un botó, un vídeo.</h1>
-      <p class="muted">Tria el tema, l'entorn i la duració. La resta es fa sola: fons, sons d'ambient, renderitzat i publicació.</p>
+      <p class="muted">Tria el format, el tema, l'entorn i la duració. La resta es fa sola: fons, sons, renderitzat i publicació.</p>
     </div>
     <a class="back" href="/estudi">Mode avançat →</a>
   </header>
@@ -43,6 +43,18 @@
 
   <form action="/auto" method="post" class="card auto-form" id="auto-form">
     <fieldset class="choice-block">
+      <legend>Format</legend>
+      <div class="choices compact formats">
+        {% for key, label in formats.items() %}
+        <label class="choice">
+          <input type="radio" name="format" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+          <span>{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="choice-block">
       <legend>1 · Tema</legend>
       <div class="choices themes">
         {% for t in themes %}
@@ -55,8 +67,16 @@
     </fieldset>
 
     <fieldset class="choice-block">
-      <legend>2 · Entorn</legend>
-      <div class="choices">
+      <legend><span data-hide-for="soroll">2 · Entorn</span><span data-show-for="soroll" hidden>2 · Color del soroll</span></legend>
+      <div class="choices compact" data-show-for="soroll" hidden>
+        {% for key, label in noise_colors.items() %}
+        <label class="choice">
+          <input type="radio" name="noise" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+          <span>{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="choices" data-hide-for="soroll">
         {% for e in environments %}
         <label class="choice">
           <input type="radio" name="environment" value="{{ e.key }}" {% if loop.first %}checked{% endif %} required>
@@ -65,7 +85,7 @@
         {% endfor %}
       </div>
       <div class="sound-check">
-        <label>Volum de l'ambient
+        <label><span data-hide-for="soroll">Volum de l'ambient</span><span data-show-for="soroll" hidden>Volum del soroll</span>
           <select name="ambience_level" id="ambience-level">
             {% for value, label in levels.items() %}<option value="{{ value }}" {% if value == 0 %}selected{% endif %}>{{ label }}</option>{% endfor %}
           </select>
@@ -88,7 +108,7 @@
         </label>
         {% endfor %}
       </div>
-      <div class="choices compact">
+      <div class="choices compact" data-show-for="pomodoro">
         {% for p in pomodoros %}
         <label class="choice">
           <input type="radio" name="pomodoro" value="{{ p }}" {% if loop.first %}checked{% endif %}>
@@ -100,8 +120,10 @@
 
     <div class="go">
       <div class="publish-options">
-        <label class="check"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
-        <label class="check"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
+        <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
+        <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
+        <label class="check"><input type="checkbox" name="motion" value="1" checked> Moviment suau (càmera i llum del foc)</label>
+        <label class="check" data-hide-for="soroll"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
         <label>Visibilitat
           <select name="privacy">

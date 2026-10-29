@@ -5,10 +5,10 @@ Tipografies lliures usades en el comptador i en la miniatura de cada ambientaci�
 | Carpeta | Tipografia | Llicència | Ambientacions | Canvis |
 |---|---|---|---|---|
 | `im-fell-english` | IM Fell English i IM Fell English SC | SIL OFL 1.1 | Biblioteca medieval, Torre de l'alquimista | Cap |
-| `medievalsharp` | MedievalSharp | SIL OFL 1.1 | Taverna medieval | Cap |
-| `unifraktur-maguntia` | UnifrakturMaguntia | SIL OFL 1.1 | Castell gòtic | Cap |
+| `medievalsharp` | MedievalSharp | SIL OFL 1.1 | Taverna medieval, Campament d'aventurers | Cap |
+| `unifraktur-maguntia` | UnifrakturMaguntia | SIL OFL 1.1 | Castell gòtic, Masmorra | Cap |
 | `cinzel` | Cinzel | SIL OFL 1.1 | Màgica, gòtic, Roma, Grècia, observatori | Instància fixa de pes 600 de la versió variable |
-| `cinzel-decorative` | Cinzel Decorative Bold | SIL OFL 1.1 | Biblioteca màgica, Torre de l'alquimista | Cap |
+| `cinzel-decorative` | Cinzel Decorative Bold | SIL OFL 1.1 | Biblioteca màgica, Torre de l'alquimista, Cova del drac | Cap |
 | `uncial-antiqua` | Uncial Antiqua | SIL OFL 1.1 | Biblioteca èlfica | Cap |
 | `lora` | Lora | SIL OFL 1.1 | Cabana amb pluja, Apartament a la ciutat | Només s'ha canviat el nom del fitxer |
 | `playfair-display` | Playfair Display | SIL OFL 1.1 | Biblioteca victoriana, Cafeteria a París | Només s'ha canviat el nom del fitxer |

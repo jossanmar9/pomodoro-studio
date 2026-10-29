@@ -26,7 +26,7 @@ from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
 from app.services.autopilot import autopilot, forge_ready, run_summary, youtube_connected
-from app.services.autopilot_plan import AMBIENCE_LEVELS, AUTO_THEMES, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
+from app.services.autopilot_plan import AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -214,13 +214,21 @@ def auto_home(request:Request,error:str=Query("")):
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"forge_ready":forge_ready(),
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,
+        "formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form("")):
+def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form("")):
+    if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
-    if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
+    if format=="soroll":
+        if noise not in NOISE_COLORS: raise HTTPException(400,"Color de soroll no vàlid")
+        environment,music,ambience_files=NOISE_ENVIRONMENT,"",""
+    elif environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
+    else: noise=""
+    if format!="pomodoro": chime=""
+    if format not in {"dormir","soroll"}: dim=""
     if duration_minutes not in DURATION_CHOICES: raise HTTPException(400,"Duració no vàlida")
     if pomodoro not in POMODORO_CHOICES: raise HTTPException(400,"Pomodoro no vàlid")
     if privacy not in PRIVACY_CHOICES: raise HTTPException(400,"Privacitat no vàlida")
@@ -228,7 +236,7 @@ def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:i
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)
@@ -274,27 +282,33 @@ def _preview_dir()->Path:
 
 
 @app.post("/api/auto/preview")
-def auto_preview(environment:str=Form(...),ambience_level:int=Form(0),music:str=Form(""),chime:str=Form(""),ambience_files:str=Form("")):
+def auto_preview(environment:str=Form(""),ambience_level:int=Form(0),music:str=Form(""),chime:str=Form(""),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form("")):
     """30 segons amb els sons i el volum que tindrà el vídeo."""
-    if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
+    if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
-    rng=random.Random()
-    preferred=[n for n in ambience_files.split(",") if n and Path(n).name==n]
-    try: layers=choose_ambience(settings.assets_dir/"ambience",environment,rng,level=ambience_level,preferred=preferred)
-    except ValueError as exc: raise HTTPException(409,str(exc)) from exc
-    env=ENVIRONMENTS[environment]; track=None
-    if env.music and (music or not env.layers):
+    if format!="pomodoro": chime=""
+    rng=random.Random(); noise_color=None; layers=[]; env=None; track=None
+    if format=="soroll":
+        if noise not in NOISE_COLORS: raise HTTPException(400,"Color de soroll no vàlid")
+        noise_color=NOISE_COLORS[noise][0]
+    else:
+        if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
+        preferred=[n for n in ambience_files.split(",") if n and Path(n).name==n]
+        try: layers=choose_ambience(settings.assets_dir/"ambience",environment,rng,level=ambience_level,preferred=preferred)
+        except ValueError as exc: raise HTTPException(409,str(exc)) from exc
+        env=ENVIRONMENTS[environment]
+    if env is not None and env.music and (music or not env.layers):
         tracks=catalog().music
         if tracks: track=settings.assets_dir/"music"/rng.choice(tracks)
     folder=_preview_dir()
     for old in sorted(folder.glob("preview-*.mp3"),key=lambda p:p.stat().st_mtime)[:-5]: old.unlink(missing_ok=True)
     output=folder/f"preview-{uuid4().hex}.mp3"
-    try: command=build_preview_command(layers,track,bool(chime),output)
+    try: command=build_preview_command(layers,track,bool(chime),output,noise=noise_color,noise_loudness=PRIMARY_AMBIENCE_LOUDNESS+ambience_level)
     except ValueError as exc: raise HTTPException(409,str(exc)) from exc
     result=subprocess.run(command,capture_output=True,text=True,timeout=120,check=False)
     if result.returncode!=0 or not output.is_file(): raise HTTPException(500,"No s'ha pogut preparar la mostra: "+(result.stderr or "")[-300:])
     names=load_catalog(settings.audio_catalog)
-    sounds=[(names.get(l.path.name) or {}).get("title") or l.path.stem for l in layers]+([f"Música: {(names.get(track.name) or {}).get('title') or track.stem}"] if track else [])
+    sounds=([f"Soroll {NOISE_COLORS[noise][2].lower()}"] if noise_color else [])+[(names.get(l.path.name) or {}).get("title") or l.path.stem for l in layers]+([f"Música: {(names.get(track.name) or {}).get('title') or track.stem}"] if track else [])
     return {"url":f"/api/auto/preview/{output.name}","files":[l.path.name for l in layers],"sounds":sounds}
 
 

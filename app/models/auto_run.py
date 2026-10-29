@@ -36,6 +36,11 @@ class AutoRun(Base):
     ambience_level: Mapped[int] = mapped_column(Integer, default=0)
     # Fitxers d'ambient de la mostra escoltada (separats per comes), per a reutilitzar-los.
     ambience_files: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # pomodoro, dormir, rol o soroll (vegeu FORMATS en autopilot_plan).
+    format: Mapped[str] = mapped_column(String(20), default="pomodoro")
+    noise: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    dim: Mapped[int] = mapped_column(Integer, default=0)
+    motion: Mapped[int] = mapped_column(Integer, default=1)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

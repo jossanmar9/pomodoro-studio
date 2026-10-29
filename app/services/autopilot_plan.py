@@ -17,8 +17,9 @@ import unicodedata
 from app.services.ambience_prompt import AmbiencePromptSpec
 from app.services.renderer import (
     CHIME_BREAK_END, CHIME_FOCUS_END, SUPPORTED_AUDIO_SUFFIXES, SUPPORTED_IMAGE_SUFFIXES,
-    SUPPORTED_VIDEO_SUFFIXES, _bell,
+    SUPPORTED_VIDEO_SUFFIXES, _bell, noise_filter, noise_source,
 )
+from app.services.timer import format_timestamp
 
 CHANNEL_NAME = "The Amber Window"
 
@@ -87,6 +88,21 @@ ENVIRONMENTS: dict[str, Environment] = {
         "Vent", "Howling Wind", "evening", "strong wind outside, cold weather",
         "warm sheltered interior light against a cold grey sky",
         (("vent-des-de-dins", "vent-arbres", "vent-arbre"),),
+    ),
+    "masmorra": Environment(
+        "Masmorra (vent i aigua)", "Dungeon Wind & Dripping Water", "timeless darkness", "damp, cold air moving through stone corridors",
+        "flickering torchlight on wet stone, deep shadows",
+        (("vent-des-de-dins",), ("corrent-aigua", "cascada-petita")),
+    ),
+    "campament": Environment(
+        "Campament de nit", "Campfire Night", "night", "clear starry night, crickets",
+        "warm campfire glow and moonlight",
+        (("camp-nit", "nit-grills-granotes"), ("foc-llar-oberta", "foc-llar-05", "foc-llar")),
+    ),
+    "tempesta-mar": Environment(
+        "Tempesta al mar", "Stormy Sea", "night", "violent storm at sea, heavy rain and rough waves",
+        "swinging lantern light, dark storm clouds and lightning",
+        (("mar-agitada",), ("pluja-trons", "pluja-tempesta-35min")),
     ),
     "cafeteria": Environment(
         "Cafeteria plena", "Coffee Shop Chatter", "afternoon", "calm",
@@ -160,10 +176,39 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Cafeteria a Tòquio": ("small cozy café in a quiet Tokyo backstreet", "wooden counter, pour-over coffee, paper lanterns, plants and soft neon signs reflected in the window", "contemporary"),
     "Cafeteria a París": ("classic Parisian café corner", "small round marble tables, bentwood chairs, a big window onto a cobbled street with Haussmann buildings", "timeless"),
     "Parc a la ciutat": ("quiet bench and small study table in a leafy city park", "old trees, gravel paths, a fountain and city buildings in the distance", "contemporary"),
+    "Masmorra": ("ancient stone dungeon corridor", "torches on damp stone walls, iron doors, chains, puddles and vaulted arches fading into darkness", "medieval fantasy"),
+    "Campament d'aventurers": ("adventurers' camp in a forest clearing", "canvas tents, a campfire, bedrolls, an old map on a wooden crate, lanterns and tall pine trees", "medieval fantasy"),
+    "Cova del drac": ("vast cavern with a dragon's hoard", "piles of gold coins, glowing crystals, an underground lake and a huge dark winged silhouette in the distance", "fantasy"),
     "Apartament a la ciutat": ("cozy city apartment study corner by a large window", "desk with books and a warm lamp, plants, city skyline and lit windows outside", "contemporary"),
 }
 
 AUTO_THEMES = tuple(THEME_VISUALS)
+
+# Formats del mode automàtic.
+FORMATS = {
+    "pomodoro": "Pomodoro",
+    "dormir": "Per a dormir",
+    "rol": "Partida de rol",
+    "soroll": "Soroll de color",
+}
+# Color intern → (color de FFmpeg, nom públic en anglés, nom en valencià)
+NOISE_COLORS = {
+    "marro": ("brown", "Brown", "Marró"),
+    "rosa": ("pink", "Pink", "Rosa"),
+    "blanc": ("white", "White", "Blanc"),
+}
+NOISE_ENVIRONMENT = "soroll"
+# La pantalla es fon a negre després de 30 minuts (vídeos per a dormir i soroll).
+DIM_AFTER_SECONDS = 30 * 60
+# Categoria de YouTube per format: 27 Education, 22 People & Blogs, 20 Gaming.
+YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "soroll": "22", "rol": "20"}
+FORMAT_MOODS = {
+    "pomodoro": "quiet, immersive, focused, cozy, no people",
+    "dormir": "calm, restful, dim and sleepy, soft low light, no people",
+    "soroll": "calm, restful, dark and minimal, soft low light, no people",
+    "rol": "atmospheric, adventurous, immersive, mysterious, no people",
+}
+_NOISE_VISUAL = Environment("Soroll", "Noise", "night", "calm and still", "very soft dim warm light, dark and restful")
 DURATION_CHOICES = (60, 120, 180, 240, 480)
 POMODORO_CHOICES = {"25/5": (25, 5), "50/10": (50, 10)}
 PRIVACY_CHOICES = {"public": "Públic", "unlisted": "Ocult (amb enllaç)", "private": "Privat"}
@@ -174,17 +219,22 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", normal).strip("-")
 
 
-def prompt_spec(theme: str, environment: str) -> AmbiencePromptSpec:
+def prompt_spec(theme: str, environment: str, fmt: str = "pomodoro") -> AmbiencePromptSpec:
     if theme not in THEME_VISUALS:
         raise ValueError("Ambientació no disponible en el mode automàtic")
-    if environment not in ENVIRONMENTS:
+    if fmt not in FORMATS:
+        raise ValueError("Format no vàlid")
+    if environment == NOISE_ENVIRONMENT:
+        env = _NOISE_VISUAL
+    elif environment in ENVIRONMENTS:
+        env = ENVIRONMENTS[environment]
+    else:
         raise ValueError("Entorn no vàlid")
     subject, details, era = THEME_VISUALS[theme]
-    env = ENVIRONMENTS[environment]
     return AmbiencePromptSpec(
         subject=subject, era=era, time_of_day=env.time_of_day, weather=env.weather,
         lighting=env.lighting, details=details,
-        atmosphere="quiet, immersive, focused, cozy, no people",
+        atmosphere=FORMAT_MOODS[fmt],
         visual_style="highly detailed cinematic environmental concept art",
     )
 
@@ -357,7 +407,94 @@ class AutoTexts:
 MAX_DESCRIPTION_BYTES = 4900
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False) -> AutoTexts:
+def _fit_title(options: list[str]) -> str:
+    return next((t for t in options if len(t) <= 100), options[-1][:100])
+
+
+def _finish_description(compose, credits: str, compact_credits: str) -> str:
+    description = compose(credits)
+    if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES and compact_credits:
+        description = compose(compact_credits)
+    if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
+        raise ValueError("La descripció supera el límit de YouTube fins i tot amb els crèdits compactes")
+    return description
+
+
+def _join_blocks(*blocks: str) -> str:
+    return "\n\n".join(block.strip() for block in blocks if block and block.strip())
+
+
+def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False) -> AutoTexts:
+    if fmt == "pomodoro":
+        return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime)
+    if fmt not in FORMATS:
+        raise ValueError("Format no vàlid")
+    label = duration_label(duration)
+    dark_title = " · Dark Screen" if dim else ""
+    dark_line = f"The screen slowly fades to black after {DIM_AFTER_SECONDS // 60} minutes, so it won't light up your room." if dim else ""
+    outro = f"Original ambience created for {CHANNEL_NAME}. Subscribe for more."
+    if fmt == "soroll":
+        if noise not in NOISE_COLORS:
+            raise ValueError("Color de soroll no vàlid")
+        color = NOISE_COLORS[noise][1]
+        title = _fit_title([
+            f"{label} {color} Noise for Sleep, Focus & Relaxation | {public_theme}{dark_title}",
+            f"{label} {color} Noise | {public_theme}{dark_title}",
+            f"{label} {color} Noise{dark_title}",
+        ])
+        uses = {"Brown": "Deep and soft, like a distant waterfall.", "Pink": "Balanced and gentle, like steady rain.", "White": "Even and bright, great for masking noises."}[color]
+        compose = lambda credit_text: _join_blocks(
+            f"{label} of smooth {color.lower()} noise for sleeping, studying, relaxing or calming a baby. {uses}",
+            f"No music, no voices: just continuous {color.lower()} noise over a {public_theme.lower()}. {dark_line}",
+            f"Chapters:\n{chapters}",
+            "The noise is generated for this video; no third-party audio is used.",
+            credit_text,
+            outro,
+        )
+        tags = [f"{color.lower()} noise", f"{color.lower()} noise for sleep", f"{color.lower()} noise {label.lower()}", "sleep sounds", "noise for sleeping", "focus noise", "baby sleep", "relaxing noise", public_theme.lower()]
+        thumbnail = f"{color.upper()} NOISE · {label.upper()}"
+    else:
+        env = ENVIRONMENTS[environment]
+        if not env.layers:
+            sound = "calm instrumental music"
+        elif music:
+            sound = f"{env.public_label.lower()} sounds and calm instrumental music"
+        else:
+            sound = f"{env.public_label.lower()} sounds"
+        if fmt == "dormir":
+            title = _fit_title([
+                f"{label} {public_theme} Ambience | {env.public_label} for Sleep & Relaxation{dark_title}",
+                f"{label} {env.public_label} for Sleep | {public_theme}{dark_title}",
+                f"{label} {env.public_label} for Sleep{dark_title}",
+            ])
+            compose = lambda credit_text: _join_blocks(
+                f"Relax and fall asleep in a {public_theme.lower()} with {sound}. No timer, no alarms, no interruptions from us. {dark_line}",
+                f"Chapters:\n{chapters}",
+                credit_text,
+                outro,
+            )
+            tags = ["sleep sounds", "sleep ambience", "relaxing sounds", f"{env.public_label.lower()} for sleep", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} sleep sounds", "fall asleep fast"] + (["dark screen", "black screen sleep sounds"] if dim else [])
+            thumbnail = f"{label.upper()} · {env.public_label.upper()}"
+        else:  # rol
+            title = _fit_title([
+                f"{public_theme} Ambience | {env.public_label} | Tabletop RPG Background · {label}",
+                f"{public_theme} | {env.public_label} | Tabletop RPG Ambience",
+                f"{public_theme} | Tabletop RPG Ambience",
+            ])
+            compose = lambda credit_text: _join_blocks(
+                f"Background ambience for your tabletop RPG sessions: a {public_theme.lower()} with {sound}. {label} without interruptions, so you can leave it playing while your party explores.",
+                "Made for game masters and players of fantasy roleplaying games. No timer, no narration.",
+                f"Chapters:\n{chapters}",
+                credit_text,
+                outro,
+            )
+            tags = ["tabletop rpg ambience", "dnd ambience", "rpg ambience", "fantasy ambience", "dungeon master", "game master ambience", public_theme.lower(), env.public_label.lower(), "ttrpg"]
+            thumbnail = f"{public_theme.upper()} · {label.upper()}"
+    description = _finish_description(compose, credits, compact_credits)
+    return AutoTexts(title, description, ", ".join(dict.fromkeys(tags)), thumbnail)
+
+
+def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False) -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
     options = [
@@ -398,6 +535,17 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     return AutoTexts(title, description, tags, thumbnail)
 
 
+def plain_chapters(total_seconds: int, dim_after: int | None = None) -> str:
+    """Capítols per a vídeos sense comptador: cada hora (o cada 15 min si dura una hora o menys)."""
+    step = 3600 if total_seconds > 3600 else 900
+    marks = {start: f"Hour {start // 3600 + 1}" if step == 3600 else f"Part {start // step + 1}" for start in range(0, total_seconds, step)}
+    if dim_after is not None and 0 < dim_after < total_seconds:
+        # YouTube demana almenys 10 s entre capítols.
+        marks = {start: label for start, label in marks.items() if abs(start - dim_after) >= 10}
+        marks[dim_after] = "Dark screen"
+    return "\n".join(f"{format_timestamp(start)} {label}" for start, label in sorted(marks.items()))
+
+
 @dataclass
 class AutoPlan:
     """Resultat de la preparació, abans de renderitzar."""
@@ -409,17 +557,22 @@ class AutoPlan:
 PREVIEW_SECONDS = 30
 
 
-def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS) -> list[str]:
+def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS, noise: str | None = None, noise_loudness: float = -30.0) -> list[str]:
     """Mostra d'àudio amb els mateixos nivells que el vídeo final.
 
     La campaneta sona als 10 s (final de concentració) i als 20 s (final de descans).
+    `noise` és el color de FFmpeg (white, pink o brown).
     """
-    if not ambience and music is None and not chime:
+    if not ambience and music is None and not chime and not noise:
         raise ValueError("No hi ha cap so per a la mostra")
     command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error"]
     parts: list[str] = []
     mix: list[str] = []
     index = 0
+    if noise:
+        command += ["-f", "lavfi", "-i", noise_source(noise, seconds)]
+        parts.append(f"[{index}:a]{noise_filter(noise_loudness)},afade=t=in:d=1[a{index}]")
+        mix.append(f"[a{index}]"); index += 1
     for layer in ambience:
         command += ["-stream_loop", "-1", "-i", str(layer.path)]
         parts.append(f"[{index}:a]loudnorm=I={layer.loudness:g}:TP=-2:LRA=11,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1[a{index}]")
@@ -436,3 +589,8 @@ def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chi
     parts.append(f"{''.join(mix)}amix=inputs={len(mix)}:duration=longest:normalize=0,alimiter=limit=0.95,afade=t=out:st={seconds - 2}:d=2[out]")
     command += ["-filter_complex", ";".join(parts), "-map", "[out]", "-t", str(seconds), "-c:a", "libmp3lame", "-q:a", "4", str(output)]
     return command
+
+
+def has_fire(layers: list[AmbienceLayer]) -> bool:
+    """Si l'ambient porta foc, la llum del vídeo parpelleja suaument."""
+    return any(layer.path.stem.startswith("foc-") for layer in layers)

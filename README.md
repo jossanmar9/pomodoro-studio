@@ -6,7 +6,7 @@ Aplicació privada i autohosteable per a crear, renderitzar i publicar vídeos l
 
 ## Mode automàtic
 
-La pàgina principal té tres preguntes i un botó:
+La pàgina principal té un selector de **format** (Pomodoro, Per a dormir, Partida de rol o Soroll de color), tres preguntes i un botó:
 
 1. **Tema** (biblioteca medieval, taverna, cabana, cafeteria a Nova York, Tòquio o París, parc a la ciutat, nau espacial…).
 2. **Entorn** (pluja, tempesta, llar de foc, bosc, mar, cafeteria, taverna, trànsit, pluja a la ciutat…), amb mostra de 30 s abans de generar.

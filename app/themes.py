@@ -28,6 +28,9 @@ THEMES: dict[str, str] = {
     "Cafeteria a París": "Paris Café",
     "Parc a la ciutat": "City Park",
     "Apartament a la ciutat": "Cozy City Apartment",
+    "Masmorra": "Ancient Dungeon",
+    "Campament d'aventurers": "Adventurers' Camp",
+    "Cova del drac": "Dragon's Cave",
     "Personalitzada": "Custom Focus Ambience",
 }
 

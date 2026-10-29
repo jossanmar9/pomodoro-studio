@@ -20,7 +20,7 @@ from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, Render
 from app.services.ambience_assets import AssetProvenance, import_background
 from app.services.ambience_prompt import build_prompt
 from app.services.autopilot_plan import (
-    ENVIRONMENTS, build_credits, build_music_mix_command, build_playlist, build_texts,
+    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     choose_ambience, find_backgrounds, load_catalog, prompt_spec, slugify,
 )
 from app.services.encoding import EncodingOptions
@@ -63,8 +63,8 @@ def _update(run_id: int, **fields) -> None:
 
 # --- Pas 1: fons -----------------------------------------------------------
 
-def _generate_background(theme: str, environment: str) -> Path:
-    prompt = build_prompt(prompt_spec(theme, environment))
+def _generate_background(theme: str, environment: str, fmt: str = "pomodoro") -> Path:
+    prompt = build_prompt(prompt_spec(theme, environment, fmt))
     try:
         result = generate_image("a1111", prompt, hires_scale=settings.auto_hires_scale)
     except Exception:
@@ -84,11 +84,11 @@ def _generate_background(theme: str, environment: str) -> Path:
     return image
 
 
-def choose_background(theme: str, environment: str, rng: random.Random) -> tuple[Path, str]:
+def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro") -> tuple[Path, str]:
     """Genera un fons nou amb Forge; si no està obert, reutilitza un de l'ambientació."""
     if forge_ready():
         try:
-            return _generate_background(theme, environment), "Fons nou generat amb Forge"
+            return _generate_background(theme, environment, fmt), "Fons nou generat amb Forge"
         except Exception as exc:  # Forge pot fallar per memòria GPU, model, etc.
             logger.exception("No s'ha pogut generar el fons amb Forge")
             fallback_reason = f"Forge ha fallat ({exc}); "
@@ -136,6 +136,14 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         with_music, with_chime = bool(run.music), bool(run.chime)
         level = run.ambience_level if run.ambience_level is not None else 0
         preferred = [name for name in (run.ambience_files or "").split(",") if name]
+        fmt = run.format if run.format in FORMATS else "pomodoro"
+        run_noise = run.noise
+        with_motion = bool(run.motion)
+        noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
+        dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
+        if fmt != "pomodoro":
+            # Sense comptador: una sola «sessió» de tota la duració.
+            focus, pause, with_chime = duration, 0, False
         project = Project(theme=theme, focus_minutes=focus, break_minutes=pause, duration_minutes=duration, resolution=RESOLUTION)
         db.add(project)
         db.commit()
@@ -147,23 +155,28 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
     folder: Path | None = None
     try:
         _update(run_id, step="BACKGROUND", message="Creant el fons…")
-        background, note = choose_background(theme, environment, rng)
+        background, note = choose_background(theme, environment, rng, fmt)
         notes.append(note)
 
         _update(run_id, step="AUDIO", message="Triant efectes i preparant la música…")
         timeline = build_timeline(focus, pause, duration)
-        env = ENVIRONMENTS[environment]
-        ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng, level=level, preferred=preferred)
         catalog = load_catalog(settings.audio_catalog)
         playlist: list[Path] = []
-        if env.music and (with_music or not env.layers):
+        if fmt == "soroll":
+            if noise_color is None:
+                raise AutopilotError("Falta el color del soroll")
+            env, ambience = None, []
+        else:
+            env = ENVIRONMENTS[environment]
+            ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng, level=level, preferred=preferred)
+        if env is not None and env.music and (with_music or not env.layers):
             try:
                 playlist = build_playlist(settings.assets_dir / "music", timeline.total_seconds, rng, catalog)
             except ValueError:
                 if not ambience:
                     raise AutopilotError("No hi ha música en assets/music ni sons per a este entorn") from None
                 notes.append("Sense música: assets/music està buida")
-        if not ambience and not playlist:
+        if not ambience and not playlist and not noise_color:
             raise AutopilotError("No hi ha cap so disponible per a este vídeo")
 
         folder = create_output_dir(project_id, theme)
@@ -173,7 +186,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         ambience_tracks = [AudioTrack(layer.path, 1.0, layer.loudness) for layer in ambience]
 
         public_theme = publication_theme(theme)
-        chapters = build_chapters(timeline, language="en")
+        chapters = build_chapters(timeline, language="en") if fmt == "pomodoro" else plain_chapters(timeline.total_seconds, dim_after)
         ambience_paths = [layer.path for layer in ambience]
         texts = build_texts(
             public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause,
@@ -181,6 +194,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             credits=build_credits(playlist, ambience_paths, catalog),
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
             music=bool(playlist), chime=with_chime,
+            fmt=fmt, noise=run_noise, dim=dim_after is not None,
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
@@ -201,6 +215,9 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         render_queue.enqueue(project_id, RenderSpec(
             background, folder / "video.mp4", RESOLUTION, timeline,
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
+            show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
+            noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
+            motion=with_motion, flicker=with_motion and has_fire(ambience),
         ))
         _wait_for_render(project_id)
         if music_track:
@@ -233,13 +250,15 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
         if not project or not project.output_path or not meta:
             raise AutopilotError("No es troba el vídeo per a publicar")
         root = Path(project.output_path)
+        run = db.get(AutoRun, run_id)
+        category = YOUTUBE_CATEGORIES.get(run.format if run else "pomodoro", "27")
         record = db.query(YouTubePublication).filter(YouTubePublication.project_id == project_id).first() or YouTubePublication(project_id=project_id)
         db.add(record)
-        record.privacy, record.category_id, record.status, record.error = privacy, "27", "UPLOADING", None
+        record.privacy, record.category_id, record.status, record.error = privacy, category, "UPLOADING", None
         db.commit()
         spec = YouTubeUploadSpec(
             root / "video.mp4", meta.title, meta.description,
-            [t.strip() for t in meta.tags.split(",") if t.strip()], "27", meta.language, privacy,
+            [t.strip() for t in meta.tags.split(",") if t.strip()], category, meta.language, privacy,
             (root / "thumbnail.jpg") if (root / "thumbnail.jpg").is_file() else None,
         )
     try:
@@ -305,11 +324,19 @@ def _publish_existing(run_id: int) -> None:
         _update(run_id, step="FAILED", error=str(exc)[:2000])
 
 
+def _environment_label(run: AutoRun) -> str:
+    if run.format == "soroll":
+        return f"Soroll {NOISE_COLORS[run.noise][2].lower()}" if run.noise in NOISE_COLORS else "Soroll"
+    return ENVIRONMENTS[run.environment].label if run.environment in ENVIRONMENTS else run.environment
+
+
 def run_summary(run: AutoRun) -> dict:
     data = {
         "id": run.id, "theme": run.theme, "environment": run.environment,
-        "environment_label": ENVIRONMENTS[run.environment].label if run.environment in ENVIRONMENTS else run.environment,
-        "duration_minutes": run.duration_minutes, "pomodoro": f"{run.focus_minutes}/{run.break_minutes}",
+        "environment_label": _environment_label(run),
+        "duration_minutes": run.duration_minutes,
+        "pomodoro": f"{run.focus_minutes}/{run.break_minutes}" if (run.format or "pomodoro") == "pomodoro" else FORMATS.get(run.format, run.format),
+        "format": run.format or "pomodoro",
         "privacy": run.privacy, "step": run.step, "step_label": AUTO_STEPS.get(run.step, run.step),
         "message": run.message, "error": run.error, "project_id": run.project_id, "video_id": run.video_id,
         "video_url": f"https://youtu.be/{run.video_id}" if run.video_id else None,
