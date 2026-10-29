@@ -18,7 +18,9 @@ class Settings(BaseSettings):
     image_a1111_url: str = ""
     image_a1111_model: str = ""
     image_generation_dir: Path = Path("./data/generated-images")
-    image_a1111_upscaler: str = "Latent"
+    image_a1111_upscaler: str = "R-ESRGAN 4x+"
+    # auto (pel nom del model carregat en Forge), flux-schnell, flux-dev o sdxl.
+    image_model_profile: str = "auto"
     # Mode automàtic: escalat del fons generat (1 = sense hires fix).
     auto_hires_scale: float = 1.5
     # Privacitat per defecte en publicar des del mode automàtic.

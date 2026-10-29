@@ -18,14 +18,13 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.ambience_assets import AssetProvenance, import_background
-from app.services.ambience_prompt import build_prompt
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
-    choose_ambience, find_backgrounds, load_catalog, prompt_spec, slugify,
+    choose_ambience, find_backgrounds, load_catalog, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
-from app.services.image_providers import available_providers, generate_image
+from app.services.image_providers import available_providers
 from app.services.jobs import render_queue
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.renderer import AudioTrack, RenderSpec
@@ -64,43 +63,42 @@ def _update(run_id: int, **fields) -> None:
 # --- Pas 1: fons -----------------------------------------------------------
 
 def _generate_background(theme: str, environment: str, fmt: str = "pomodoro") -> Path:
-    prompt = build_prompt(prompt_spec(theme, environment, fmt))
-    try:
-        result = generate_image("a1111", prompt, hires_scale=settings.auto_hires_scale)
-    except Exception:
-        if settings.auto_hires_scale <= 1:
-            raise
-        logger.warning("Forge ha fallat amb hires fix; es reintenta sense escalar", exc_info=True)
-        result = generate_image("a1111", prompt)
+    """Genera un fons amb Forge i el guarda directament en la biblioteca (sense revisar)."""
+    from app.services.background_library import generate_one
+    path, data = generate_one(theme, environment, fmt, settings.image_generation_dir)
     name = f"{slugify(theme)}-{environment}-{datetime.now():%Y%m%d-%H%M%S}"
-    provenance = AssetProvenance(
-        prompt=prompt.positive, negative_prompt=prompt.negative, provider=result.provider, model=result.model,
-        license="Generat localment amb A1111/Forge per al mode automàtic",
-        source_notes=result.notes,
-        generation={"hires_scale": settings.auto_hires_scale},
-    )
-    image, _ = import_background(result.path, settings.assets_dir / "backgrounds", name, provenance)
-    result.path.unlink(missing_ok=True)
+    image, _ = import_background(path, settings.assets_dir / "backgrounds", name, AssetProvenance(**data))
+    path.unlink(missing_ok=True)
     return image
 
 
-def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro") -> tuple[Path, str]:
-    """Genera un fons nou amb Forge; si no està obert, reutilitza un de l'ambientació."""
+def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro", *, force_new: bool = False, recent: set[str] | None = None) -> tuple[Path, str]:
+    """Tria un fons aprovat de la biblioteca; si no n'hi ha (o es demana), en genera un amb Forge."""
+    library = find_backgrounds(settings.assets_dir / "backgrounds", theme)
+    if library and not force_new:
+        fresh = [path for path in library if path.name not in (recent or set())]
+        return rng.choice(fresh or library), "Fons de la biblioteca"
     if forge_ready():
         try:
-            return _generate_background(theme, environment, fmt), "Fons nou generat amb Forge"
+            return _generate_background(theme, environment, fmt), "Fons nou generat amb Forge (sense revisar)"
         except Exception as exc:  # Forge pot fallar per memòria GPU, model, etc.
             logger.exception("No s'ha pogut generar el fons amb Forge")
-            fallback_reason = f"Forge ha fallat ({exc}); "
+            if library:
+                return rng.choice(library), f"Forge ha fallat ({exc}); s'ha usat un fons de la biblioteca"
+            reason = f"Forge ha fallat ({exc}) i "
     else:
-        fallback_reason = "Forge no està obert; "
-    existing = find_backgrounds(settings.assets_dir / "backgrounds", theme)
-    if not existing:
-        raise AutopilotError(
-            f"{fallback_reason}no hi ha cap fons de «{theme}» en assets/backgrounds. "
-            f"Obri Forge o afig una imatge el nom de la qual continga «{slugify(theme)}»."
-        )
-    return rng.choice(existing), fallback_reason + "s'ha reutilitzat un fons existent"
+        reason = "Forge no està obert i "
+    raise AutopilotError(
+        f"{reason}no hi ha cap fons de «{theme}» en la biblioteca. "
+        f"Genera'n i guarda'n en «Biblioteca de fons», o afig una imatge el nom de la qual comence per «{slugify(theme)}»."
+    )
+
+
+def recent_backgrounds(theme: str, limit: int = 5) -> set[str]:
+    """Fons usats en els últims vídeos del mateix tema, per no repetir-los."""
+    with SessionLocal() as db:
+        rows = db.query(AutoRun.background).filter(AutoRun.theme == theme, AutoRun.background.isnot(None)).order_by(AutoRun.id.desc()).limit(limit).all()
+    return {row[0] for row in rows}
 
 
 # --- Pas 2: àudio ------------------------------------------------------------
@@ -139,6 +137,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         fmt = run.format if run.format in FORMATS else "pomodoro"
         run_noise = run.noise
         with_motion = bool(run.motion)
+        force_new = bool(run.new_background)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
         if fmt != "pomodoro":
@@ -155,7 +154,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
     folder: Path | None = None
     try:
         _update(run_id, step="BACKGROUND", message="Creant el fons…")
-        background, note = choose_background(theme, environment, rng, fmt)
+        background, note = choose_background(theme, environment, rng, fmt, force_new=force_new, recent=recent_backgrounds(theme))
+        _update(run_id, background=background.name)
         notes.append(note)
 
         _update(run_id, step="AUDIO", message="Triant efectes i preparant la música…")

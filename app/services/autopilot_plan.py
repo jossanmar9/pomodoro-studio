@@ -245,7 +245,10 @@ def find_backgrounds(folder: Path, theme: str) -> list[Path]:
         return []
     slug = slugify(theme)
     suffixes = SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_VIDEO_SUFFIXES
-    return sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in suffixes and slug in slugify(p.stem))
+    return sorted(
+        p for p in folder.iterdir()
+        if p.is_file() and p.suffix.lower() in suffixes and (slugify(p.stem) == slug or slugify(p.stem).startswith(slug + "-"))
+    )
 
 
 def _audio_by_stem(folder: Path) -> dict[str, Path]:

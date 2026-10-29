@@ -147,6 +147,7 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 ## Documentació
 
 - [Mode automàtic](docs/MODE_AUTOMATIC.md).
+- [Fons de qualitat: FLUX.1 schnell i Biblioteca de fons](docs/FONS_I_FLUX.md).
 - [Guia d’ús](docs/GUIA_US.md).
 - [Linux Mint, Forge i correcció d’errors](docs/INSTAL_LINUX_MINT.md).
 - [Accessos directes en Linux](docs/ACCESSOS_DIRECTES.md).

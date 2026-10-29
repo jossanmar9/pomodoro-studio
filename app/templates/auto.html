@@ -15,15 +15,15 @@
       <h1>Un botó, un vídeo.</h1>
       <p class="muted">Tria el format, el tema, l'entorn i la duració. La resta es fa sola: fons, sons, renderitzat i publicació.</p>
     </div>
-    <a class="back" href="/estudi">Mode avançat →</a>
+    <nav class="header-links"><a class="back" href="/fons">Biblioteca de fons →</a><a class="back" href="/estudi">Mode avançat →</a></nav>
   </header>
 
   {% if error %}<div class="warning">{{ error }}</div>{% endif %}
 
   <section class="status-bar">
-    <div class="pill {{ 'ok' if forge_ready else 'warn' }}">
+    <div class="pill {{ 'ok' if themes|selectattr('backgrounds')|list else 'warn' }}">
       <strong>Fons</strong>
-      <span>{% if forge_ready %}Forge obert: es crea un fons nou per a cada vídeo{% else %}Forge tancat: es reutilitzen fons existents{% endif %}</span>
+      <span>{{ themes|selectattr('backgrounds')|list|length }} de {{ themes|length }} temes amb fons guardats · <a class="back" href="/fons">revisar</a>{% if forge_ready %} · Forge obert{% endif %}</span>
     </div>
     <div class="pill {{ 'ok' if counts.ambience and counts.music else 'warn' }}">
       <strong>So</strong>
@@ -60,7 +60,7 @@
         {% for t in themes %}
         <label class="choice">
           <input type="radio" name="theme" value="{{ t.name }}" {% if loop.first %}checked{% endif %} required>
-          <span>{{ t.name }}{% if not forge_ready %}<small class="{{ 'muted' if t.backgrounds else 'missing' }}">{{ t.backgrounds }} fons</small>{% endif %}</span>
+          <span>{{ t.name }}<small class="{{ 'muted' if t.backgrounds else 'missing' }}">{{ t.backgrounds }} fons</small></span>
         </label>
         {% endfor %}
       </div>
@@ -122,6 +122,7 @@
       <div class="publish-options">
         <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
+        <label class="check"><input type="checkbox" name="new_background" value="1"> Generar un fons nou amb Forge (sense revisar)</label>
         <label class="check"><input type="checkbox" name="motion" value="1" checked> Moviment suau (càmera i llum del foc)</label>
         <label class="check" data-hide-for="soroll"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
