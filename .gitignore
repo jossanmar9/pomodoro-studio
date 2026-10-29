@@ -9,6 +9,8 @@ htmlcov/
 .idea/
 .vscode/
 .DS_Store
+data/*
+!data/.gitkeep
 data/*.db
 data/*.sqlite*
 data/youtube-client-secret.json

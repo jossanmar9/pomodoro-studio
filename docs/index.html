@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pomodoro Studio</title>
+<meta name="description" content="Pomodoro Studio is a personal, self-hosted tool that creates original Pomodoro focus videos for The Amber Window YouTube channel.">
+<style>
+:root{color-scheme:dark;--bg:#0c1016;--card:#121923;--line:#263244;--text:#eef2f7;--muted:#aebbc9;--amber:#e3a54a}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top right,#2a1f10 0,var(--bg) 45%);color:var(--text);font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+main{width:min(760px,100% - 32px);margin:0 auto;padding:64px 0}
+.eyebrow{letter-spacing:.18em;font-size:.75rem;color:var(--amber);margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);line-height:1;margin:.2em 0 .4em}
+h2{margin-top:2em}
+p,li{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 24px;margin:24px 0}
+a{color:var(--amber)}
+footer{margin-top:48px;border-top:1px solid var(--line);padding-top:16px;font-size:.9rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">THE AMBER WINDOW</p>
+  <h1>Pomodoro Studio</h1>
+  <p>Pomodoro Studio is a personal, self-hosted application that creates original long-form Pomodoro focus videos (study timers with ambient sounds and calm music) and publishes them to the <a href="https://www.youtube.com/@TheAmberWindow">The Amber Window</a> YouTube channel.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">How it works</h2>
+    <ol>
+      <li>The channel owner chooses a theme, an environment (rain, fireplace, forest…) and a duration.</li>
+      <li>The app runs on the owner's own computer, creates an original background image, mixes licensed ambient sounds and music, and renders the video with an on-screen Pomodoro timer.</li>
+      <li>With the owner's explicit authorisation, it uploads the finished video and its thumbnail to the owner's own YouTube channel using the YouTube Data API.</li>
+    </ol>
+  </div>
+
+  <h2>Use of Google and YouTube data</h2>
+  <p>The app only requests permission to upload videos (<code>youtube.upload</code>). It is used exclusively by the channel owner to publish videos to their own channel. It does not read, collect, store or share data about any other user. See the <a href="privacy.html">Privacy Policy</a>.</p>
+
+  <h2>Source code</h2>
+  <p>The source code is available on <a href="https://github.com/jossanmar9/pomodoro-studio">GitHub</a>.</p>
+
+  <footer>
+    Contact: <a href="mailto:jossanmar9@gmail.com">jossanmar9@gmail.com</a> · <a href="privacy.html">Privacy Policy</a>
+  </footer>
+</main>
+</body>
+</html>
