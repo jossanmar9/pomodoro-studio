@@ -24,6 +24,7 @@ from app.services.autopilot_plan import (
     choose_ambience, find_backgrounds, load_catalog, prompt_spec, slugify,
 )
 from app.services.encoding import EncodingOptions
+from app.services.fonts import fonts_for_theme
 from app.services.image_providers import available_providers, generate_image
 from app.services.jobs import render_queue
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
@@ -132,6 +133,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             return
         theme, environment, duration = run.theme, run.environment, run.duration_minutes
         focus, pause, privacy, publish = run.focus_minutes, run.break_minutes, run.privacy, bool(run.publish)
+        with_music, with_chime = bool(run.music), bool(run.chime)
         project = Project(theme=theme, focus_minutes=focus, break_minutes=pause, duration_minutes=duration, resolution=RESOLUTION)
         db.add(project)
         db.commit()
@@ -152,7 +154,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng)
         catalog = load_catalog(settings.audio_catalog)
         playlist: list[Path] = []
-        if env.music:
+        if env.music and (with_music or not env.layers):
             try:
                 playlist = build_playlist(settings.assets_dir / "music", timeline.total_seconds, rng, catalog)
             except ValueError:
@@ -176,10 +178,14 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             chapters=chapters,
             credits=build_credits(playlist, ambience_paths, catalog),
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
+            music=bool(playlist), chime=with_chime,
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
-        generate_thumbnail(background, folder / "thumbnail.jpg", texts.thumbnail_text, fitting_fontsize(texts.thumbnail_text))
+        fonts = fonts_for_theme(theme)
+        thumbnail_text = texts.thumbnail_text.replace(" · ", fonts.separator)
+        thumbnail_font = fonts.label if fonts.uppercase_labels else fonts.digits
+        generate_thumbnail(background, folder / "thumbnail.jpg", thumbnail_text, fitting_fontsize(thumbnail_text), thumbnail_font)
 
         with SessionLocal() as db:
             saved = db.get(Project, project_id)
@@ -192,7 +198,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         _update(run_id, step="RENDERING", message="Renderitzant el vídeo…")
         render_queue.enqueue(project_id, RenderSpec(
             background, folder / "video.mp4", RESOLUTION, timeline,
-            ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en",
+            ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
         ))
         _wait_for_render(project_id)
         if music_track:

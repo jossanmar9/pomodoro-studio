@@ -128,6 +128,43 @@ def test_audio_tracks_can_be_loudness_normalised(tmp_path):
     assert graph.count("loudnorm=I=-26") == 1
 
 
+def test_every_theme_has_free_font_files_with_licence():
+    from app.services.fonts import THEME_FONTS, fonts_for_theme
+    root = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+    for theme in THEME_FONTS:
+        assert theme in THEMES
+        fonts = fonts_for_theme(theme, root=root)
+        assert fonts.label and fonts.digits, theme
+        for path in (fonts.label, fonts.digits):
+            assert any((path.parent / name).is_file() for name in ("OFL.txt", "LICENSE.txt")), path
+    assert fonts_for_theme("Personalitzada", root=root).label is None
+
+
+def test_timer_uses_theme_fonts_and_fixed_colon():
+    from app.services.fonts import ResolvedFonts
+    fonts = ResolvedFonts(Path("/f/label.ttf"), Path("/f/digits.ttf"), uppercase_labels=False)
+    filters = build_timer_filters(build_timeline(1, 1, 3), "en", fonts)
+    assert "fontfile='/f/label.ttf'" in filters and "fontfile='/f/digits.ttf'" in filters
+    assert "Focus" in filters and "FOCUS" not in filters
+    assert filters.count("text='\\:'") == 1
+
+
+def test_chimes_ring_at_every_change_but_not_at_the_end(tmp_path):
+    from app.services.renderer import chime_times
+    timeline = build_timeline(25, 5, 60)
+    focus_end, break_end = chime_times(timeline)
+    assert focus_end == [1_500_000, 3_300_000]
+    assert break_end == [1_800_000]
+    spec = RenderSpec(touch(tmp_path / "bg.png"), tmp_path / "v.mp4", "1920x1080", timeline,
+                      ambience=[AudioTrack(touch(tmp_path / "rain.mp3"), 1.0, -30)], chime=True)
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    graph = command[command.index("-filter_complex") + 1]
+    assert sum(1 for arg in command if arg.startswith("aevalsrc=")) == 2
+    assert graph.count("adelay=") == 3 and "amix=inputs=4" in graph
+    silent = RenderSpec(spec.background, spec.output, "1920x1080", build_timeline(1, 0, 1), chime=True)
+    assert "-an" in build_ffmpeg_command(silent, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+
+
 # --- Procés complet amb tot simulat --------------------------------------------
 
 @pytest.fixture
@@ -148,7 +185,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto, "probe_duration", lambda path: 300.0, raising=False)
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
     monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
-    monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size: touch(out))
+    monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "forge_ready", lambda: False)
@@ -189,12 +226,23 @@ def test_full_run_renders_in_english_and_publishes(env):
         assert record.status == "PUBLISHED" and record.privacy == "public"
     spec = env.rendered["spec"]
     assert spec.timer_language == "en"
-    assert spec.ambience[0].loudness is not None and spec.music is not None
+    assert spec.ambience[0].loudness is not None
+    assert spec.music is None and spec.chime is True
     upload = env.uploads[0]
     assert upload.privacy == "public"
     assert upload.description.count("00:00:00 Focus session 1") == 1
     assert "The Amber Window" in upload.description
+    assert "no music" in upload.description and "soft chime" in upload.description
+    assert "Music:" not in upload.description
+
+
+def test_run_with_music_mixes_a_playlist(env):
+    run_id = make_run(env.session, music=1, chime=0)
+    auto.execute(run_id, rng=random.Random(0))
+    spec = env.rendered["spec"]
+    assert spec.music is not None and spec.chime is False
     assert not (Path(spec.output).parent / "music-mix.m4a").exists()
+    assert "Music:" in env.uploads[0].description
 
 
 def test_run_without_youtube_finishes_locally(env, monkeypatch):
@@ -232,6 +280,9 @@ def test_home_page_and_form_create_a_run(env, monkeypatch):
     assert len(submitted) == 1
     run = status["runs"][0]
     assert run["theme"] == "Bosc" and run["pomodoro"] == "50/10" and run["privacy"] == "unlisted" and run["step"] == "QUEUED"
+    with env.session() as db:
+        saved = db.get(AutoRun, run["id"])
+    assert saved.music == 0 and saved.chime == 0
 
 
 def test_published_video_can_be_uploaded_again(env, monkeypatch):

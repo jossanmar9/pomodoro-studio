@@ -31,6 +31,8 @@ class AutoRun(Base):
     break_minutes: Mapped[int] = mapped_column(Integer, default=5)
     privacy: Mapped[str] = mapped_column(String(20), default="public")
     publish: Mapped[int] = mapped_column(Integer, default=1)
+    music: Mapped[int] = mapped_column(Integer, default=0)
+    chime: Mapped[int] = mapped_column(Integer, default=1)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

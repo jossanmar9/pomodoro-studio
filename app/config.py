@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     auto_hires_scale: float = 1.5
     # Privacitat per defecte en publicar des del mode automàtic.
     auto_default_privacy: str = "public"
+    # Mode automàtic: si la casella «Afegir música» ix marcada (per defecte, només ambient).
+    auto_music_default: bool = False
     audio_catalog: Path = Path("./assets/audio-catalog.json")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

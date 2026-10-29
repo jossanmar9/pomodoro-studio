@@ -61,7 +61,29 @@ def cleanup_orphan_outputs(output_dir: Path | None = None) -> int:
     return removed
 
 
+# Columnes afegides després de crear la taula; SQLite no les afig amb create_all.
+ADDED_COLUMNS = {
+    "auto_runs": {"music": "INTEGER NOT NULL DEFAULT 0", "chime": "INTEGER NOT NULL DEFAULT 1"},
+}
+
+
+def add_missing_columns() -> int:
+    added = 0
+    with engine.begin() as connection:
+        for table, columns in ADDED_COLUMNS.items():
+            existing = {row[1] for row in connection.execute(text(f"PRAGMA table_info({table})")).fetchall()}
+            if not existing:
+                continue
+            for name, ddl in columns.items():
+                if name not in existing:
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+                    added += 1
+    return added
+
+
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "sqlite":
+        add_missing_columns()
     recover_interrupted_states()
     cleanup_orphan_outputs()
