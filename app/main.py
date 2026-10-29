@@ -17,6 +17,7 @@ from app.services.encoding import ENGINES, QUALITY_PROFILES, EncodingOptions, nv
 from app.services.jobs import render_queue
 from app.services.metadata import PublicationDraft, build_publication_zip, create_output_dir, default_publication, validate_publication, write_metadata
 from app.services.renderer import AudioTrack, RenderSpec
+from app.services.fonts import fonts_for_theme
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
@@ -169,11 +170,11 @@ def start_render(project_id:int,background:str=Form(...),ambience:list[str]|None
     try: bg=resolve_asset("backgrounds",background); amb=[AudioTrack(resolve_asset("ambience",n),ambience_volume) for n in (ambience or [])]; mus=AudioTrack(resolve_asset("music",music),music_volume) if music else None
     except ValueError as exc: raise HTTPException(400,str(exc)) from exc
     tl=build_timeline(p.focus_minutes,p.break_minutes,p.duration_minutes); folder=create_output_dir(p.id,p.theme)
-    try: write_metadata(folder,theme=p.theme,focus=p.focus_minutes,pause=p.break_minutes,duration=p.duration_minutes,resolution=p.resolution,timeline=tl,draft=draft); generate_thumbnail(bg,folder/"thumbnail.jpg",f"{publication_theme(p.theme).upper()} - {p.duration_minutes} MIN - {p.focus_minutes}/{p.break_minutes}")
+    try: write_metadata(folder,theme=p.theme,focus=p.focus_minutes,pause=p.break_minutes,duration=p.duration_minutes,resolution=p.resolution,timeline=tl,draft=draft); fonts=fonts_for_theme(p.theme); generate_thumbnail(bg,folder/"thumbnail.jpg",f"{publication_theme(p.theme).upper()} - {p.duration_minutes} MIN - {p.focus_minutes}/{p.break_minutes}",68,fonts.label if fonts.uppercase_labels else fonts.digits)
     except Exception as exc: shutil.rmtree(folder,ignore_errors=True); raise HTTPException(500,f"No s'ha pogut preparar el renderitzat: {exc}") from exc
     with SessionLocal() as db:
         saved=db.get(Project,project_id); cfg=db.query(RenderConfig).filter(RenderConfig.project_id==project_id).first() or RenderConfig(project_id=project_id); db.add(cfg); cfg.engine=engine; cfg.quality=quality; cfg.actual_engine=None; saved.status="QUEUED"; saved.output_path=str(folder); db.commit()
-    render_queue.enqueue(p.id,RenderSpec(bg,folder/"video.mp4",p.resolution,tl,ambience=amb,music=mus,encoding=EncodingOptions(engine,quality))); return RedirectResponse(f"/projects/{project_id}",303)
+    render_queue.enqueue(p.id,RenderSpec(bg,folder/"video.mp4",p.resolution,tl,ambience=amb,music=mus,encoding=EncodingOptions(engine,quality),fonts=fonts_for_theme(p.theme))); return RedirectResponse(f"/projects/{project_id}",303)
 @app.get("/api/projects/{project_id}/render")
 def render_status(project_id:int):
     job=render_queue.jobs.get(project_id)
@@ -208,12 +209,12 @@ def auto_home(request:Request,error:str=Query("")):
         "themes":themes,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"forge_ready":forge_ready(),
-        "counts":counts,"runs":_recent_runs(),"error":error[:300],
+        "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form("")):
+def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form("")):
     if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
     if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
     if duration_minutes not in DURATION_CHOICES: raise HTTPException(400,"Duració no vàlida")
@@ -221,7 +222,7 @@ def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:i
     if privacy not in PRIVACY_CHOICES: raise HTTPException(400,"Privacitat no vàlida")
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)

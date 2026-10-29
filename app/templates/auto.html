@@ -13,7 +13,7 @@
     <div>
       <p class="eyebrow">THE AMBER WINDOW · POMODORO STUDIO</p>
       <h1>Un botó, un vídeo.</h1>
-      <p class="muted">Tria el tema, l'entorn i la duració. La resta es fa sola: fons, efectes, música, renderitzat i publicació.</p>
+      <p class="muted">Tria el tema, l'entorn i la duració. La resta es fa sola: fons, sons d'ambient, renderitzat i publicació.</p>
     </div>
     <a class="back" href="/estudi">Mode avançat →</a>
   </header>
@@ -88,6 +88,8 @@
 
     <div class="go">
       <div class="publish-options">
+        <label class="check"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
+        <label class="check"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
         <label>Visibilitat
           <select name="privacy">

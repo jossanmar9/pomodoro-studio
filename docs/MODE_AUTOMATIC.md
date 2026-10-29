@@ -13,9 +13,11 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 | Pas | Què passa |
 |---|---|
 | Fons | Si Forge està obert, crea un fons nou i original amb el tema i l'entorn (llum, hora del dia, oratge). Si no, reutilitza un fons de `assets/backgrounds` que porte el nom del tema. |
-| Efectes | Tria a l'atzar els sons de l'entorn (per exemple, una pluja i un foc) i els iguala de volum. |
-| Música | Fa una llista amb peces diferents de `assets/music`, sense repetir-les, amb fosa de 6 segons entre peça i peça, fins a cobrir la duració del vídeo. |
-| Textos | Títol, descripció, capítols i etiquetes en anglés, amb els **crèdits de cada so i peça** (autor, llicència i enllaç) agafats de `assets/audio-catalog.json`. |
+| Ambient | Tria a l'atzar els sons de l'entorn (per exemple, una pluja i un foc) i els deixa baixets i igualats de volum. |
+| Música | Per defecte **no n'hi ha**. Si marques **Afegir música**, fa una llista amb peces diferents de `assets/music`, sense repetir-les i amb fosa entre elles. |
+| Avís | Si **Avís suau en acabar cada temporitzador** està marcat, sona una campaneta de dues notes: baixa en acabar la concentració i puja en acabar el descans. La genera l'aplicació, així que no té cap llicència. |
+| Tipografia | Cada ambientació té la seua tipografia lliure (llibre antic, gòtica, romana, màquina d'escriure…). Vegeu `assets/fonts/README.md`. |
+| Textos | Títol, descripció, capítols i etiquetes en anglés, amb els **crèdits de cada so (i de la música, si n'hi ha)** (autor, llicència i enllaç) agafats de `assets/audio-catalog.json`. |
 | Vídeo | Renderitza en 1080p amb el comptador en anglés (FOCUS / BREAK / SESSION) i fa la miniatura. |
 | YouTube | Puja el vídeo i la miniatura al canal amb la visibilitat triada. |
 
@@ -49,6 +51,7 @@ Si YouTube no està connectat, el vídeo es fa igualment i apareix el botó **Pu
 
 ```text
 AUTO_DEFAULT_PRIVACY=public   # public, unlisted o private
+AUTO_MUSIC_DEFAULT=false      # true perquè «Afegir música» isca marcat
 AUTO_HIRES_SCALE=1.5          # 1 = sense escalar el fons de Forge
 IMAGE_A1111_UPSCALER=Latent   # escalador de Forge per al fons
 ```

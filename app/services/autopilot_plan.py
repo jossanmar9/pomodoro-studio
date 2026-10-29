@@ -22,8 +22,8 @@ CHANNEL_NAME = "The Amber Window"
 # Sonoritat objectiu (LUFS). La música i els efectes es normalitzen perquè cap
 # pista tape les altres, independentment de com s'haja gravat cada fitxer.
 MUSIC_LOUDNESS = -22.0
-PRIMARY_AMBIENCE_LOUDNESS = -26.0
-SECONDARY_AMBIENCE_LOUDNESS = -31.0
+PRIMARY_AMBIENCE_LOUDNESS = -30.0
+SECONDARY_AMBIENCE_LOUDNESS = -36.0
 MUSIC_CROSSFADE_SECONDS = 6
 
 
@@ -296,21 +296,29 @@ class AutoTexts:
 MAX_DESCRIPTION_BYTES = 4900
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "") -> AutoTexts:
+def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False) -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
     options = [
-        f"{label} {public_theme} Pomodoro {focus}/{pause} | {env.public_label} Study Ambience",
+        f"{label} {public_theme} Pomodoro {focus}/{pause} | {env.public_label}{'' if music or not env.layers else ' Sounds'} Study Ambience",
         f"{label} {public_theme} Pomodoro {focus}/{pause} | {env.public_label}",
         f"{label} {public_theme} Pomodoro {focus}/{pause}",
     ]
     title = next((t for t in options if len(t) <= 100), options[-1][:100])
-    sound = "calm instrumental music" if not env.layers else f"{env.public_label.lower()} sounds and calm instrumental music"
+    if not env.layers:
+        sound = "calm instrumental music"
+    elif music:
+        sound = f"{env.public_label.lower()} sounds and calm instrumental music"
+    else:
+        sound = f"soft {env.public_label.lower()} sounds (no music)"
+    timer_line = "The timer on screen shows each session and break."
+    if chime:
+        timer_line += " A soft chime marks the end of every focus session and every break."
     def compose(credit_text: str) -> str:
         return (
             f"Focus for {label.lower()} in a {public_theme.lower()} with {sound}.\n"
             f"Pomodoro timer: {focus} minutes of focus, {pause} minutes of break. "
-            "The timer on screen shows each session and break.\n\n"
+            f"{timer_line}\n\n"
             f"Chapters:\n{chapters}\n\n"
             f"{credit_text}\n\n"
             f"Original ambience created for {CHANNEL_NAME}. Subscribe for new study and focus sessions."
@@ -322,7 +330,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
         raise ValueError("La descripció supera el límit de YouTube fins i tot amb els crèdits compactes")
     tags = ", ".join(dict.fromkeys([
-        "pomodoro", "study with me", "focus music", "study ambience", "pomodoro timer",
+        "pomodoro", "study with me", "focus music" if music or not env.layers else "ambient sounds", "study ambience", "pomodoro timer",
         f"{focus}/{pause} pomodoro", public_theme.lower(), env.public_label.lower(), f"{label.lower()} study",
     ]))
     thumbnail = f"{label.upper()} · {public_theme.upper()}"
