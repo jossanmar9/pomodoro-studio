@@ -35,6 +35,8 @@ ORBITRON = "orbitron/Orbitron-Variable.ttf"
 SPECIAL_ELITE = "special-elite/SpecialElite-Regular.ttf"
 CORMORANT = "cormorant-garamond/CormorantGaramond-SemiBold.ttf"
 COMFORTAA = "comfortaa/Comfortaa-Variable.ttf"
+BEBAS = "bebas-neue/BebasNeue-Regular.ttf"
+JOSEFIN = "josefin-sans/JosefinSans-Variable.ttf"
 
 THEME_FONTS: dict[str, FontStyle] = {
     "Biblioteca medieval": FontStyle("Llibre antic", IM_FELL_SC, IM_FELL),
@@ -54,6 +56,12 @@ THEME_FONTS: dict[str, FontStyle] = {
     "Bosc": FontStyle("Natural", CORMORANT, CORMORANT),
     "Observatori": FontStyle("Astronòmica", CORMORANT, CINZEL),
     "Cafeteria acollidora": FontStyle("Cafeteria", COMFORTAA, COMFORTAA),
+    "Cafeteria moderna": FontStyle("Moderna", JOSEFIN, JOSEFIN),
+    "Cafeteria a Nova York": FontStyle("Nova York", BEBAS, BEBAS),
+    "Cafeteria a Tòquio": FontStyle("Tòquio", JOSEFIN, ZEN_ANTIQUE),
+    "Cafeteria a París": FontStyle("París", PLAYFAIR, PLAYFAIR),
+    "Parc a la ciutat": FontStyle("Parc", CORMORANT, CORMORANT),
+    "Apartament a la ciutat": FontStyle("Apartament", LORA, LORA),
 }
 
 

@@ -15,7 +15,10 @@ import subprocess
 import unicodedata
 
 from app.services.ambience_prompt import AmbiencePromptSpec
-from app.services.renderer import SUPPORTED_AUDIO_SUFFIXES, SUPPORTED_IMAGE_SUFFIXES, SUPPORTED_VIDEO_SUFFIXES
+from app.services.renderer import (
+    CHIME_BREAK_END, CHIME_FOCUS_END, SUPPORTED_AUDIO_SUFFIXES, SUPPORTED_IMAGE_SUFFIXES,
+    SUPPORTED_VIDEO_SUFFIXES, _bell,
+)
 
 CHANNEL_NAME = "The Amber Window"
 
@@ -85,6 +88,46 @@ ENVIRONMENTS: dict[str, Environment] = {
         "warm sheltered interior light against a cold grey sky",
         (("vent-des-de-dins", "vent-arbres", "vent-arbre"),),
     ),
+    "cafeteria": Environment(
+        "Cafeteria plena", "Coffee Shop Chatter", "afternoon", "calm",
+        "warm interior lights, soft daylight from the windows",
+        (("cafeteria-capucins", "bar-ambient-01", "restaurant-brunch-02"),),
+    ),
+    "taverna": Environment(
+        "Taverna plena", "Busy Tavern", "night", "calm",
+        "warm candlelight and a crackling hearth, deep cozy shadows",
+        (("restaurant-brunch-02", "restaurant-brunch-03", "restaurant-pizzeria"), ("foc-llar", "foc-llar-04", "foc-llar-oberta")),
+    ),
+    "cafeteria-carrer": Environment(
+        "Cafeteria i carrer", "Café & Street Sounds", "late afternoon", "calm, city street visible through the window",
+        "warm interior lamps contrasted with soft city light outside",
+        (("cafeteria-capucins", "bar-ambient-01", "restaurant-brunch-03"), ("ciutat-carrer-paris", "ciutat-cruilla", "ciutat-aubervilliers")),
+    ),
+    "transit": Environment(
+        "Trànsit de ciutat", "City Traffic", "afternoon", "calm, busy avenue outside",
+        "natural city daylight",
+        (("ciutat-aubervilliers", "ciutat-cruilla", "ciutat-carrer-paris"),),
+    ),
+    "pluja-ciutat": Environment(
+        "Pluja a la ciutat", "Rainy City", "evening", "steady rain over the city, wet reflective streets",
+        "warm window lights and reflections on wet streets",
+        (("pluja-pedra", "pluja-terrassa", "pluja-bassal"), ("ciutat-nit-paris", "ciutat-carrer-paris")),
+    ),
+    "ciutat-nit": Environment(
+        "Ciutat de nit", "City at Night", "night", "clear, quiet city night",
+        "street lamps and lit windows",
+        (("ciutat-nit-paris",),),
+    ),
+    "parc": Environment(
+        "Parc i plaça", "Park & Plaza", "sunny afternoon", "pleasant breeze",
+        "warm dappled sunlight through trees",
+        (("parc-xiquets", "ciutat-placa-terrasses"), ("bosc-ocells", "vent-arbres", "vent-arbre")),
+    ),
+    "japo-carrer": Environment(
+        "Carrers del Japó", "Japanese Street", "evening", "calm, a quiet crossing outside",
+        "soft neon and warm lantern light",
+        (("japo-cruilla", "japo-parada-bus"),),
+    ),
     "musica": Environment(
         "Només música", "Calm Music", "evening", "calm",
         "soft cinematic practical lighting",
@@ -112,6 +155,12 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Bosc": ("small study nook in an ancient tranquil forest", "moss, giant tree roots, a wooden desk, lanterns and layered vegetation", "timeless"),
     "Observatori": ("old astronomy observatory", "large brass telescope, star charts, open dome showing the night sky and a desk", "timeless"),
     "Cafeteria acollidora": ("cozy coffee shop corner", "warm wooden tables, plants, books, steaming coffee and a large window", "modern"),
+    "Cafeteria moderna": ("minimalist modern specialty coffee shop", "light wood and concrete, plants, an espresso machine, large windows and a quiet table with a laptop and notebook", "contemporary"),
+    "Cafeteria a Nova York": ("cozy coffee shop in a New York brownstone neighbourhood", "exposed brick walls, warm lamps, a big window onto a busy avenue with taxis and fire escapes", "contemporary"),
+    "Cafeteria a Tòquio": ("small cozy café in a quiet Tokyo backstreet", "wooden counter, pour-over coffee, paper lanterns, plants and soft neon signs reflected in the window", "contemporary"),
+    "Cafeteria a París": ("classic Parisian café corner", "small round marble tables, bentwood chairs, a big window onto a cobbled street with Haussmann buildings", "timeless"),
+    "Parc a la ciutat": ("quiet bench and small study table in a leafy city park", "old trees, gravel paths, a fountain and city buildings in the distance", "contemporary"),
+    "Apartament a la ciutat": ("cozy city apartment study corner by a large window", "desk with books and a warm lamp, plants, city skyline and lit windows outside", "contemporary"),
 }
 
 AUTO_THEMES = tuple(THEME_VISUALS)
@@ -161,17 +210,29 @@ class AmbienceLayer:
     loudness: float
 
 
-def choose_ambience(folder: Path, environment: str, rng: random.Random) -> list[AmbienceLayer]:
-    """Tria un so per capa. La primera capa sona més que les següents."""
+# Volum de l'ambient triat en la pàgina: desplaçament en dB sobre la sonoritat base.
+AMBIENCE_LEVELS = {-6: "Molt baix", 0: "Baix", 4: "Normal"}
+
+
+def choose_ambience(folder: Path, environment: str, rng: random.Random, *, level: int = 0, preferred: list[str] | None = None) -> list[AmbienceLayer]:
+    """Tria un so per capa. La primera capa sona més que les següents.
+
+    Si `preferred` porta els noms de fitxer d'una mostra escoltada abans, es
+    reutilitzen, perquè el vídeo sone igual que la mostra.
+    """
+    if level not in AMBIENCE_LEVELS:
+        raise ValueError("Volum d'ambient no vàlid")
     env = ENVIRONMENTS[environment]
     available = _audio_by_stem(folder)
+    wanted = {Path(name).stem for name in (preferred or [])}
     chosen: list[AmbienceLayer] = []
     for index, candidates in enumerate(env.layers):
         options = [available[name] for name in candidates if name in available]
         if not options:
             continue
-        loudness = PRIMARY_AMBIENCE_LOUDNESS if not chosen else SECONDARY_AMBIENCE_LOUDNESS
-        chosen.append(AmbienceLayer(rng.choice(options), loudness))
+        loudness = (PRIMARY_AMBIENCE_LOUDNESS if not chosen else SECONDARY_AMBIENCE_LOUDNESS) + level
+        reused = [path for path in options if path.stem in wanted]
+        chosen.append(AmbienceLayer(reused[0] if reused else rng.choice(options), loudness))
     if env.layers and not chosen:
         wanted = ", ".join(name for layer in env.layers for name in layer)
         raise ValueError(f"Falten els sons de l'entorn «{env.label}» en assets/ambience ({wanted})")
@@ -343,3 +404,35 @@ class AutoPlan:
     background: Path
     ambience: list[AmbienceLayer] = field(default_factory=list)
     music_playlist: list[Path] = field(default_factory=list)
+
+
+PREVIEW_SECONDS = 30
+
+
+def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS) -> list[str]:
+    """Mostra d'àudio amb els mateixos nivells que el vídeo final.
+
+    La campaneta sona als 10 s (final de concentració) i als 20 s (final de descans).
+    """
+    if not ambience and music is None and not chime:
+        raise ValueError("No hi ha cap so per a la mostra")
+    command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error"]
+    parts: list[str] = []
+    mix: list[str] = []
+    index = 0
+    for layer in ambience:
+        command += ["-stream_loop", "-1", "-i", str(layer.path)]
+        parts.append(f"[{index}:a]loudnorm=I={layer.loudness:g}:TP=-2:LRA=11,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1[a{index}]")
+        mix.append(f"[a{index}]"); index += 1
+    if music is not None:
+        command += ["-stream_loop", "-1", "-i", str(music)]
+        parts.append(f"[{index}:a]{loudnorm_filter(MUSIC_LOUDNESS)},afade=t=in:d=1[a{index}]")
+        mix.append(f"[a{index}]"); index += 1
+    if chime:
+        for notes, at in ((CHIME_FOCUS_END, 10_000), (CHIME_BREAK_END, 20_000)):
+            command += ["-f", "lavfi", "-i", _bell(*notes)]
+            parts.append(f"[{index}:a]adelay={at}:all=1[a{index}]")
+            mix.append(f"[a{index}]"); index += 1
+    parts.append(f"{''.join(mix)}amix=inputs={len(mix)}:duration=longest:normalize=0,alimiter=limit=0.95,afade=t=out:st={seconds - 2}:d=2[out]")
+    command += ["-filter_complex", ";".join(parts), "-map", "[out]", "-t", str(seconds), "-c:a", "libmp3lame", "-q:a", "4", str(output)]
+    return command

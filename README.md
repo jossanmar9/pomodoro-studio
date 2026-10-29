@@ -8,8 +8,8 @@ Aplicació privada i autohosteable per a crear, renderitzar i publicar vídeos l
 
 La pàgina principal té tres preguntes i un botó:
 
-1. **Tema** (biblioteca medieval, cabana, nau espacial…).
-2. **Entorn** (pluja, tempesta, llar de foc, bosc, mar…).
+1. **Tema** (biblioteca medieval, taverna, cabana, cafeteria a Nova York, Tòquio o París, parc a la ciutat, nau espacial…).
+2. **Entorn** (pluja, tempesta, llar de foc, bosc, mar, cafeteria, taverna, trànsit, pluja a la ciutat…), amb mostra de 30 s abans de generar.
 3. **Duració** (1–8 h, Pomodoro 25/5 o 50/10).
 
 En prémer **Generar i publicar**, Pomodoro Studio crea el fons amb Forge (o reutilitza un del tema), tria els efectes de l'entorn, munta una llista musical sense repeticions amb fosa entre peces, iguala els volums, escriu títol, descripció, capítols i crèdits en anglés, renderitza el vídeo i el puja a YouTube. L'estudi complet continua en **Mode avançat** (`/estudi`).
