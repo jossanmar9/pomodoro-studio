@@ -3,7 +3,8 @@
 La pàgina principal (`http://localhost:8000`) és ara el mode automàtic. Només cal triar:
 
 1. **Tema**: biblioteca medieval, cabana, nau espacial…
-2. **Entorn**: pluja, tempesta, llar de foc, pluja i llar de foc, nit, bosc, rierol, mar, vent o només música.
+2. **Entorn**: pluja, tempesta, llar de foc, pluja i llar de foc, nit, bosc, rierol, mar, vent, cafeteria plena, taverna plena, cafeteria i carrer, trànsit de ciutat, pluja a la ciutat, ciutat de nit, parc i plaça, carrers del Japó o només música.
+   - Tria el **volum de l'ambient** (molt baix, baix o normal) i prem **🔊 Escoltar mostra** per sentir 30 segons tal com sonarà el vídeo, campaneta inclosa. El vídeo usarà exactament els sons de la mostra; **🔁 Altres sons** en tria uns altres.
 3. **Duració**: 1, 2, 3, 4 o 8 hores, amb Pomodoro 25/5 o 50/10.
 
 I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode avançat** (`/estudi`).
@@ -27,7 +28,15 @@ Pots tancar la pàgina mentre treballa; en tornar a obrir-la veuràs com va cada
 
 ### 1. Sons i música
 
-Els fitxers del catàleg (`assets/audio-catalog.json`) han d'estar en `assets/ambience/` i `assets/music/` amb el mateix nom. La pàgina mostra quants n'hi ha. Si falta el so d'un entorn, el vídeo s'atura i ho diu.
+Els fitxers del catàleg (`assets/audio-catalog.json`) han d'estar en `assets/ambience/` i `assets/music/` amb el mateix nom. Per baixar els que falten, des de la carpeta del projecte:
+
+```bash
+python3 scripts/descarregar-sons.py
+```
+
+Només baixa els que no tens i comprova que no estiguen corromputs. La pàgina mostra quants sons hi ha. Si falta el so d'un entorn, la mostra i el vídeo ho diuen.
+
+Els sons de ciutat, cafeteria, restaurant, bar, Japó i parc són de [BigSoundBank](https://bigsoundbank.com) amb llicència CC0: lliures, fins i tot per a ús comercial, i sense obligació de citar-los (el vídeo els cita igualment). Les veus de fons de cafeteries i restaurants són murmuri en francés.
 
 ### 2. Fons
 

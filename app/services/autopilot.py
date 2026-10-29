@@ -134,6 +134,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         theme, environment, duration = run.theme, run.environment, run.duration_minutes
         focus, pause, privacy, publish = run.focus_minutes, run.break_minutes, run.privacy, bool(run.publish)
         with_music, with_chime = bool(run.music), bool(run.chime)
+        level = run.ambience_level if run.ambience_level is not None else 0
+        preferred = [name for name in (run.ambience_files or "").split(",") if name]
         project = Project(theme=theme, focus_minutes=focus, break_minutes=pause, duration_minutes=duration, resolution=RESOLUTION)
         db.add(project)
         db.commit()
@@ -151,7 +153,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         _update(run_id, step="AUDIO", message="Triant efectes i preparant la música…")
         timeline = build_timeline(focus, pause, duration)
         env = ENVIRONMENTS[environment]
-        ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng)
+        ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng, level=level, preferred=preferred)
         catalog = load_catalog(settings.audio_catalog)
         playlist: list[Path] = []
         if env.music and (with_music or not env.layers):

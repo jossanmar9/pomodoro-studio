@@ -33,6 +33,9 @@ class AutoRun(Base):
     publish: Mapped[int] = mapped_column(Integer, default=1)
     music: Mapped[int] = mapped_column(Integer, default=0)
     chime: Mapped[int] = mapped_column(Integer, default=1)
+    ambience_level: Mapped[int] = mapped_column(Integer, default=0)
+    # Fitxers d'ambient de la mostra escoltada (separats per comes), per a reutilitzar-los.
+    ambience_files: Mapped[str | None] = mapped_column(Text, nullable=True)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)

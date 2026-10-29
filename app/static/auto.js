@@ -76,10 +76,48 @@
   const syncLabel = () => { go.textContent = publish.checked ? "Generar i publicar" : "Generar el vídeo"; };
   publish?.addEventListener("change", syncLabel);
 
+  // Mostra d'àudio: el vídeo reutilitza els sons que s'han escoltat.
+  const previewBtn = document.querySelector("#preview");
+  const reshuffle = document.querySelector("#reshuffle");
+  const audio = document.querySelector("#preview-audio");
+  const info = document.querySelector("#preview-info");
+  const files = document.querySelector("#ambience-files");
+  const forgetSounds = () => { files.value = ""; reshuffle.hidden = true; info.textContent = ""; audio.hidden = true; audio.removeAttribute("src"); };
+
+  async function preview(keep) {
+    const data = new FormData();
+    for (const name of ["environment", "ambience_level", "music", "chime"]) {
+      const field = form.querySelector(`[name="${name}"]:checked, select[name="${name}"]`);
+      if (field && !(field.type === "checkbox" && !field.checked)) data.set(name, field.value);
+    }
+    if (keep && files.value) data.set("ambience_files", files.value);
+    previewBtn.disabled = reshuffle.disabled = true;
+    info.textContent = "Preparant la mostra…";
+    try {
+      const response = await fetch("/api/auto/preview", {method: "POST", body: data});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail || "Error");
+      files.value = result.files.join(",");
+      audio.src = result.url;
+      audio.hidden = false;
+      reshuffle.hidden = !result.files.length;
+      info.textContent = (result.sounds.length ? `Sons: ${result.sounds.join(" · ")}` : "") + (form.chime?.checked ? " · campaneta als 10 s i als 20 s" : "") + ". El vídeo usarà estos mateixos sons.";
+      audio.play().catch(() => {});
+    } catch (error) {
+      info.textContent = `No s'ha pogut fer la mostra: ${error.message}`;
+    } finally {
+      previewBtn.disabled = reshuffle.disabled = false;
+    }
+  }
+  previewBtn?.addEventListener("click", () => preview(true));
+  reshuffle?.addEventListener("click", () => { files.value = ""; preview(false); });
+  form?.querySelectorAll('input[name="environment"]').forEach((el) => el.addEventListener("change", forgetSounds));
+
   document.querySelector("#random")?.addEventListener("click", () => {
     for (const name of ["theme", "environment"]) {
       const options = [...form.querySelectorAll(`input[name="${name}"]`)];
       options[Math.floor(Math.random() * options.length)].checked = true;
     }
+    forgetSounds();
   });
 })();

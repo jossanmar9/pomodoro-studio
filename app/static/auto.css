@@ -45,3 +45,7 @@ button.big:hover{background:#f0b862}
 .steps i.now{background:#e3a54a;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.4}}
 @media(max-width:700px){.status-bar{grid-template-columns:1fr}.auto-header{flex-direction:column}.go{flex-direction:column;align-items:stretch}button.big{width:100%}}
+.sound-check{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-top:6px}
+.sound-check label{min-width:170px}
+.sound-check audio{height:40px;flex:1 1 260px}
+.sound-check small{flex-basis:100%}

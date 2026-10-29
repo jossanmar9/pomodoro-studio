@@ -1,7 +1,11 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import random
+import re
 import shutil
+import subprocess
 from urllib.parse import quote
+from uuid import uuid4
 
 from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -22,7 +26,7 @@ from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
 from app.services.autopilot import autopilot, forge_ready, run_summary, youtube_connected
-from app.services.autopilot_plan import AUTO_THEMES, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, find_backgrounds
+from app.services.autopilot_plan import AMBIENCE_LEVELS, AUTO_THEMES, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -209,20 +213,22 @@ def auto_home(request:Request,error:str=Query("")):
         "themes":themes,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"forge_ready":forge_ready(),
-        "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,
+        "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form("")):
+def auto_create(theme:str=Form(...),environment:str=Form(...),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form("")):
     if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
     if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
     if duration_minutes not in DURATION_CHOICES: raise HTTPException(400,"Duració no vàlida")
     if pomodoro not in POMODORO_CHOICES: raise HTTPException(400,"Pomodoro no vàlid")
     if privacy not in PRIVACY_CHOICES: raise HTTPException(400,"Privacitat no vàlida")
+    if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
+    files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)
@@ -257,3 +263,44 @@ def youtube_connect():
     try: credentials()
     except Exception as exc: return RedirectResponse("/?error="+quote(f"No s'ha pogut connectar YouTube: {exc}"),303)
     return RedirectResponse("/",303)
+
+
+PREVIEW_DIR_NAME="previews"
+PREVIEW_NAME=re.compile(r"^preview-[a-f0-9]{32}\.mp3$")
+
+
+def _preview_dir()->Path:
+    folder=Path("data")/PREVIEW_DIR_NAME; folder.mkdir(parents=True,exist_ok=True); return folder
+
+
+@app.post("/api/auto/preview")
+def auto_preview(environment:str=Form(...),ambience_level:int=Form(0),music:str=Form(""),chime:str=Form(""),ambience_files:str=Form("")):
+    """30 segons amb els sons i el volum que tindrà el vídeo."""
+    if environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
+    if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
+    rng=random.Random()
+    preferred=[n for n in ambience_files.split(",") if n and Path(n).name==n]
+    try: layers=choose_ambience(settings.assets_dir/"ambience",environment,rng,level=ambience_level,preferred=preferred)
+    except ValueError as exc: raise HTTPException(409,str(exc)) from exc
+    env=ENVIRONMENTS[environment]; track=None
+    if env.music and (music or not env.layers):
+        tracks=catalog().music
+        if tracks: track=settings.assets_dir/"music"/rng.choice(tracks)
+    folder=_preview_dir()
+    for old in sorted(folder.glob("preview-*.mp3"),key=lambda p:p.stat().st_mtime)[:-5]: old.unlink(missing_ok=True)
+    output=folder/f"preview-{uuid4().hex}.mp3"
+    try: command=build_preview_command(layers,track,bool(chime),output)
+    except ValueError as exc: raise HTTPException(409,str(exc)) from exc
+    result=subprocess.run(command,capture_output=True,text=True,timeout=120,check=False)
+    if result.returncode!=0 or not output.is_file(): raise HTTPException(500,"No s'ha pogut preparar la mostra: "+(result.stderr or "")[-300:])
+    names=load_catalog(settings.audio_catalog)
+    sounds=[(names.get(l.path.name) or {}).get("title") or l.path.stem for l in layers]+([f"Música: {(names.get(track.name) or {}).get('title') or track.stem}"] if track else [])
+    return {"url":f"/api/auto/preview/{output.name}","files":[l.path.name for l in layers],"sounds":sounds}
+
+
+@app.get("/api/auto/preview/{name}")
+def auto_preview_file(name:str):
+    if not PREVIEW_NAME.fullmatch(name): raise HTTPException(404,"Mostra no disponible")
+    path=_preview_dir()/name
+    if not path.is_file(): raise HTTPException(404,"Mostra no disponible")
+    return FileResponse(path,media_type="audio/mpeg",headers={"Cache-Control":"no-store"})

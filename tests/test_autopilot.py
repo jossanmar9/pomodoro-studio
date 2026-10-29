@@ -165,6 +165,40 @@ def test_chimes_ring_at_every_change_but_not_at_the_end(tmp_path):
     assert "-an" in build_ffmpeg_command(silent, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
 
 
+def test_every_environment_sound_is_in_the_catalogue():
+    from app.services.autopilot_plan import load_catalog
+    catalog = load_catalog(Path(__file__).resolve().parent.parent / "assets" / "audio-catalog.json")
+    stems = {Path(name).stem for name in catalog}
+    for key, environment in ENVIRONMENTS.items():
+        for layer in environment.layers:
+            missing = [name for name in layer if name not in stems]
+            assert not missing, (key, missing)
+    for entry in catalog.values():
+        assert entry["license"] in {"CC0 1.0", "CC BY 4.0"} and entry["download_url"].startswith("https://")
+
+
+def test_level_and_listened_sample_are_reused(tmp_path):
+    for name in ("pluja-terrassa", "pluja-pedra", "foc-llar", "foc-llar-04"):
+        touch(tmp_path / f"{name}.mp3")
+    for seed in range(5):
+        layers = choose_ambience(tmp_path, "pluja-llar", random.Random(seed), level=-6, preferred=["pluja-pedra.mp3", "foc-llar-04.mp3"])
+        assert [l.path.stem for l in layers] == ["pluja-pedra", "foc-llar-04"]
+    assert layers[0].loudness == -36 and layers[1].loudness == -42
+    with pytest.raises(ValueError):
+        choose_ambience(tmp_path, "pluja", random.Random(0), level=99)
+
+
+def test_preview_is_a_real_30_second_mp3(tmp_path):
+    import subprocess
+    from app.services.autopilot_plan import AmbienceLayer, build_preview_command
+    rain = tmp_path / "rain.wav"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "anoisesrc=d=5:c=pink:a=0.3", str(rain)], check=True)
+    output = tmp_path / "preview.mp3"
+    subprocess.run(build_preview_command([AmbienceLayer(rain, -30)], None, True, output), check=True)
+    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(output)], capture_output=True, text=True, check=True)
+    assert 29 <= float(probe.stdout) <= 31
+
+
 # --- Procés complet amb tot simulat --------------------------------------------
 
 @pytest.fixture
@@ -264,6 +298,22 @@ def test_run_fails_clearly_without_background(env):
     assert run.step == "FAILED"
     assert "nau-espacial" in run.error and "Forge" in run.error
     assert project.status == "FAILED"
+
+
+def test_preview_endpoint_returns_playable_audio(env, monkeypatch):
+    import subprocess
+    rain = auto.settings.assets_dir / "ambience" / "pluja-terrassa.mp3"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "anoisesrc=d=5:c=pink:a=0.3", str(rain)], check=True)
+    monkeypatch.chdir(env.tmp)
+    with TestClient(main.app) as client:
+        response = client.post("/api/auto/preview", data={"environment": "pluja", "ambience_level": "0", "chime": "1"})
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["files"] == ["pluja-terrassa.mp3"]
+        audio = client.get(data["url"])
+        assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
+        assert client.get("/api/auto/preview/../../etc/passwd").status_code == 404
+        assert client.post("/api/auto/preview", data={"environment": "mar"}).status_code == 409
 
 
 def test_home_page_and_form_create_a_run(env, monkeypatch):
