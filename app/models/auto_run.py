@@ -43,6 +43,8 @@ class AutoRun(Base):
     motion: Mapped[int] = mapped_column(Integer, default=1)
     # 1 = generar un fons nou amb Forge encara que n'hi haja d'aprovats.
     new_background: Mapped[int] = mapped_column(Integer, default=0)
+    # 1 = apagar l'ordinador quan acabe (si és l'últim de la cua i ha anat bé).
+    shutdown: Mapped[int] = mapped_column(Integer, default=0)
     background: Mapped[str | None] = mapped_column(String(200), nullable=True)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
