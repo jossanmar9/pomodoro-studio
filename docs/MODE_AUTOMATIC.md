@@ -6,6 +6,7 @@ La pàgina principal (`http://localhost:8000`) és ara el mode automàtic. Nomé
    - **Pomodoro**: comptador de concentració i descans, amb campaneta opcional.
    - **Per a dormir**: només l'ambient, sense comptador ni campaneta. La pantalla es pot enfosquir a poc a poc als 30 minuts.
    - **Per a llegir**: ambient acollidor per a llegir (amb música si vols), sense comptador ni campaneta. Va molt bé amb el tema **Racó de lectura** o qualsevol biblioteca.
+   - **So ambiental**: només els sons de l'entorn, sense música, sense comptador i amb la pantalla sempre encesa (cafeteria, avió, tren, bosc, tempesta al bosc, platja, tempesta a la platja, riu, biblioteca, llar de foc, llar de foc i tempesta, port…). La cabina d'avió és un brunzit generat per l'aplicació (soroll marró), sense sons de tercers.
    - **Partida de rol**: ambient de fons per a partides (taverna, masmorra, campament, tempesta al mar…), sense comptador.
    - **Soroll de color**: soroll marró, rosa o blanc generat per l'aplicació mateixa (sense cap so de tercers), amb pantalla enfosquida opcional.
 1. **Tema**: biblioteca medieval, cabana, nau espacial, masmorra, campament d'aventurers, cova del drac…
@@ -27,7 +28,7 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 | Tipografia | Cada ambientació té la seua tipografia lliure (llibre antic, gòtica, romana, màquina d'escriure…). Vegeu `assets/fonts/README.md`. |
 | Textos | Títol, descripció, capítols i etiquetes en anglés, amb els **crèdits de cada so (i de la música, si n'hi ha)** (autor, llicència i enllaç) agafats de `assets/audio-catalog.json`. |
 | Vídeo | Renderitza en 1080p i fa la miniatura. En format Pomodoro, amb el comptador en anglés (FOCUS / BREAK / SESSION); en els altres, sense comptador i amb capítols cada hora. |
-| YouTube | Puja el vídeo i la miniatura al canal amb la visibilitat triada, en la categoria del format: Educació (Pomodoro), Gent i blogs (dormir, llegir i soroll) o Videojocs (rol). |
+| YouTube | Puja el vídeo i la miniatura al canal amb la visibilitat triada, en la categoria del format: Educació (Pomodoro), Gent i blogs (dormir, llegir, so ambiental i soroll) o Videojocs (rol). |
 
 Pots tancar la pàgina mentre treballa; en tornar a obrir-la veuràs com va cada vídeo. Si demanes diversos vídeos, es fan d'un en un.
 

@@ -203,7 +203,7 @@ def test_preview_is_a_real_30_second_mp3(tmp_path):
 def test_texts_for_every_format_fit_youtube():
     from app.services.autopilot_plan import NOISE_COLORS, plain_chapters
     chapters = plain_chapters(8 * 3600, 1800)
-    for fmt, environment, noise in (("dormir", "pluja-llar", None), ("llegir", "llar", None), ("rol", "taverna", None), ("soroll", "soroll", "marro")):
+    for fmt, environment, noise in (("dormir", "pluja-llar", None), ("llegir", "llar", None), ("ambient", "platja-tempesta", None), ("rol", "taverna", None), ("soroll", "soroll", "marro")):
         texts = build_texts(public_theme="Enchanted Wizard Library", environment=environment, duration=480, focus=480, pause=0,
                             chapters=chapters, credits="", fmt=fmt, noise=noise, dim=fmt != "rol", music=False)
         assert len(texts.title) <= 100, texts.title
@@ -601,3 +601,28 @@ def test_overlay_loops_seamlessly_and_renders(tmp_path):
     command[command.index("-t") + 1] = "2"
     subprocess.run(command, check=True, capture_output=True)
     assert output.is_file() and output.stat().st_size > 0
+
+
+def test_ambient_runs_have_no_music_and_the_plane_uses_generated_noise(env):
+    touch(env.tmp / "assets" / "backgrounds" / "avio-01.png")
+    run_id = make_run(env.session, theme="Avió", environment="avio", format="ambient", music=1, chime=1)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        assert db.get(AutoRun, run_id).step == "DONE", db.get(AutoRun, run_id).error
+    spec = env.rendered["spec"]
+    assert spec.noise == "brown" and spec.music is None and spec.show_timer is False and spec.chime is False and spec.overlay is None
+    upload = env.uploads[-1]
+    assert "Airplane Cabin" in upload.title and "No Music" in upload.title and upload.category_id == "22"
+    run_id = make_run(env.session, format="ambient", environment="pluja", music=1)
+    auto.execute(run_id, rng=random.Random(0))
+    assert env.rendered["spec"].music is None and env.rendered["spec"].noise is None
+
+
+def test_new_ambient_themes_are_ready():
+    from app.services.fonts import THEME_FONTS
+    from app.services.overlays import overlay_style
+    for theme in ("Avió", "Tren", "Platja", "Riu", "Hivernacle", "Port", "Cabana a la neu"):
+        assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS
+    for key in ("bosc-tempesta", "platja-tempesta", "riu", "llar-tempesta", "biblioteca", "port", "avio"):
+        assert key in ENVIRONMENTS
+    assert overlay_style("Platja", "platja-tempesta") == "pluja-forta" and overlay_style("Avió", "avio") is None

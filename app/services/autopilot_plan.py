@@ -41,6 +41,8 @@ class Environment:
     # Cada capa és una llista de fitxers candidats; se'n tria un per capa.
     layers: tuple[tuple[str, ...], ...] = ()
     music: bool = True
+    # Soroll generat per FFmpeg com a so de l'entorn (p. ex. cabina d'avió = soroll marró).
+    noise: str | None = None
 
 
 ENVIRONMENTS: dict[str, Environment] = {
@@ -179,6 +181,41 @@ ENVIRONMENTS: dict[str, Environment] = {
         "warm lamp and fireplace glow in a quiet study",
         (("foc-llar", "foc-llar-04", "foc-llar-oberta"), ("rellotge-pendul", "rellotge-tictac")),
     ),
+    "bosc-tempesta": Environment(
+        "Tempesta al bosc", "Forest Thunderstorm", "evening", "heavy rain and thunder over a dark forest, strong wind in the trees",
+        "dark green and blue storm light, faint lightning in the distance",
+        (("pluja-tempesta-35min", "pluja-trons"), ("vent-fort-arbres-01", "vent-fort-arbres-02", "vent-fort-arbres-03")),
+    ),
+    "platja-tempesta": Environment(
+        "Tempesta a la platja", "Stormy Beach", "evening", "storm over the sea, big waves crashing, rain sweeping the shore",
+        "dramatic dark clouds, a warm lighthouse light in the distance",
+        (("mar-agitada", "ones-mar"), ("pluja-trons", "pluja-tempesta-35min"), ("vent-fort-01", "vent-fort-03")),
+    ),
+    "riu": Environment(
+        "Riu", "Gentle River", "afternoon", "calm, clear water flowing over stones",
+        "soft afternoon light through willow trees",
+        (("rierol-muntanya-01", "bosc-rierol-01", "bosc-rierol-03", "corrent-aigua"), ("bosc-ocells", "bosc-02", "vora-bosc")),
+    ),
+    "llar-tempesta": Environment(
+        "Llar de foc i tempesta", "Fireplace & Thunderstorm", "night", "thunderstorm and heavy rain outside the windows",
+        "warm firelight against cold blue storm light",
+        (("pluja-tempesta-35min", "pluja-trons"), ("foc-llar", "foc-llar-04", "foc-llar-oberta")),
+    ),
+    "biblioteca": Environment(
+        "Biblioteca amb pluja", "Rainy Library", "night", "soft rain against tall windows, quiet room",
+        "green banker lamps and warm reading lights",
+        (("pluja-terrassa", "pluja-pedra"), ("rellotge-pendul", "rellotge-tictac")),
+    ),
+    "port": Environment(
+        "Port amb pluja", "Rainy Harbour", "night", "light rain over a quiet harbour, small waves against the boats",
+        "warm lamps reflected on wet stones and water, light fog",
+        (("ones-escuma-platja", "ones-ocea"), ("pluja-pedra", "pluja-bassal")),
+    ),
+    "avio": Environment(
+        "Cabina d'avió", "Airplane Cabin", "night", "steady hum of the engines high above the clouds",
+        "dim warm cabin lights, moonlit clouds outside the window",
+        (), music=False, noise="brown",
+    ),
     "musica": Environment(
         "Només música", "Calm Music", "evening", "calm",
         "soft cinematic practical lighting",
@@ -215,6 +252,13 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Campament d'aventurers": ("adventurers' camp in a forest clearing", "canvas tents, a campfire, bedrolls, an old map on a wooden crate, lanterns and tall pine trees", "medieval fantasy"),
     "Cova del drac": ("vast cavern with a dragon's hoard", "piles of gold coins, glowing crystals, an underground lake and a huge dark winged silhouette in the distance", "fantasy"),
     "Apartament a la ciutat": ("cozy city apartment study corner by a large window", "desk with books and a warm lamp, plants, city skyline and lit windows outside", "contemporary"),
+    "Avió": ("airplane window seat at night above the clouds", "an oval window over a sea of moonlit clouds, faint city lights far below, dim warm cabin lights, a folded blanket and a cup of tea on the tray table", "contemporary"),
+    "Tren": ("vintage night train compartment", "wooden panels, soft reading lamps, a large window over a snowy mountain landscape under a starry sky, a small table with a book and a cup of tea", "vintage"),
+    "Platja": ("calm sandy beach", "gentle waves rolling onto the shore, wet sand reflecting the sky, dunes with tall grass", "natural"),
+    "Riu": ("gentle river in a green valley", "clear water over smooth stones, willow trees on the banks, a small wooden bridge in the distance", "natural"),
+    "Hivernacle": ("old victorian glass greenhouse", "raindrops on the glass roof, lush plants, hanging ferns and orchids, a small wrought-iron table with a teapot", "victorian"),
+    "Port": ("quiet old harbour", "small wooden boats gently rocking, warm lamps reflected on wet stones and water, light fog over the sea", "timeless"),
+    "Cabana a la neu": ("small wooden cabin on a winter night", "a frosted window with heavy snowfall and snowy pine trees, a glowing fireplace, a mug of hot chocolate and a blanket on a window seat", "cozy"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
@@ -225,6 +269,7 @@ FORMATS = {
     "pomodoro": "Pomodoro",
     "dormir": "Per a dormir",
     "llegir": "Per a llegir",
+    "ambient": "So ambiental",
     "rol": "Partida de rol",
     "soroll": "Soroll de color",
 }
@@ -238,10 +283,11 @@ NOISE_ENVIRONMENT = "soroll"
 # La pantalla es fon a negre després de 30 minuts (vídeos per a dormir i soroll).
 DIM_AFTER_SECONDS = 30 * 60
 # Categoria de YouTube per format: 27 Education, 22 People & Blogs, 20 Gaming.
-YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "soroll": "22", "rol": "20"}
+YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "ambient": "22", "soroll": "22", "rol": "20"}
 FORMAT_MOODS = {
     "pomodoro": "quiet, immersive, focused, cozy, no people",
     "dormir": "calm, restful, dim and sleepy, soft low light, no people",
+    "ambient": "calm, immersive and peaceful, natural light, no people",
     "llegir": "cozy, warm and inviting, soft golden reading light, peaceful, no people",
     "soroll": "calm, restful, dark and minimal, soft low light, no people",
     "rol": "atmospheric, adventurous, immersive, mysterious, no people",
@@ -559,6 +605,21 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             )
             tags = ["sleep sounds", "sleep ambience", "relaxing sounds", f"{env.public_label.lower()} for sleep", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} sleep sounds", "fall asleep fast"] + (["dark screen", "black screen sleep sounds"] if dim else [])
             thumbnail = f"{label.upper()} · {env.public_label.upper()}"
+        elif fmt == "ambient":
+            title = _fit_title([
+                f"{label} {env.public_label} Ambience | {public_theme} | No Music",
+                f"{label} {env.public_label} Sounds | {public_theme}",
+                f"{label} {env.public_label} Sounds",
+            ])
+            compose = lambda credit_text: _join_blocks(
+                f"Settle in with {label.lower()} of pure {env.public_label.lower()} sounds. Scene: {public_theme}.",
+                "No music, no talking, no timer: just the ambience, for studying, working, reading, relaxing or sleeping.",
+                f"Chapters:\n{chapters}",
+                credit_text,
+                outro,
+            )
+            tags = [f"{env.public_label.lower()} ambience", f"{env.public_label.lower()} sounds", "ambient sounds", "ambience no music", "relaxing sounds", "background sounds", "sounds for sleep", "study ambience", public_theme.lower(), f"{label.lower()} ambience"]
+            thumbnail = f"{env.public_label.upper()} · {label.upper()}"
         elif fmt == "llegir":
             title = _fit_title([
                 f"{label} Reading Ambience | {public_theme} with {env.public_label} Sounds",

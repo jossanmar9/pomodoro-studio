@@ -241,6 +241,9 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
         environment,music,ambience_files=NOISE_ENVIRONMENT,"",""
     elif environment not in ENVIRONMENTS: raise HTTPException(400,"Entorn no vàlid")
     else: noise=""
+    if format=="ambient":
+        if not ENVIRONMENTS[environment].layers and not ENVIRONMENTS[environment].noise: raise HTTPException(400,"El so ambiental necessita un entorn amb sons")
+        music,music_style="",""
     if format!="pomodoro": chime=""
     if format not in {"dormir","soroll"}: dim=""
     if background and background not in {p.name for p in find_backgrounds(settings.assets_dir/"backgrounds",theme)}: raise HTTPException(400,"Fons no vàlid")
@@ -318,7 +321,8 @@ def auto_preview(environment:str=Form(""),ambience_level:int=Form(0),music:str=F
         try: layers=choose_ambience(settings.assets_dir/"ambience",environment,rng,level=ambience_level,preferred=preferred)
         except ValueError as exc: raise HTTPException(409,str(exc)) from exc
         env=ENVIRONMENTS[environment]
-    if env is not None and env.music and (music or not env.layers):
+        if env.noise: noise_color=env.noise
+    if env is not None and env.music and format!="ambient" and (music or not env.layers):
         names=load_catalog(settings.audio_catalog)
         style=music_style if music_style in MUSIC_STYLES else music_style_for(format,environment)
         tracks=music_tracks(settings.assets_dir/"music",style,names) or music_tracks(settings.assets_dir/"music","calma",names)
@@ -331,7 +335,7 @@ def auto_preview(environment:str=Form(""),ambience_level:int=Form(0),music:str=F
     result=subprocess.run(command,capture_output=True,text=True,timeout=120,check=False)
     if result.returncode!=0 or not output.is_file(): raise HTTPException(500,"No s'ha pogut preparar la mostra: "+(result.stderr or "")[-300:])
     names=load_catalog(settings.audio_catalog)
-    sounds=([f"Soroll {NOISE_COLORS[noise][2].lower()}"] if noise_color else [])+[(names.get(l.path.name) or {}).get("title") or l.path.stem for l in layers]+([f"Música: {(names.get(track.name) or {}).get('title') or track.stem}"] if track else [])
+    sounds=([f"Soroll {NOISE_COLORS[noise][2].lower()}" if noise in NOISE_COLORS else "Brunzit de cabina"] if noise_color else [])+[(names.get(l.path.name) or {}).get("title") or l.path.stem for l in layers]+([f"Música: {(names.get(track.name) or {}).get('title') or track.stem}"] if track else [])
     return {"url":f"/api/auto/preview/{output.name}","files":[l.path.name for l in layers],"sounds":sounds}
 
 
