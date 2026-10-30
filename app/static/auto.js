@@ -114,7 +114,7 @@
 
   async function preview(keep) {
     const data = new FormData();
-    for (const name of ["format", "environment", "noise", "ambience_level", "music", "chime"]) {
+    for (const name of ["format", "environment", "noise", "ambience_level", "music", "music_style", "chime"]) {
       const field = form.querySelector(`[name="${name}"]:checked, select[name="${name}"]`);
       if (field && !(field.type === "checkbox" && !field.checked)) data.set(name, field.value);
     }

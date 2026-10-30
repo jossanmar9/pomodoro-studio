@@ -933,7 +933,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "file": "assets/music/dream-culture.mp3",
@@ -955,7 +956,8 @@
         "channels": 2
       }
     ],
-    "kind": "music"
+    "kind": "music",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -978,7 +980,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1001,7 +1004,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1024,7 +1028,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1050,7 +1055,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1076,7 +1082,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1099,7 +1106,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1125,7 +1133,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1151,7 +1160,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1177,7 +1187,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1203,7 +1214,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1229,7 +1241,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "file": "assets/music/meditation-impromptu-03.mp3",
@@ -1254,7 +1267,8 @@
         "codec_name": "mjpeg"
       }
     ],
-    "kind": "music"
+    "kind": "music",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1277,7 +1291,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1300,7 +1315,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1323,7 +1339,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1346,7 +1363,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1372,7 +1390,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "music",
@@ -1395,7 +1414,8 @@
       }
     ],
     "downloaded_on": "2026-10-28",
-    "changes": "Original downloaded MP3; filename changed only; not edited or extended."
+    "changes": "Original downloaded MP3; filename changed only; not edited or extended.",
+    "style": "calma"
   },
   {
     "kind": "ambience",
@@ -1592,5 +1612,434 @@
     "catalog_duration": 146,
     "added_on": "2026-10-29",
     "changes": "Original MP3; filename changed only."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-achaidh-cheide.mp3",
+    "title": "Achaidh Cheide",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Achaidh%20Cheide.mp3",
+    "incompetech_title": "Achaidh Cheide",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-thatched-villagers.mp3",
+    "title": "Thatched Villagers",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Thatched%20Villagers.mp3",
+    "incompetech_title": "Thatched Villagers",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-folk-round.mp3",
+    "title": "Folk Round",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Folk%20Round.mp3",
+    "incompetech_title": "Folk Round",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-minstrel-guild.mp3",
+    "title": "Minstrel Guild",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Minstrel%20Guild.mp3",
+    "incompetech_title": "Minstrel Guild",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-pippin-the-hunchback.mp3",
+    "title": "Pippin the Hunchback",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pippin%20the%20Hunchback.mp3",
+    "incompetech_title": "Pippin the Hunchback",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-village-consort.mp3",
+    "title": "Village Consort",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Village%20Consort.mp3",
+    "incompetech_title": "Village Consort",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-teller-of-the-tales.mp3",
+    "title": "Teller of the Tales",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Teller%20of%20the%20Tales.mp3",
+    "incompetech_title": "Teller of the Tales",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-master-of-the-feast.mp3",
+    "title": "Master of the Feast",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Master%20of%20the%20Feast.mp3",
+    "incompetech_title": "Master of the Feast",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-suonatore-di-liuto.mp3",
+    "title": "Suonatore di Liuto",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Suonatore%20di%20Liuto.mp3",
+    "incompetech_title": "Suonatore di Liuto",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-lord-of-the-land.mp3",
+    "title": "Lord of the Land",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lord%20of%20the%20Land.mp3",
+    "incompetech_title": "Lord of the Land",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-celtic-impulse.mp3",
+    "title": "Celtic Impulse",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Celtic%20Impulse.mp3",
+    "incompetech_title": "Celtic Impulse",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-angevin-b.mp3",
+    "title": "Angevin B",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Angevin%20B.mp3",
+    "incompetech_title": "Angevin B",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "medieval",
+    "file": "assets/music/medieval-skye-cuillin.mp3",
+    "title": "Skye Cuillin",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Skye%20Cuillin.mp3",
+    "incompetech_title": "Skye Cuillin",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-dark-fog.mp3",
+    "title": "Dark Fog",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dark%20Fog.mp3",
+    "incompetech_title": "Dark Fog",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-darkness-speaks.mp3",
+    "title": "Darkness Speaks",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Darkness%20Speaks.mp3",
+    "incompetech_title": "Darkness Speaks",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-ossuary-6-air.mp3",
+    "title": "Ossuary 6 - Air",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Ossuary%206%20-%20Air.mp3",
+    "incompetech_title": "Ossuary 6 - Air",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-long-note-four.mp3",
+    "title": "Long Note Four",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Long%20Note%20Four.mp3",
+    "incompetech_title": "Long Note Four",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-echoes-of-time-v2.mp3",
+    "title": "Echoes of Time v2",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Echoes%20of%20Time%20v2.mp3",
+    "incompetech_title": "Echoes of Time v2",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-moorland.mp3",
+    "title": "Moorland",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Moorland.mp3",
+    "incompetech_title": "Moorland",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "fosca",
+    "file": "assets/music/fosca-lightless-dawn.mp3",
+    "title": "Lightless Dawn",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lightless%20Dawn.mp3",
+    "incompetech_title": "Lightless Dawn",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-bossa-antigua.mp3",
+    "title": "Bossa Antigua",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bossa%20Antigua.mp3",
+    "incompetech_title": "Bossa Antigua",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-airport-lounge.mp3",
+    "title": "Airport Lounge",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Airport%20Lounge.mp3",
+    "incompetech_title": "Airport Lounge",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-lobby-time.mp3",
+    "title": "Lobby Time",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Lobby%20Time.mp3",
+    "incompetech_title": "Lobby Time",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-smooth-lovin.mp3",
+    "title": "Smooth Lovin",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Smooth%20Lovin.mp3",
+    "incompetech_title": "Smooth Lovin",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-backed-vibes-clean.mp3",
+    "title": "Backed Vibes Clean",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Backed%20Vibes%20Clean.mp3",
+    "incompetech_title": "Backed Vibes Clean",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-as-i-figure.mp3",
+    "title": "As I Figure",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/As%20I%20Figure.mp3",
+    "incompetech_title": "As I Figure",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-night-on-the-docks-sax.mp3",
+    "title": "Night on the Docks - Sax",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Night%20on%20the%20Docks%20-%20Sax.mp3",
+    "incompetech_title": "Night on the Docks - Sax",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-laid-back-guitars.mp3",
+    "title": "Laid Back Guitars",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Laid%20Back%20Guitars.mp3",
+    "incompetech_title": "Laid Back Guitars",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-cool-vibes.mp3",
+    "title": "Cool Vibes",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cool%20Vibes.mp3",
+    "incompetech_title": "Cool Vibes",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-local-forecast-elevator.mp3",
+    "title": "Local Forecast - Elevator",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Local%20Forecast%20-%20Elevator.mp3",
+    "incompetech_title": "Local Forecast - Elevator",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-off-to-osaka.mp3",
+    "title": "Off to Osaka",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Off%20to%20Osaka.mp3",
+    "incompetech_title": "Off to Osaka",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-george-street-shuffle.mp3",
+    "title": "George Street Shuffle",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/George%20Street%20Shuffle.mp3",
+    "incompetech_title": "George Street Shuffle",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "music",
+    "style": "jazz",
+    "file": "assets/music/jazz-hard-boiled.mp3",
+    "title": "Hard Boiled",
+    "author": "Kevin MacLeod",
+    "source_url": "https://incompetech.com",
+    "download_url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Hard%20Boiled.mp3",
+    "incompetech_title": "Hard Boiled",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
   }
 ]

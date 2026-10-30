@@ -21,7 +21,7 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 |---|---|
 | Fons | Usa el fons que has triat en el formulari o, amb **🎲 A l'atzar**, un dels guardats per al tema (primer els fets per al mateix format i entorn) evitant repetir els dels últims vídeos. Si el tema no en té cap, el vídeo s'atura i t'avisa. |
 | Ambient | Tria a l'atzar els sons de l'entorn (per exemple, una pluja i un foc) i els deixa baixets i igualats de volum. |
-| Música | Per defecte **no n'hi ha**. Si marques **Afegir música**, fa una llista amb peces diferents de `assets/music`, sense repetir-les i amb fosa entre elles. |
+| Música | Per defecte **no n'hi ha**. Si marques **Afegir música**, fa una llista amb peces diferents de l'estil triat, sense repetir-les i amb fosa entre elles. L'estil **Automàtic** tria segons el vídeo: jazz suau en cafeteries i ciutat, medieval i folk en tavernes, campaments i partides de rol, fantasia fosca en masmorres i tempestes de rol, i tranquil·la en la resta i sempre en els vídeos per a dormir. Si encara no tens música d'eixe estil, usa la tranquil·la i ho avisa. |
 | Avís | Si **Avís suau en acabar cada temporitzador** està marcat, sona una campaneta de dues notes: baixa en acabar la concentració i puja en acabar el descans. La genera l'aplicació, així que no té cap llicència. |
 | Moviment | Si **Moviment suau** està marcat, la càmera es desplaça molt a poc a poc sobre el fons (amplia un 6 % i va i ve en uns dos minuts), i en escenes amb foc la llum parpelleja lleugerament. El comptador no es mou. Fa el renderitzat una mica més lent. |
 | Tipografia | Cada ambientació té la seua tipografia lliure (llibre antic, gòtica, romana, màquina d'escriure…). Vegeu `assets/fonts/README.md`. |
@@ -52,6 +52,8 @@ python3 scripts/descarregar-sons.py
 ```
 
 Només baixa els que no tens i comprova que no estiguen corromputs. La pàgina mostra quants sons hi ha. Si falta el so d'un entorn, la mostra i el vídeo ho diuen.
+
+La música és de Kevin MacLeod ([incompetech.com](https://incompetech.com), CC BY 4.0) i està separada per estils (tranquil·la, medieval i folk, fantasia fosca, jazz de cafeteria). Si poses música teua en `assets/music/`, comença el nom per l'estil (`jazz-…`, `medieval-…`, `fosca-…`) perquè la trie en eixe estil; sense prefix compta com a tranquil·la.
 
 Els sons de ciutat, cafeteria, restaurant, bar, Japó i parc són de [BigSoundBank](https://bigsoundbank.com) amb llicència CC0: lliures, fins i tot per a ús comercial, i sense obligació de citar-los (el vídeo els cita igualment). Les veus de fons de cafeteries i restaurants són murmuri en francés.
 

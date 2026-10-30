@@ -212,6 +212,48 @@ FORMAT_MOODS = {
     "rol": "atmospheric, adventurous, immersive, mysterious, no people",
 }
 _NOISE_VISUAL = Environment("Soroll", "Noise", "night", "calm and still", "very soft dim warm light, dark and restful")
+# Estils de música: clau → (nom en valencià, descripció pública en anglés).
+MUSIC_STYLES = {
+    "calma": ("Tranquil·la", "calm instrumental music"),
+    "medieval": ("Medieval i folk", "medieval folk music"),
+    "fosca": ("Fantasia fosca", "dark fantasy music"),
+    "jazz": ("Jazz de cafeteria", "soft jazz"),
+}
+_JAZZ_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "pluja-ciutat", "ciutat-nit", "japo-carrer", "transit"}
+_MEDIEVAL_ENVIRONMENTS = {"taverna", "campament"}
+_DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar"}
+_DARK_RPG_ENVIRONMENTS = _DARK_ENVIRONMENTS | {"tempesta", "vent", "nit"}
+
+
+def music_style(fmt: str, environment: str) -> str:
+    """Estil de música que encaixa amb el format i l'entorn."""
+    if fmt == "dormir":
+        return "calma"
+    if fmt == "rol":
+        return "fosca" if environment in _DARK_RPG_ENVIRONMENTS else "medieval"
+    if environment in _MEDIEVAL_ENVIRONMENTS:
+        return "medieval"
+    if environment in _DARK_ENVIRONMENTS:
+        return "fosca"
+    if environment in _JAZZ_ENVIRONMENTS:
+        return "jazz"
+    return "calma"
+
+
+def track_style(path: Path, catalog: dict[str, dict] | None = None) -> str:
+    """Estil d'una peça: el del catàleg o, si no hi és, el prefix del nom (jazz-…); per defecte, tranquil·la."""
+    style = ((catalog or {}).get(path.name) or {}).get("style")
+    if style in MUSIC_STYLES:
+        return style
+    prefix = path.stem.split("-", 1)[0]
+    return prefix if prefix in MUSIC_STYLES else "calma"
+
+
+def music_tracks(folder: Path, style: str | None = None, catalog: dict[str, dict] | None = None) -> list[Path]:
+    tracks = list(_audio_by_stem(folder).values())
+    return [t for t in tracks if track_style(t, catalog) == style] if style else tracks
+
+
 DURATION_CHOICES = (60, 120, 180, 240, 480)
 POMODORO_CHOICES = {"25/5": (25, 5), "50/10": (50, 10)}
 PRIVACY_CHOICES = {"public": "Públic", "unlisted": "Ocult (amb enllaç)", "private": "Privat"}
@@ -315,15 +357,15 @@ def probe_duration(path: Path) -> float:
         return 0.0
 
 
-def build_playlist(folder: Path, target_seconds: int, rng: random.Random, catalog: dict[str, dict] | None = None) -> list[Path]:
+def build_playlist(folder: Path, target_seconds: int, rng: random.Random, catalog: dict[str, dict] | None = None, style: str | None = None) -> list[Path]:
     """Ordre aleatori de peces sense repetir fins a cobrir la duració del vídeo.
 
     Si la biblioteca és més curta que el vídeo, el renderitzat repetirà la llista
     completa, no una sola peça.
     """
-    tracks = list(_audio_by_stem(folder).values())
+    tracks = music_tracks(folder, style, catalog)
     if not tracks:
-        raise ValueError("No hi ha música en assets/music")
+        raise ValueError(f"No hi ha música {MUSIC_STYLES[style][0].lower()} en assets/music" if style else "No hi ha música en assets/music")
     rng.shuffle(tracks)
     catalog = catalog or {}
     playlist: list[Path] = []
@@ -430,9 +472,10 @@ def _join_blocks(*blocks: str) -> str:
     return "\n\n".join(block.strip() for block in blocks if block and block.strip())
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False) -> AutoTexts:
+def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma") -> AutoTexts:
+    music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1]
     if fmt == "pomodoro":
-        return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime)
+        return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime, music_text=music_text)
     if fmt not in FORMATS:
         raise ValueError("Format no vàlid")
     label = duration_label(duration)
@@ -462,9 +505,9 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     else:
         env = ENVIRONMENTS[environment]
         if not env.layers:
-            sound = "calm instrumental music"
+            sound = music_text
         elif music:
-            sound = f"{env.public_label.lower()} sounds and calm instrumental music"
+            sound = f"{env.public_label.lower()} sounds and {music_text}"
         else:
             sound = f"{env.public_label.lower()} sounds"
         if fmt == "dormir":
@@ -515,7 +558,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     return AutoTexts(title, description, ", ".join(dict.fromkeys(tags)), thumbnail)
 
 
-def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False) -> AutoTexts:
+def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, music_text: str = "calm instrumental music") -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
     options = [
@@ -525,9 +568,9 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
     ]
     title = next((t for t in options if len(t) <= 100), options[-1][:100])
     if not env.layers:
-        sound = "calm instrumental music"
+        sound = music_text
     elif music:
-        sound = f"{env.public_label.lower()} sounds and calm instrumental music"
+        sound = f"{env.public_label.lower()} sounds and {music_text}"
     else:
         sound = f"soft {env.public_label.lower()} sounds (no music)"
     timer_line = "The timer on screen shows each session and break."

@@ -75,6 +75,7 @@ ADDED_COLUMNS = {
         "new_background": "INTEGER NOT NULL DEFAULT 0",
         "background": "VARCHAR(200)",
         "shutdown": "INTEGER NOT NULL DEFAULT 0",
+        "music_style": "VARCHAR(20)",
         "delete_after": "INTEGER NOT NULL DEFAULT 0",
         "published_at": "DATETIME",
     },

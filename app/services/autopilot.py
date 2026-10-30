@@ -19,7 +19,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
-    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
+    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     choose_ambience, find_backgrounds, load_catalog, slugify,
 )
 from app.services.encoding import EncodingOptions
@@ -139,6 +139,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         run_noise = run.noise
         with_motion = bool(run.motion)
         chosen_background = run.background
+        style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
         if fmt != "pomodoro":
@@ -172,7 +173,14 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng, level=level, preferred=preferred)
         if env is not None and env.music and (with_music or not env.layers):
             try:
-                playlist = build_playlist(settings.assets_dir / "music", timeline.total_seconds, rng, catalog)
+                try:
+                    playlist = build_playlist(settings.assets_dir / "music", timeline.total_seconds, rng, catalog, style)
+                except ValueError:
+                    if style == "calma":
+                        raise
+                    notes.append(f"Encara no tens música {MUSIC_STYLES[style][0].lower()} (executa scripts/descarregar-sons.py); s'ha usat música tranquil·la")
+                    style = "calma"
+                    playlist = build_playlist(settings.assets_dir / "music", timeline.total_seconds, rng, catalog, style)
             except ValueError:
                 if not ambience:
                     raise AutopilotError("No hi ha música en assets/music ni sons per a este entorn") from None
@@ -194,7 +202,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             chapters=chapters,
             credits=build_credits(playlist, ambience_paths, catalog),
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
-            music=bool(playlist), chime=with_chime,
+            music=bool(playlist), chime=with_chime, style=style,
             fmt=fmt, noise=run_noise, dim=dim_after is not None,
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
