@@ -74,4 +74,4 @@ def test_invalid_project_does_not_create_launchers(installation):
 def test_installer_can_be_run_again(installation):
     assert install(installation).returncode == 0
     assert install(installation).returncode == 0
-    assert len(list(installation[2].glob('*.desktop'))) == 1
+    assert len(list(installation[1].glob('*.desktop'))) == 1
