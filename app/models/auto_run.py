@@ -32,6 +32,8 @@ class AutoRun(Base):
     privacy: Mapped[str] = mapped_column(String(20), default="public")
     publish: Mapped[int] = mapped_column(Integer, default=1)
     music: Mapped[int] = mapped_column(Integer, default=0)
+    # calma, medieval, fosca o jazz; buit = automàtic segons el format i l'entorn.
+    music_style: Mapped[str | None] = mapped_column(String(20), nullable=True)
     chime: Mapped[int] = mapped_column(Integer, default=1)
     ambience_level: Mapped[int] = mapped_column(Integer, default=0)
     # Fitxers d'ambient de la mostra escoltada (separats per comes), per a reutilitzar-los.

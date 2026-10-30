@@ -524,3 +524,37 @@ def test_chosen_background_is_used(env, monkeypatch):
     with env.session() as db:
         run = db.get(AutoRun, run_id)
     assert run.step == "DONE" and run.background == "biblioteca-medieval-01.png" and "Fons triat a mà" in run.message
+
+
+def test_music_style_follows_format_and_environment(tmp_path):
+    from app.services.autopilot_plan import MUSIC_STYLES, load_catalog, music_style, music_tracks, track_style
+    assert music_style("pomodoro", "pluja") == "calma"
+    assert music_style("pomodoro", "cafeteria") == "jazz" and music_style("llegir", "japo-carrer") == "jazz"
+    assert music_style("pomodoro", "taverna") == "medieval" and music_style("rol", "bosc") == "medieval"
+    assert music_style("rol", "masmorra") == "fosca" and music_style("rol", "tempesta") == "fosca"
+    assert music_style("dormir", "taverna") == "calma"
+    for name in ("healing.mp3", "jazz-lobby-time.mp3", "medieval-folk-round.mp3", "fosca-moorland.mp3"):
+        touch(tmp_path / name)
+    assert [p.name for p in music_tracks(tmp_path, "jazz")] == ["jazz-lobby-time.mp3"]
+    assert [p.name for p in music_tracks(tmp_path, "calma")] == ["healing.mp3"]
+    assert track_style(tmp_path / "x.mp3", {"x.mp3": {"style": "medieval"}}) == "medieval"
+    catalog = load_catalog(Path(__file__).resolve().parent.parent / "assets" / "audio-catalog.json")
+    music = [e for e in catalog.values() if e["kind"] == "music"]
+    for style in MUSIC_STYLES:
+        assert sum(e.get("style") == style for e in music) >= 7, style
+    texts = build_texts(public_theme="Medieval Tavern", environment="taverna", duration=120, focus=120, pause=0, chapters="00:00:00 Hour 1", credits="", fmt="rol", music=True, style="medieval")
+    assert "medieval folk music" in texts.description
+
+
+def test_run_uses_the_style_of_the_environment_or_falls_back(env):
+    touch(env.tmp / "assets" / "music" / "jazz-lobby-time.mp3")
+    for name in ("cafeteria-capucins", "restaurant-brunch-02", "foc-llar"):
+        touch(env.tmp / "assets" / "ambience" / f"{name}.mp3")
+    run_id = make_run(env.session, music=1, environment="cafeteria")
+    auto.execute(run_id, rng=random.Random(0))
+    assert "soft jazz" in env.uploads[-1].description and '"calm"' not in env.uploads[-1].description
+    run_id = make_run(env.session, music=1, environment="taverna")
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and "Encara no tens música medieval" in run.message

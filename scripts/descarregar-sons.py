@@ -15,10 +15,13 @@ import json
 from pathlib import Path
 import sys
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "assets" / "audio-catalog.json"
+INCOMPETECH = "https://incompetech.com/music/royalty-free/"
 HEADERS = {"User-Agent": "PomodoroStudio/1.0 (+https://github.com/jossanmar9/pomodoro-studio)"}
 
 
@@ -39,6 +42,36 @@ def download(url: str, target: Path) -> None:
     partial.replace(target)
 
 
+_pieces: list[dict] | None = None
+
+
+def incompetech_url(title: str) -> str | None:
+    """Busca el nom real del fitxer en el catàleg d'incompetech pel títol de la peça."""
+    global _pieces
+    if _pieces is None:
+        request = urllib.request.Request(INCOMPETECH + "pieces.json", headers=HEADERS)
+        with urllib.request.urlopen(request, timeout=60) as response:
+            _pieces = json.load(response)
+    wanted = title.casefold().strip()
+    for piece in _pieces:
+        if str(piece.get("title", "")).casefold().strip() == wanted and piece.get("filename"):
+            return INCOMPETECH + "mp3-royaltyfree/" + urllib.parse.quote(piece["filename"])
+    return None
+
+
+def fetch(entry: dict, target: Path) -> None:
+    try:
+        download(entry["download_url"], target)
+    except urllib.error.HTTPError as exc:
+        title = entry.get("incompetech_title")
+        if exc.code != 404 or not title:
+            raise
+        url = incompetech_url(title)
+        if not url:
+            raise ValueError("no s'ha trobat en incompetech.com") from None
+        download(url, target)
+
+
 def main() -> int:
     entries = json.loads(CATALOG.read_text(encoding="utf-8"))
     pending = [e for e in entries if e.get("download_url") and not (ROOT / e["file"]).is_file()]
@@ -52,7 +85,7 @@ def main() -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         label = f"[{number}/{len(pending)}] {target.name} — {entry.get('title', '')}"
         try:
-            download(entry["download_url"], target)
+            fetch(entry, target)
             expected = entry.get("sha256")
             if expected and sha256(target) != expected:
                 target.unlink(missing_ok=True)
