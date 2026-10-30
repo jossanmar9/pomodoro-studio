@@ -180,6 +180,7 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Campament d'aventurers": ("adventurers' camp in a forest clearing", "canvas tents, a campfire, bedrolls, an old map on a wooden crate, lanterns and tall pine trees", "medieval fantasy"),
     "Cova del drac": ("vast cavern with a dragon's hoard", "piles of gold coins, glowing crystals, an underground lake and a huge dark winged silhouette in the distance", "fantasy"),
     "Apartament a la ciutat": ("cozy city apartment study corner by a large window", "desk with books and a warm lamp, plants, city skyline and lit windows outside", "contemporary"),
+    "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
 AUTO_THEMES = tuple(THEME_VISUALS)
@@ -188,6 +189,7 @@ AUTO_THEMES = tuple(THEME_VISUALS)
 FORMATS = {
     "pomodoro": "Pomodoro",
     "dormir": "Per a dormir",
+    "llegir": "Per a llegir",
     "rol": "Partida de rol",
     "soroll": "Soroll de color",
 }
@@ -201,10 +203,11 @@ NOISE_ENVIRONMENT = "soroll"
 # La pantalla es fon a negre després de 30 minuts (vídeos per a dormir i soroll).
 DIM_AFTER_SECONDS = 30 * 60
 # Categoria de YouTube per format: 27 Education, 22 People & Blogs, 20 Gaming.
-YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "soroll": "22", "rol": "20"}
+YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "soroll": "22", "rol": "20"}
 FORMAT_MOODS = {
     "pomodoro": "quiet, immersive, focused, cozy, no people",
     "dormir": "calm, restful, dim and sleepy, soft low light, no people",
+    "llegir": "cozy, warm and inviting, soft golden reading light, peaceful, no people",
     "soroll": "calm, restful, dark and minimal, soft low light, no people",
     "rol": "atmospheric, adventurous, immersive, mysterious, no people",
 }
@@ -478,6 +481,21 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             )
             tags = ["sleep sounds", "sleep ambience", "relaxing sounds", f"{env.public_label.lower()} for sleep", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} sleep sounds", "fall asleep fast"] + (["dark screen", "black screen sleep sounds"] if dim else [])
             thumbnail = f"{label.upper()} · {env.public_label.upper()}"
+        elif fmt == "llegir":
+            title = _fit_title([
+                f"{label} Reading Ambience | {public_theme} with {env.public_label} Sounds",
+                f"{label} Reading Ambience | {public_theme}",
+                f"{label} Reading Ambience",
+            ])
+            compose = lambda credit_text: _join_blocks(
+                f"Grab a book and get comfortable: {label.lower()} in a {public_theme.lower()} with {sound}.",
+                "No timer, no alarms, no talking. Just a quiet place to read, write in your journal or simply unwind.",
+                f"Chapters:\n{chapters}",
+                credit_text,
+                outro,
+            )
+            tags = ["reading ambience", "read with me", "cozy reading", "book ambience", "reading sounds", "relaxing ambience", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} reading"]
+            thumbnail = f"READING · {label.upper()}"
         else:  # rol
             title = _fit_title([
                 f"{public_theme} Ambience | {env.public_label} | Tabletop RPG Background · {label}",
