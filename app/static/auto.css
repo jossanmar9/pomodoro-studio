@@ -55,3 +55,12 @@ button.big:hover{background:#f0b862}
 .pill a.back{color:#e3a54a}
 .shutdown-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .shutdown-banner[hidden]{display:none!important}
+.bg-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.bg-option{position:relative;display:block;cursor:pointer}
+.bg-option input{position:absolute;opacity:0;pointer-events:none}
+.bg-option span{display:flex;flex-direction:column;justify-content:flex-end;aspect-ratio:16/9;border:1px solid #344258;border-radius:10px;overflow:hidden;background:#0d131c center/cover no-repeat;color:#fff3df;font-size:.78rem;transition:border-color .15s}
+.bg-option span.random{align-items:center;justify-content:center;font-size:.95rem;font-weight:700;text-align:center;padding:8px}
+.bg-option small{display:block;padding:4px 7px;background:linear-gradient(transparent,rgba(0,0,0,.75));text-shadow:0 1px 2px #000}
+.bg-option input:checked+span{border-color:#e3a54a;box-shadow:0 0 0 2px #e3a54a}
+.bg-option input:focus-visible+span{outline:2px solid #e3a54a;outline-offset:2px}
+.bg-picker .missing{grid-column:1/-1;color:#d08a8a;margin:0}

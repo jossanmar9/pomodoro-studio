@@ -19,7 +19,7 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 
 | Pas | Què passa |
 |---|---|
-| Fons | Tria un fons guardat en la **Biblioteca de fons** (`/fons`) i evita repetir els dels últims vídeos. Si no n'hi ha cap, o marques **Generar un fons nou amb Forge**, el crea Forge sense revisar. Vegeu [fons i FLUX](FONS_I_FLUX.md). |
+| Fons | Usa el fons que has triat en el formulari o, amb **🎲 A l'atzar**, un dels guardats per al tema (primer els fets per al mateix format i entorn) evitant repetir els dels últims vídeos. Si el tema no en té cap, el vídeo s'atura i t'avisa. |
 | Ambient | Tria a l'atzar els sons de l'entorn (per exemple, una pluja i un foc) i els deixa baixets i igualats de volum. |
 | Música | Per defecte **no n'hi ha**. Si marques **Afegir música**, fa una llista amb peces diferents de `assets/music`, sense repetir-les i amb fosa entre elles. |
 | Avís | Si **Avís suau en acabar cada temporitzador** està marcat, sona una campaneta de dues notes: baixa en acabar la concentració i puja en acabar el descans. La genera l'aplicació, així que no té cap llicència. |
@@ -57,9 +57,9 @@ Els sons de ciutat, cafeteria, restaurant, bar, Japó i parc són de [BigSoundBa
 
 ### 2. Fons
 
-Prepara uns quants fons per tema en la **Biblioteca de fons**: genera opcions amb Forge (millor amb FLUX.1 schnell) i guarda les bones, o importa imatges lliures. Vegeu la guia de [fons i FLUX](FONS_I_FLUX.md). També pots copiar imatges a `assets/backgrounds/` amb un nom que comence pel tema, per exemple `biblioteca-medieval-01.png`.
+Els fons els poses tu. En **Biblioteca de fons** (`/fons`) pots afegir imatges (fetes amb ChatGPT o lliures de Pexels, Unsplash…), indicar opcionalment per a quin format i entorn són, i eliminar les que no vulgues. També pots copiar imatges a `assets/backgrounds/` amb un nom que comence pel tema, per exemple `biblioteca-medieval-01.png`.
 
-Si Forge falla en escalar la imatge (per memòria de la GPU), es torna a provar sense escalar. Pots canviar-ho en `.env` amb `AUTO_HIRES_SCALE=1`.
+En la pàgina principal, en triar el tema veus les miniatures dels seus fons: tria'n una o deixa **🎲 A l'atzar**. L'aplicació ja no genera imatges amb Forge.
 
 ### 3. YouTube
 
@@ -77,8 +77,6 @@ Si YouTube no està connectat, el vídeo es fa igualment i apareix el botó **Pu
 ```text
 AUTO_DEFAULT_PRIVACY=public   # public, unlisted o private
 AUTO_MUSIC_DEFAULT=false      # true perquè «Afegir música» isca marcat
-AUTO_HIRES_SCALE=1.5          # 1 = sense ampliar el fons de Forge
-IMAGE_A1111_UPSCALER=R-ESRGAN 4x+  # escalador de Forge per al fons
 IMAGE_MODEL_PROFILE=auto      # auto, flux-schnell, flux-dev o sdxl
 ```
 

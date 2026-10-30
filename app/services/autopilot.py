@@ -18,14 +18,12 @@ from time import sleep
 from app.config import settings
 from app.database import SessionLocal
 from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
-from app.services.ambience_assets import AssetProvenance, import_background
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     choose_ambience, find_backgrounds, load_catalog, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
-from app.services.image_providers import available_providers
 from app.services.jobs import render_queue
 from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
@@ -48,10 +46,6 @@ def youtube_connected() -> bool:
     return settings.youtube_token_file.is_file()
 
 
-def forge_ready() -> bool:
-    return "a1111" in available_providers()
-
-
 def _update(run_id: int, **fields) -> None:
     with SessionLocal() as db:
         run = db.get(AutoRun, run_id)
@@ -64,36 +58,21 @@ def _update(run_id: int, **fields) -> None:
 
 # --- Pas 1: fons -----------------------------------------------------------
 
-def _generate_background(theme: str, environment: str, fmt: str = "pomodoro") -> Path:
-    """Genera un fons amb Forge i el guarda directament en la biblioteca (sense revisar)."""
-    from app.services.background_library import generate_one
-    path, data = generate_one(theme, environment, fmt, settings.image_generation_dir)
-    name = f"{slugify(theme)}-{environment}-{datetime.now():%Y%m%d-%H%M%S}"
-    image, _ = import_background(path, settings.assets_dir / "backgrounds", name, AssetProvenance(**data))
-    path.unlink(missing_ok=True)
-    return image
-
-
-def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro", *, force_new: bool = False, recent: set[str] | None = None) -> tuple[Path, str]:
-    """Tria un fons aprovat de la biblioteca; si no n'hi ha (o es demana), en genera un amb Forge."""
+def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro", *, chosen: str | None = None, recent: set[str] | None = None) -> tuple[Path, str]:
+    """Usa el fons triat a mà o, si no se n'ha triat cap, un de la biblioteca a l'atzar."""
     library = find_backgrounds(settings.assets_dir / "backgrounds", theme)
-    if library and not force_new:
-        fresh = [path for path in library if path.name not in (recent or set())] or library
-        return rng.choice(best_matches(fresh, environment, fmt)), "Fons de la biblioteca"
-    if forge_ready():
-        try:
-            return _generate_background(theme, environment, fmt), "Fons nou generat amb Forge (sense revisar)"
-        except Exception as exc:  # Forge pot fallar per memòria GPU, model, etc.
-            logger.exception("No s'ha pogut generar el fons amb Forge")
-            if library:
-                return rng.choice(library), f"Forge ha fallat ({exc}); s'ha usat un fons de la biblioteca"
-            reason = f"Forge ha fallat ({exc}) i "
-    else:
-        reason = "Forge no està obert i "
-    raise AutopilotError(
-        f"{reason}no hi ha cap fons de «{theme}» en la biblioteca. "
-        f"Genera'n i guarda'n en «Biblioteca de fons», o afig una imatge el nom de la qual comence per «{slugify(theme)}»."
-    )
+    if chosen:
+        for path in library:
+            if path.name == chosen:
+                return path, "Fons triat a mà"
+    if not library:
+        raise AutopilotError(
+            f"No hi ha cap fons de «{theme}» en la biblioteca. "
+            f"Afig-ne en «Biblioteca de fons» o copia una imatge en assets/backgrounds amb un nom que comence per «{slugify(theme)}»."
+        )
+    fresh = [path for path in library if path.name not in (recent or set())] or library
+    note = "Fons de la biblioteca" if not chosen else "El fons triat ja no existeix; se n'ha usat un altre de la biblioteca"
+    return rng.choice(best_matches(fresh, environment, fmt)), note
 
 
 def _background_tags(path: Path) -> tuple[str | None, str | None]:
@@ -159,7 +138,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         fmt = run.format if run.format in FORMATS else "pomodoro"
         run_noise = run.noise
         with_motion = bool(run.motion)
-        force_new = bool(run.new_background)
+        chosen_background = run.background
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
         if fmt != "pomodoro":
@@ -175,8 +154,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
     notes: list[str] = []
     folder: Path | None = None
     try:
-        _update(run_id, step="BACKGROUND", message="Creant el fons…")
-        background, note = choose_background(theme, environment, rng, fmt, force_new=force_new, recent=recent_backgrounds(theme))
+        _update(run_id, step="BACKGROUND", message="Preparant el fons…")
+        background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background})
         _update(run_id, background=background.name)
         notes.append(note)
 
