@@ -57,12 +57,39 @@
       if (!response.ok) return;
       const data = await response.json();
       render(data.runs);
+      const pending = showShutdown(data.shutdown);
       const busy = data.runs.some((run) => ACTIVE.has(run.step));
-      setTimeout(refresh, busy ? 3000 : 15000);
+      setTimeout(refresh, pending ? 1000 : busy ? 3000 : 15000);
     } catch {
       setTimeout(refresh, 10000);
     }
   }
+
+  // Apagada pendent: compte enrere i botó per cancel·lar-la.
+  const banner = document.querySelector("#shutdown-banner");
+  const bannerText = document.querySelector("#shutdown-text");
+  function showShutdown(state) {
+    if (!banner) return false;
+    if (state?.scheduled) {
+      const m = Math.floor(state.seconds_left / 60), s = String(state.seconds_left % 60).padStart(2, "0");
+      bannerText.textContent = `${state.reason}. L'ordinador s'apagarà d'ací ${m}:${s}.`;
+      banner.hidden = false;
+      document.querySelector("#shutdown-cancel").hidden = false;
+      return true;
+    }
+    if (state?.error) {
+      bannerText.textContent = state.error;
+      banner.hidden = false;
+      document.querySelector("#shutdown-cancel").hidden = true;
+      return false;
+    }
+    banner.hidden = true;
+    return false;
+  }
+  document.querySelector("#shutdown-cancel")?.addEventListener("click", async () => {
+    await fetch("/api/shutdown/cancel", {method: "POST"});
+    banner.hidden = true;
+  });
 
   render(window.__RUNS__ || []);
   refresh();

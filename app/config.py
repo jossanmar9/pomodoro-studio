@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     auto_default_privacy: str = "public"
     # Mode automàtic: si la casella «Afegir música» ix marcada (per defecte, només ambient).
     auto_music_default: bool = False
+    # Apagada en acabar: espera abans d'apagar (per poder cancel·lar-la) i ordre del sistema.
+    shutdown_delay_seconds: int = 120
+    shutdown_command: str = "systemctl poweroff"
     audio_catalog: Path = Path("./assets/audio-catalog.json")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

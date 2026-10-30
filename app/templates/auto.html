@@ -19,6 +19,10 @@
   </header>
 
   {% if error %}<div class="warning">{{ error }}</div>{% endif %}
+  <div class="warning shutdown-banner" id="shutdown-banner" hidden>
+    <span id="shutdown-text"></span>
+    <button type="button" class="mini" id="shutdown-cancel">Cancel·lar l'apagada</button>
+  </div>
 
   <section class="status-bar">
     <div class="pill {{ 'ok' if themes|selectattr('backgrounds')|list else 'warn' }}">
@@ -126,6 +130,7 @@
         <label class="check"><input type="checkbox" name="motion" value="1" checked> Moviment suau (càmera i llum del foc)</label>
         <label class="check" data-hide-for="soroll"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
+        <label class="check"><input type="checkbox" name="shutdown" value="1"> Apagar l'ordinador en acabar</label>
         <label>Visibilitat
           <select name="privacy">
             {% for key, label in privacy_choices.items() %}<option value="{{ key }}" {% if key == default_privacy %}selected{% endif %}>{{ label }}</option>{% endfor %}

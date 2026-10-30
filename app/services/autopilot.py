@@ -27,6 +27,7 @@ from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
 from app.services.image_providers import available_providers
 from app.services.jobs import render_queue
+from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
@@ -312,6 +313,8 @@ class AutopilotRunner:
         self._push(("publish", run_id))
 
     def _push(self, item: tuple[str, int]) -> None:
+        # Si hi havia una apagada pendent i es demana més faena, ja no toca apagar.
+        power.cancel()
         with self._lock:
             self._queue.append(item)
             if not self._worker or not self._worker.is_alive():
@@ -331,6 +334,27 @@ class AutopilotRunner:
                     _publish_existing(run_id)
             except Exception:
                 logger.exception("Tasca automàtica %s fallida", run_id)
+            with self._lock:
+                last = not self._queue
+            if last:
+                maybe_schedule_shutdown(run_id)
+
+
+def should_shut_down(run: AutoRun | None) -> bool:
+    """Només s'apaga si s'ha demanat i el vídeo ha acabat bé."""
+    if not run or not run.shutdown:
+        return False
+    return run.step == "DONE" or (run.step == "DONE_LOCAL" and not run.publish)
+
+
+def maybe_schedule_shutdown(run_id: int) -> bool:
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not should_shut_down(run):
+            return False
+        label = f"#{run.id} · {run.theme}"
+    power.schedule(f"Vídeo {label} acabat")
+    return True
 
 
 def _publish_existing(run_id: int) -> None:

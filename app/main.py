@@ -25,6 +25,7 @@ from app.services.fonts import fonts_for_theme
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
+from app.services.power import power
 from app.services.autopilot import autopilot, forge_ready, run_summary, youtube_connected
 from app.services.autopilot_plan import AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
@@ -221,7 +222,7 @@ def auto_home(request:Request,error:str=Query("")):
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),new_background:str=Form("")):
+def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),new_background:str=Form(""),shutdown:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
     if format=="soroll":
@@ -238,7 +239,7 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,new_background=1 if new_background else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,new_background=1 if new_background else 0,shutdown=1 if shutdown else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)
@@ -246,7 +247,12 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
 
 @app.get("/api/auto")
 def auto_status():
-    return {"runs":_recent_runs(),"youtube_connected":youtube_connected()}
+    return {"runs":_recent_runs(),"youtube_connected":youtube_connected(),"shutdown":power.status()}
+
+
+@app.post("/api/shutdown/cancel")
+def cancel_shutdown():
+    return {"cancelled":power.cancel()}
 
 
 @app.post("/auto/{run_id}/publish")

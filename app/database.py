@@ -74,6 +74,7 @@ ADDED_COLUMNS = {
         "motion": "INTEGER NOT NULL DEFAULT 1",
         "new_background": "INTEGER NOT NULL DEFAULT 0",
         "background": "VARCHAR(200)",
+        "shutdown": "INTEGER NOT NULL DEFAULT 0",
     },
 }
 

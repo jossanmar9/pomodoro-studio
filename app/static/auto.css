@@ -53,3 +53,5 @@ button.big:hover{background:#f0b862}
 .formats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 .header-links{display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:8px}
 .pill a.back{color:#e3a54a}
+.shutdown-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.shutdown-banner[hidden]{display:none!important}
