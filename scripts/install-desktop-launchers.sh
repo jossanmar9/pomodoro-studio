@@ -19,10 +19,6 @@ fi
 project_dir="$(cd -- "$project_dir" && pwd -P)"
 [[ -f "$project_dir/app/main.py" ]] || fail 'La carpeta seleccionada no conté app/main.py.'
 [[ -x "$project_dir/.venv/bin/python" ]] || fail 'Falta .venv/bin/python en la carpeta de Pomodoro.'
-forge_dir="${2:-$HOME/IA/stable-diffusion-webui-forge}"
-[[ -d "$forge_dir" ]] || fail 'La carpeta de Forge no existeix.'
-forge_dir="$(cd -- "$forge_dir" && pwd -P)"
-[[ -f "$forge_dir/launch.py" && -x "$forge_dir/venv/bin/python" ]] || fail 'No es troba Forge en ~/IA/stable-diffusion-webui-forge.'
 
 launcher_dir="${XDG_DATA_HOME:-$HOME/.local/share}/pomodoro-studio-launchers"
 applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
@@ -33,7 +29,7 @@ mkdir -p -- "$launcher_dir" "$applications_dir" "$desktop_dir"
 # These paths are shell-quoted when written; spaces and shell characters are preserved.
 {
     printf '#!/usr/bin/env bash\n'
-    printf 'project_dir=%q\nforge_dir=%q\n' "$project_dir" "$forge_dir"
+    printf 'project_dir=%q\n' "$project_dir"
     cat <<'RUNNER'
 set -uo pipefail
 case "${1:-}" in
@@ -42,12 +38,6 @@ case "${1:-}" in
         url='http://127.0.0.1:8000'
         command=("$project_dir/.venv/bin/python" -m uvicorn app.main:app --host 127.0.0.1 --port 8000)
         health="$url/health"
-        ;;
-    forge)
-        cd -- "$forge_dir" || exit 1
-        url='http://127.0.0.1:7860'
-        command=("$forge_dir/venv/bin/python" launch.py --api --port 7860)
-        health="$url/sdapi/v1/options"
         ;;
     *) exit 2 ;;
 esac
@@ -124,8 +114,8 @@ create_entry() {
     fi
 }
 create_entry pomodoro 'Obrir Pomodoro' applications-multimedia pomodoro-studio.desktop
-create_entry forge 'Obrir generador d’imatges' applications-graphics pomodoro-forge.desktop
-printf '\nFet! Els dos accessos estan en: %s\n' "$desktop_dir"
-printf 'També els trobaràs al menú d’aplicacions.\n'
+# L'antic accés al generador d'imatges (Forge) ja no es fa servir.
+rm -f -- "$applications_dir/pomodoro-forge.desktop" "$desktop_dir/pomodoro-forge.desktop"
+printf '\nFet! L’accés està en: %s\n' "$desktop_dir"
+printf 'També el trobaràs al menú d’aplicacions.\n'
 printf 'Si Mint pregunta si confies en el llançador, tria Marcar com a fiable.\n'
-printf 'Per generar imatges obri els dos; per usar fons guardats, només Pomodoro.\n'

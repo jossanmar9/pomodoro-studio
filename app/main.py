@@ -13,7 +13,6 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.services.ambience_web import router as ambience_router
 from app.config import settings
 from app.database import SessionLocal, init_db
 from app.models import AUTO_ACTIVE_STEPS, AutoRun, Preset, Project, PublicationMetadata, RenderConfig, YouTubePublication
@@ -200,7 +199,6 @@ def cancel_render(project_id:int):
     return RedirectResponse(f"/projects/{project_id}",303)
 
 
-app.include_router(ambience_router)
 from app.services.library_web import router as library_router  # noqa: E402
 app.include_router(library_router)
 
