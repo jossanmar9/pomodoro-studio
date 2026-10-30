@@ -55,7 +55,7 @@ def test_import_checks_size_orientation_and_source(dirs):
         lib.delete_background("../secret.png")
     mine = lib.import_uploaded(jpeg_bytes((1920, 1080)), "nook.png", "Racó de lectura", "chatgpt", "", "", "llegir", "pluja")
     assert mine.name.startswith("raco-de-lectura-pluja-llegir-")
-    meta = json.loads(mine.with_suffix(".jpg.json").read_text())
+    meta = json.loads(mine.with_suffix(mine.suffix + ".json").read_text())
     assert meta["license"] == "Generat amb ChatGPT (OpenAI)" and meta["generation"]["format"] == "llegir"
     item = [g for g in lib.library() if g["theme"] == "Racó de lectura"][0]["items"][0]
     assert item["format"] == "llegir" and item["environment"] == "pluja"

@@ -514,7 +514,7 @@ def test_chosen_background_is_used(env, monkeypatch):
     monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
     with TestClient(main.app) as client:
         assert "biblioteca-medieval-01.png" in client.get("/").text
-        base = {"theme": "Biblioteca medieval", "environment": "pluja", "duration_minutes": "60"}
+        base = {"theme": "Biblioteca medieval", "environment": "pluja", "duration_minutes": "60", "publish": "1"}
         assert client.post("/auto", data=base | {"background": "../secret.png"}).status_code == 400
         assert client.post("/auto", data=base | {"background": "bosc-01.png"}).status_code == 400
         assert client.post("/auto", data=base | {"background": "biblioteca-medieval-01.png"}, follow_redirects=False).status_code == 303
