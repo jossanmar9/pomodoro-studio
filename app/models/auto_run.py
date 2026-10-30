@@ -45,6 +45,9 @@ class AutoRun(Base):
     new_background: Mapped[int] = mapped_column(Integer, default=0)
     # 1 = apagar l'ordinador quan acabe (si és l'últim de la cua i ha anat bé).
     shutdown: Mapped[int] = mapped_column(Integer, default=0)
+    # 1 = esborrar video.mp4 uns dies després de publicar-lo (es conserven miniatura i textos).
+    delete_after: Mapped[int] = mapped_column(Integer, default=0)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     background: Mapped[str | None] = mapped_column(String(200), nullable=True)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

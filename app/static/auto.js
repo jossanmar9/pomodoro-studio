@@ -32,10 +32,11 @@
       const actions = [];
       if (run.video_url) actions.push(`<a href="${esc(run.video_url)}" target="_blank" rel="noopener">Veure a YouTube ↗</a>`);
       if (run.project_id) actions.push(`<a href="/projects/${run.project_id}">Fitxa del vídeo</a>`);
-      if (!run.video_id && run.project_id && (run.step === "DONE_LOCAL" || (run.step === "FAILED" && /YouTube/.test(run.error || "")))) {
+      if (!run.video_id && run.project_id && run.video_available && (run.step === "DONE_LOCAL" || (run.step === "FAILED" && /YouTube/.test(run.error || "")))) {
         actions.push(`<form action="/auto/${run.id}/publish" method="post"><button type="submit" class="mini">Publicar ara</button></form>`);
       }
-      if (run.video_id && run.step === "DONE") {
+      if (run.delete_on && run.video_available) actions.push(`<span class="muted">El vídeo s'esborrarà de l'ordinador el ${esc(run.delete_on.split("-").reverse().join("/"))}</span>`);
+      if (run.video_id && run.step === "DONE" && run.video_available) {
         actions.push(`<form action="/auto/${run.id}/publish" method="post" onsubmit="return confirm('Tornar a pujar este vídeo? Fes-ho només si YouTube l\\'ha eliminat.')"><input type="hidden" name="again" value="1"><button type="submit" class="mini secondary">Tornar a pujar</button></form>`);
       }
       return `<article class="run">

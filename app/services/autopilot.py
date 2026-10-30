@@ -6,7 +6,7 @@ Només s'executa una execució alhora; la resta esperen en cua.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import logging
 from pathlib import Path
@@ -295,7 +295,7 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
         record = db.query(YouTubePublication).filter(YouTubePublication.project_id == project_id).first()
         record.status, record.video_id, record.error = "PUBLISHED", video_id, None
         db.commit()
-    _update(run_id, step="DONE", video_id=video_id, message="; ".join(notes) or None)
+    _update(run_id, step="DONE", video_id=video_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
 
 
 class AutopilotRunner:
@@ -334,6 +334,10 @@ class AutopilotRunner:
                     _publish_existing(run_id)
             except Exception:
                 logger.exception("Tasca automàtica %s fallida", run_id)
+            try:
+                cleanup_published_videos()
+            except Exception:
+                logger.exception("Ha fallat la neteja de vídeos publicats")
             with self._lock:
                 last = not self._queue
             if last:
@@ -369,6 +373,61 @@ def _publish_existing(run_id: int) -> None:
         _update(run_id, step="FAILED", error=str(exc)[:2000])
 
 
+def _video_path(project_id: int | None) -> Path | None:
+    if not project_id:
+        return None
+    with SessionLocal() as db:
+        project = db.get(Project, project_id)
+        return Path(project.output_path) / "video.mp4" if project and project.output_path else None
+
+
+def _video_available(run: AutoRun) -> bool:
+    path = _video_path(run.project_id)
+    return bool(path and path.is_file())
+
+
+def _delete_on(run: AutoRun) -> str | None:
+    if not (run.delete_after and run.published_at and run.step == "DONE"):
+        return None
+    return (run.published_at + timedelta(days=settings.keep_published_days)).date().isoformat()
+
+
+def cleanup_published_videos(now: datetime | None = None) -> int:
+    """Esborra els vídeos publicats fa més de KEEP_PUBLISHED_DAYS dies (si s'ha demanat).
+
+    Només s'esborra video.mp4 (i el paquet ZIP); la miniatura i els textos es conserven.
+    """
+    now = now or datetime.utcnow()
+    limit = now - timedelta(days=settings.keep_published_days)
+    removed = 0
+    with SessionLocal() as db:
+        runs = db.query(AutoRun).filter(
+            AutoRun.delete_after == 1, AutoRun.step == "DONE", AutoRun.video_id.isnot(None),
+            AutoRun.published_at.isnot(None), AutoRun.published_at <= limit,
+        ).all()
+        for run in runs:
+            project = db.get(Project, run.project_id) if run.project_id else None
+            if not project or not project.output_path:
+                continue
+            folder = Path(project.output_path)
+            video = folder / "video.mp4"
+            if not video.is_file():
+                continue
+            try:
+                video.unlink()
+                (folder / "publication-package.zip").unlink(missing_ok=True)
+            except OSError:
+                logger.exception("No s'ha pogut esborrar %s", video)
+                continue
+            removed += 1
+            note = f"Vídeo esborrat de l'ordinador el {now:%d/%m/%Y} (ja estava publicat)"
+            run.message = f"{run.message}; {note}" if run.message else note
+        db.commit()
+    if removed:
+        logger.info("S'han esborrat %s vídeos publicats", removed)
+    return removed
+
+
 def _environment_label(run: AutoRun) -> str:
     if run.format == "soroll":
         return f"Soroll {NOISE_COLORS[run.noise][2].lower()}" if run.noise in NOISE_COLORS else "Soroll"
@@ -385,6 +444,8 @@ def run_summary(run: AutoRun) -> dict:
         "privacy": run.privacy, "step": run.step, "step_label": AUTO_STEPS.get(run.step, run.step),
         "message": run.message, "error": run.error, "project_id": run.project_id, "video_id": run.video_id,
         "video_url": f"https://youtu.be/{run.video_id}" if run.video_id else None,
+        "video_available": _video_available(run),
+        "delete_on": _delete_on(run),
         "created_at": run.created_at.isoformat() if run.created_at else None,
         "progress": None, "eta": None,
     }
