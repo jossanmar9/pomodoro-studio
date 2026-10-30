@@ -558,3 +558,12 @@ def test_run_uses_the_style_of_the_environment_or_falls_back(env):
     with env.session() as db:
         run = db.get(AutoRun, run_id)
     assert run.step == "DONE" and "Encara no tens música medieval" in run.message
+
+
+def test_new_environments_have_their_own_sounds():
+    assert "pluja-lona" not in [n for layer in ENVIRONMENTS["pluja"].layers for n in layer]
+    for key in ("pluja-bosc", "pluja-finestra", "cova", "hivern", "temporal", "tren", "rellotge"):
+        assert ENVIRONMENTS[key].layers, key
+    assert any(n.startswith("foc-foguera") for layer in ENVIRONMENTS["campament"].layers for n in layer)
+    assert any(n.startswith("cova-") for layer in ENVIRONMENTS["masmorra"].layers for n in layer)
+    assert "restaurant-pizzeria" not in [n for layer in ENVIRONMENTS["taverna"].layers for n in layer]
