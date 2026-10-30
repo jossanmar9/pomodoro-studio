@@ -351,6 +351,7 @@ def test_full_run_renders_in_english_and_publishes(env):
         run = db.get(AutoRun, run_id)
         assert run.step == "DONE", run.error
         assert run.video_id == "abc123"
+        assert run.published_at is not None
         record = db.query(YouTubePublication).filter_by(project_id=run.project_id).one()
         assert record.status == "PUBLISHED" and record.privacy == "public"
     spec = env.rendered["spec"]

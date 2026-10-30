@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     auto_default_privacy: str = "public"
     # Mode automàtic: si la casella «Afegir música» ix marcada (per defecte, només ambient).
     auto_music_default: bool = False
+    # Dies que es conserva el vídeo publicat abans d'esborrar-lo (si s'ha demanat).
+    keep_published_days: int = 3
     # Apagada en acabar: espera abans d'apagar (per poder cancel·lar-la) i ordre del sistema.
     shutdown_delay_seconds: int = 120
     shutdown_command: str = "systemctl poweroff"

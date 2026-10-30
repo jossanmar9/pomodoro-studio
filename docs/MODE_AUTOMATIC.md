@@ -30,6 +30,10 @@ I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode 
 
 Pots tancar la pàgina mentre treballa; en tornar a obrir-la veuràs com va cada vídeo. Si demanes diversos vídeos, es fan d'un en un.
 
+### On es guarden els vídeos
+
+Cada vídeo es guarda en `output/<data>-<tema>-<número>/` amb `video.mp4`, la miniatura i els textos publicats. Si la casella **Esborrar el vídeo de l'ordinador 3 dies després de publicar-lo** està marcada (ho està per defecte), passats eixos dies s'esborra `video.mp4` i es conserven la miniatura i els textos. Els 3 dies són perquè tingues temps de comprovar que YouTube l'ha acceptat; mentrestant encara el pots **Tornar a pujar**. Els dies es poden canviar en `.env` amb `KEEP_PUBLISHED_DAYS`.
+
 ### Apagar l'ordinador en acabar
 
 Si marques **Apagar l'ordinador en acabar**, quan el vídeo s'haja publicat (o fet, si no havies demanat publicar-lo) i no quede cap altre vídeo en cua, l'aplicació espera **2 minuts** i apaga l'ordinador amb `systemctl poweroff`. Durant eixe temps la pàgina mostra un compte enrere amb el botó **Cancel·lar l'apagada**. Si el vídeo falla, o YouTube no està connectat, **no s'apaga**, perquè pugues veure què ha passat. Demanar un vídeo nou també cancel·la l'apagada pendent.
