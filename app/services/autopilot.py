@@ -172,7 +172,11 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         else:
             env = ENVIRONMENTS[environment]
             ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng, level=level, preferred=preferred)
-        if env is not None and env.music and (with_music or not env.layers):
+            if env.noise:
+                noise_color = env.noise
+        if fmt == "ambient" and env is not None and not env.layers and not env.noise:
+            raise AutopilotError("El so ambiental necessita un entorn amb sons (no «Només música»)")
+        if env is not None and env.music and fmt != "ambient" and (with_music or not env.layers):
             try:
                 try:
                     playlist = build_playlist(settings.assets_dir / "music", timeline.total_seconds, rng, catalog, style)

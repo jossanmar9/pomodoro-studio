@@ -40,11 +40,11 @@ STYLE_LABELS = {
 VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv"}
 
 # Temes on la foto és a l'aire lliure: només ací cau pluja o neu per tota la imatge.
-OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers"}
+OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port"}
 # Temes on la pols flotant no té sentit.
-NO_DUST_THEMES = {"Nau espacial"}
-_RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra"}
-_STORM = {"tempesta", "tempesta-mar"}
+NO_DUST_THEMES = {"Nau espacial", "Avió"}
+_RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca"}
+_STORM = {"tempesta", "tempesta-mar", "bosc-tempesta", "platja-tempesta", "llar-tempesta"}
 _FIRE_OUTSIDE = {"campament"}
 
 
