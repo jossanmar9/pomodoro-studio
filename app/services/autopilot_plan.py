@@ -47,7 +47,7 @@ ENVIRONMENTS: dict[str, Environment] = {
     "pluja": Environment(
         "Pluja suau", "Gentle Rain", "late evening", "steady gentle rain against the windows",
         "warm candlelight and soft lamp glow, cool blue light from rainy windows",
-        (("pluja-terrassa", "pluja-pedra", "pluja-bassal", "pluja-lona"),),
+        (("pluja-terrassa", "pluja-pedra", "pluja-bassal"),),
     ),
     "tempesta": Environment(
         "Tempesta", "Thunderstorm", "night", "heavy rain and a distant thunderstorm",
@@ -77,7 +77,7 @@ ENVIRONMENTS: dict[str, Environment] = {
     "rierol": Environment(
         "Rierol de muntanya", "Mountain Stream", "afternoon", "calm, a stream flowing nearby",
         "soft natural daylight",
-        (("rierol-muntanya", "bosc-rierol-01", "bosc-rierol-03", "torrent-muntanya"),),
+        (("rierol-muntanya", "rierol-muntanya-01", "bosc-rierol-01", "bosc-rierol-03", "torrent-muntanya"),),
     ),
     "mar": Environment(
         "Mar i ones", "Ocean Waves", "sunset", "calm sea breeze, waves visible in the distance",
@@ -92,17 +92,17 @@ ENVIRONMENTS: dict[str, Environment] = {
     "masmorra": Environment(
         "Masmorra (vent i aigua)", "Dungeon Wind & Dripping Water", "timeless darkness", "damp, cold air moving through stone corridors",
         "flickering torchlight on wet stone, deep shadows",
-        (("vent-des-de-dins",), ("corrent-aigua", "cascada-petita")),
+        (("cova-01", "cova-02"), ("vent-des-de-dins", "vent-des-de-dins-01", "vent-des-de-dins-03"), ("gotes-aigua-01", "gotes-aigua-03")),
     ),
     "campament": Environment(
         "Campament de nit", "Campfire Night", "night", "clear starry night, crickets",
         "warm campfire glow and moonlight",
-        (("camp-nit", "nit-grills-granotes"), ("foc-llar-oberta", "foc-llar-05", "foc-llar")),
+        (("camp-nit", "nit-grills-granotes"), ("foc-foguera-01", "foc-foguera-02", "foc-foguera-03")),
     ),
     "tempesta-mar": Environment(
         "Tempesta al mar", "Stormy Sea", "night", "violent storm at sea, heavy rain and rough waves",
         "swinging lantern light, dark storm clouds and lightning",
-        (("mar-agitada",), ("pluja-trons", "pluja-tempesta-35min")),
+        (("mar-agitada", "ones-mar"), ("vent-fort-01", "vent-fort-03", "vent-xiulet-01"), ("pluja-trons", "pluja-tempesta-35min")),
     ),
     "cafeteria": Environment(
         "Cafeteria plena", "Coffee Shop Chatter", "afternoon", "calm",
@@ -112,7 +112,7 @@ ENVIRONMENTS: dict[str, Environment] = {
     "taverna": Environment(
         "Taverna plena", "Busy Tavern", "night", "calm",
         "warm candlelight and a crackling hearth, deep cozy shadows",
-        (("restaurant-brunch-02", "restaurant-brunch-03", "restaurant-pizzeria"), ("foc-llar", "foc-llar-04", "foc-llar-oberta")),
+        (("restaurant-brunch-02", "restaurant-brunch-03", "bar-ambient-01", "bar-ambient-02"), ("foc-llar", "foc-llar-04", "foc-llar-oberta")),
     ),
     "cafeteria-carrer": Environment(
         "Cafeteria i carrer", "Café & Street Sounds", "late afternoon", "calm, city street visible through the window",
@@ -127,12 +127,12 @@ ENVIRONMENTS: dict[str, Environment] = {
     "pluja-ciutat": Environment(
         "Pluja a la ciutat", "Rainy City", "evening", "steady rain over the city, wet reflective streets",
         "warm window lights and reflections on wet streets",
-        (("pluja-pedra", "pluja-terrassa", "pluja-bassal"), ("ciutat-nit-paris", "ciutat-carrer-paris")),
+        (("pluja-pedra", "pluja-terrassa", "pluja-bassal"), ("ciutat-despres-pluja", "ciutat-nit-paris")),
     ),
     "ciutat-nit": Environment(
         "Ciutat de nit", "City at Night", "night", "clear, quiet city night",
         "street lamps and lit windows",
-        (("ciutat-nit-paris",),),
+        (("ciutat-nit-paris", "ciutat-despres-pluja"),),
     ),
     "parc": Environment(
         "Parc i plaça", "Park & Plaza", "sunny afternoon", "pleasant breeze",
@@ -143,6 +143,41 @@ ENVIRONMENTS: dict[str, Environment] = {
         "Carrers del Japó", "Japanese Street", "evening", "calm, a quiet crossing outside",
         "soft neon and warm lantern light",
         (("japo-cruilla", "japo-parada-bus"),),
+    ),
+    "pluja-bosc": Environment(
+        "Pluja al bosc", "Rain in the Forest", "late afternoon", "steady rain falling on the leaves, misty forest",
+        "soft grey light through wet leaves, gentle mist",
+        (("pluja-terrassa", "pluja-bassal"), ("vent-arbres", "vent-arbre", "bosc-nit-pluja")),
+    ),
+    "pluja-finestra": Environment(
+        "Pluja a la finestra", "Rain on the Window", "evening", "rain drops running down the window glass",
+        "warm lamp light inside, blurred rainy window",
+        (("pluja-parabrisa", "pluja-dins-cotxe"),),
+    ),
+    "cova": Environment(
+        "Cova amb goteig", "Dripping Cave", "timeless darkness", "cool damp air, water dripping from the rocks",
+        "faint glow on wet stone, deep shadows",
+        (("cova-01", "cova-02"), ("gotes-aigua-01", "gotes-aigua-03")),
+    ),
+    "hivern": Environment(
+        "Vent d'hivern i llar", "Winter Wind & Fireplace", "winter night", "cold wind howling outside, snow on the windows",
+        "warm fireplace glow against cold blue winter light",
+        (("vent-des-de-dins", "vent-des-de-dins-01", "vent-des-de-dins-03", "vent-xiulet-01"), ("foc-llar", "foc-llar-04", "foc-llar-oberta")),
+    ),
+    "temporal": Environment(
+        "Vent fort entre arbres", "Howling Wind in the Trees", "evening", "strong gusts of wind shaking the trees",
+        "dramatic stormy sky, swaying trees",
+        (("vent-fort-arbres-01", "vent-fort-arbres-02", "vent-fort-arbres-03"),),
+    ),
+    "tren": Environment(
+        "Tren de nit", "Night Train", "night", "the steady rhythm of a train carriage",
+        "dim carriage lights, dark landscape passing by the window",
+        (("tren-vago",),),
+    ),
+    "rellotge": Environment(
+        "Rellotge i llar de foc", "Ticking Clock & Fireplace", "late evening", "quiet and still",
+        "warm lamp and fireplace glow in a quiet study",
+        (("foc-llar", "foc-llar-04", "foc-llar-oberta"), ("rellotge-pendul", "rellotge-tictac")),
     ),
     "musica": Environment(
         "Només música", "Calm Music", "evening", "calm",
@@ -221,8 +256,8 @@ MUSIC_STYLES = {
 }
 _JAZZ_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "pluja-ciutat", "ciutat-nit", "japo-carrer", "transit"}
 _MEDIEVAL_ENVIRONMENTS = {"taverna", "campament"}
-_DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar"}
-_DARK_RPG_ENVIRONMENTS = _DARK_ENVIRONMENTS | {"tempesta", "vent", "nit"}
+_DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar", "cova"}
+_DARK_RPG_ENVIRONMENTS = _DARK_ENVIRONMENTS | {"tempesta", "vent", "nit", "temporal"}
 
 
 def music_style(fmt: str, environment: str) -> str:
