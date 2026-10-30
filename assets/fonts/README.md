@@ -10,8 +10,8 @@ Tipografies lliures usades en el comptador i en la miniatura de cada ambientaci�
 | `cinzel` | Cinzel | SIL OFL 1.1 | Màgica, gòtic, Roma, Grècia, observatori | Instància fixa de pes 600 de la versió variable |
 | `cinzel-decorative` | Cinzel Decorative Bold | SIL OFL 1.1 | Biblioteca màgica, Torre de l'alquimista, Cova del drac | Cap |
 | `uncial-antiqua` | Uncial Antiqua | SIL OFL 1.1 | Biblioteca èlfica | Cap |
-| `lora` | Lora | SIL OFL 1.1 | Cabana amb pluja, Apartament a la ciutat | Només s'ha canviat el nom del fitxer |
-| `playfair-display` | Playfair Display | SIL OFL 1.1 | Biblioteca victoriana, Cafeteria a París | Només s'ha canviat el nom del fitxer |
+| `lora` | Lora | SIL OFL 1.1 | Cabana amb pluja, Apartament a la ciutat, Racó de lectura (text) | Només s'ha canviat el nom del fitxer |
+| `playfair-display` | Playfair Display | SIL OFL 1.1 | Biblioteca victoriana, Racó de lectura (títol), Cafeteria a París | Només s'ha canviat el nom del fitxer |
 | `pirata-one` | Pirata One | SIL OFL 1.1 | Vaixell pirata | Cap |
 | `zen-antique` | Zen Antique | SIL OFL 1.1 | Japó feudal, Cafeteria a Tòquio | Subconjunt només amb caràcters llatins |
 | `orbitron` | Orbitron | SIL OFL 1.1 | Nau espacial | Només s'ha canviat el nom del fitxer |

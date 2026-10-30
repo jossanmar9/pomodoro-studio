@@ -202,7 +202,7 @@ def test_preview_is_a_real_30_second_mp3(tmp_path):
 def test_texts_for_every_format_fit_youtube():
     from app.services.autopilot_plan import NOISE_COLORS, plain_chapters
     chapters = plain_chapters(8 * 3600, 1800)
-    for fmt, environment, noise in (("dormir", "pluja-llar", None), ("rol", "taverna", None), ("soroll", "soroll", "marro")):
+    for fmt, environment, noise in (("dormir", "pluja-llar", None), ("llegir", "llar", None), ("rol", "taverna", None), ("soroll", "soroll", "marro")):
         texts = build_texts(public_theme="Enchanted Wizard Library", environment=environment, duration=480, focus=480, pause=0,
                             chapters=chapters, credits="", fmt=fmt, noise=noise, dim=fmt != "rol", music=False)
         assert len(texts.title) <= 100, texts.title
@@ -212,6 +212,7 @@ def test_texts_for_every_format_fit_youtube():
         assert "\n\n\n" not in texts.description
     assert "Brown Noise" in build_texts(public_theme="Rainy Cabin", environment="soroll", duration=480, focus=480, pause=0, chapters=chapters, credits="", fmt="soroll", noise="marro", dim=True).title
     assert "Dark Screen" in build_texts(public_theme="Rainy Cabin", environment="pluja", duration=480, focus=480, pause=0, chapters=chapters, credits="", fmt="dormir", dim=True).title
+    assert "Reading Ambience" in build_texts(public_theme="Cozy Reading Nook", environment="pluja", duration=120, focus=120, pause=0, chapters=chapters, credits="", fmt="llegir").title
     assert "Tabletop RPG" in build_texts(public_theme="Ancient Dungeon", environment="masmorra", duration=180, focus=180, pause=0, chapters=chapters, credits="", fmt="rol").title
     with pytest.raises(ValueError):
         build_texts(public_theme="x", environment="soroll", duration=60, focus=60, pause=0, chapters=chapters, credits="", fmt="soroll", noise="verd")
@@ -395,7 +396,7 @@ def test_fire_scene_flickers_and_motion_can_be_turned_off(env):
 
 
 def test_sleep_and_rpg_runs_use_ambience_without_timer(env):
-    for fmt, category in (("dormir", "22"), ("rol", "20")):
+    for fmt, category in (("dormir", "22"), ("llegir", "22"), ("rol", "20")):
         run_id = make_run(env.session, format=fmt, environment="pluja", dim=1)
         auto.execute(run_id, rng=random.Random(0))
         with env.session() as db:
