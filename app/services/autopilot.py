@@ -19,7 +19,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
-    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, has_fire, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
+    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     choose_ambience, find_backgrounds, load_catalog, slugify,
 )
 from app.services.encoding import EncodingOptions
@@ -27,6 +27,7 @@ from app.services.fonts import fonts_for_theme
 from app.services.jobs import render_queue
 from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
+from app.services.overlays import ensure_overlay, overlay_opacity, overlay_style
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
 from app.services.timer import build_chapters, build_timeline
@@ -220,13 +221,24 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             db.add(PublicationMetadata(project_id=project_id, title=draft.title, description=draft.description, chapters=draft.chapters, tags=draft.tags, language=draft.language))
             db.commit()
 
+        overlay, opacity = None, 0.0
+        layer_style = overlay_style(theme, environment) if with_motion else None
+        if layer_style:
+            try:
+                overlay = ensure_overlay(layer_style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays",
+                                         width=int(RESOLUTION.split("x")[0]), height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps)
+                opacity = overlay_opacity(layer_style)
+            except Exception as exc:  # sense capa, el vídeo es fa igual
+                logger.exception("No s'ha pogut preparar la capa de moviment")
+                notes.append(f"Sense efectes de moviment: {exc}"[:200])
+
         _update(run_id, step="RENDERING", message="Renderitzant el vídeo…")
         render_queue.enqueue(project_id, RenderSpec(
             background, folder / "video.mp4", RESOLUTION, timeline,
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
             noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
-            motion=with_motion, flicker=with_motion and has_fire(ambience),
+            overlay=overlay, overlay_opacity=opacity,
         ))
         _wait_for_render(project_id)
         if music_track:

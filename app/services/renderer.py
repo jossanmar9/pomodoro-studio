@@ -47,6 +47,9 @@ class RenderSpec:
     motion: bool = False
     # Parpelleig suau de la llum (escenes amb foc).
     flicker: bool = False
+    # Capa de moviment natural (vídeo de partícules sobre negre) que es barreja amb el fons.
+    overlay: Path | None = None
+    overlay_opacity: float = 0.6
 
 
 # Marge d'ampliació perquè la càmera puga moure's sense mostrar vores.
@@ -186,6 +189,10 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     if spec.noise:
         command += ["-f", "lavfi", "-i", noise_source(spec.noise, spec.timeline.total_seconds)]
         noise_input, next_input = next_input, next_input + 1
+    overlay_input: int | None = None
+    if spec.overlay is not None:
+        command += ["-stream_loop", "-1", "-i", str(spec.overlay)]
+        overlay_input, next_input = next_input, next_input + 1
     chimes: list[tuple[int, list[int]]] = []
     if spec.chime:
         for notes, times in zip((CHIME_FOCUS_END, CHIME_BREAK_END), chime_times(spec.timeline)):
@@ -200,6 +207,15 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
         video = [f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"]
     if spec.flicker:
         video.append(FLICKER_FILTER)
+    parts: list[str] = []
+    if overlay_input is not None:
+        opacity = min(1.0, max(0.0, spec.overlay_opacity))
+        parts.append(f"[0:v]{','.join(video)},format=gbrp[base]")
+        parts.append(f"[{overlay_input}:v]scale={width}:{height},setsar=1,fps={spec.fps},format=gbrp[layer]")
+        parts.append(f"[base][layer]blend=all_mode=screen:all_opacity={opacity:g}:shortest=0,format=yuv420p[mixed]")
+        source, video = "[mixed]", []
+    else:
+        source = "[0:v]"
     if spec.show_timer:
         timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts)
         if timer:
@@ -207,7 +223,7 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     if spec.dim_after is not None and spec.dim_after < spec.timeline.total_seconds:
         fade = min(DIM_FADE_SECONDS, spec.timeline.total_seconds - spec.dim_after)
         video.append(f"fade=t=out:st={spec.dim_after}:d={fade}:color=black")
-    parts = [f"[0:v]{','.join(video)}[vout]"]
+    parts.append(f"{source}{','.join(video) or 'null'}[vout]")
     fade_out = max(0, spec.timeline.total_seconds - 2)
     edges = f"afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2"
     mix: list[str] = []
