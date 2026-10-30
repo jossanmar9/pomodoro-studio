@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     shutdown_delay_seconds: int = 120
     shutdown_command: str = "systemctl poweroff"
     audio_catalog: Path = Path("./assets/audio-catalog.json")
+    # Capes de moviment generades (pluja, neu, pols, guspires); es fan una vegada.
+    overlays_dir: Path = Path("./data/overlays")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

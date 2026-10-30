@@ -1,4 +1,5 @@
 import random
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -314,6 +315,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto, "probe_duration", lambda path: 300.0, raising=False)
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
     monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
+    monkeypatch.setattr(auto, "ensure_overlay", lambda style, **kw: touch(tmp_path / "overlays" / f"{style}.mp4"))
     monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
@@ -376,21 +378,22 @@ def test_noise_run_has_no_timer_no_ambience_and_dims(env):
     spec = env.rendered["spec"]
     assert spec.noise == "brown" and spec.ambience == [] and spec.music is None
     assert spec.show_timer is False and spec.chime is False and spec.dim_after == 1800
-    assert spec.motion is True and spec.flicker is False
+    assert spec.motion is False and spec.flicker is False and spec.overlay is not None
     assert spec.timeline.total_seconds == 7200 and project.break_minutes == 0
     upload = env.uploads[0]
     assert "Brown Noise" in upload.title and "Dark Screen" in upload.title
     assert upload.category_id == "22" and record.category_id == "22"
 
 
-def test_fire_scene_flickers_and_motion_can_be_turned_off(env):
+def test_natural_overlay_replaces_camera_motion_and_can_be_turned_off(env):
     touch(auto.settings.assets_dir / "ambience" / "foc-llar.mp3")
     run_id = make_run(env.session, environment="llar")
     auto.execute(run_id, rng=random.Random(0))
-    assert env.rendered["spec"].motion is True and env.rendered["spec"].flicker is True
+    spec = env.rendered["spec"]
+    assert spec.motion is False and spec.flicker is False and spec.overlay.name == "pols.mp4" and spec.overlay_opacity > 0
     run_id = make_run(env.session, environment="llar", motion=0)
     auto.execute(run_id, rng=random.Random(0))
-    assert env.rendered["spec"].motion is False and env.rendered["spec"].flicker is False
+    assert env.rendered["spec"].overlay is None
 
 
 def test_sleep_and_rpg_runs_use_ambience_without_timer(env):
@@ -567,3 +570,34 @@ def test_new_environments_have_their_own_sounds():
     assert any(n.startswith("foc-foguera") for layer in ENVIRONMENTS["campament"].layers for n in layer)
     assert any(n.startswith("cova-") for layer in ENVIRONMENTS["masmorra"].layers for n in layer)
     assert "restaurant-pizzeria" not in [n for layer in ENVIRONMENTS["taverna"].layers for n in layer]
+
+
+def test_overlay_style_depends_on_theme_and_environment():
+    from app.services.overlays import overlay_style
+    assert overlay_style("Parc a la ciutat", "pluja-ciutat") == "pluja"
+    assert overlay_style("Bosc", "tempesta") == "pluja-forta"
+    assert overlay_style("Campament d'aventurers", "campament") == "guspires"
+    assert overlay_style("Bosc", "hivern") == "neu"
+    assert overlay_style("Biblioteca medieval", "pluja") == "pols"  # dins no plou
+    assert overlay_style("Nau espacial", "nit") is None
+
+
+def test_overlay_loops_seamlessly_and_renders(tmp_path):
+    from app.services import overlays
+    for style in overlays.STYLES:
+        particles = overlays._particles(style, 96, 54, random.Random(1))
+        first = overlays.render_frame(style, particles, 96, 54, 0.0).tobytes()
+        assert first == overlays.render_frame(style, particles, 96, 54, 1.0).tobytes(), style
+        assert first != overlays.render_frame(style, particles, 96, 54, 0.5).tobytes(), style
+    custom = touch(tmp_path / "custom" / "neu-pexels.mp4")
+    assert overlays.ensure_overlay("neu", cache_dir=tmp_path / "cache", custom_dir=tmp_path / "custom", width=64, height=36, fps=5) == custom
+    path = overlays.ensure_overlay("pluja", cache_dir=tmp_path / "cache", custom_dir=tmp_path / "custom", width=64, height=36, fps=5)
+    assert path.is_file() and path.stat().st_size > 0
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x334455:s=64x36", "-frames:v", "1", str(background)], check=True)
+    output = tmp_path / "out.mp4"
+    spec = RenderSpec(background, output, "64x36", build_timeline(1, 0, 1), fps=5, show_timer=False, overlay=path, overlay_opacity=0.7)
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    command[command.index("-t") + 1] = "2"
+    subprocess.run(command, check=True, capture_output=True)
+    assert output.is_file() and output.stat().st_size > 0
