@@ -33,7 +33,7 @@ En prémer **Generar i publicar**, Pomodoro Studio usa el fons que has triat (o 
 - Registre de llicències dels recursos per a facilitar un ús monetitzable responsable.
 - Docker/Compose i GitHub Actions amb proves automàtiques i renderitzat FFmpeg curt real.
 
-- Generació opcional de fons amb A1111/Forge, previsualització i registre automàtic de procedència.
+- Biblioteca de fons pròpia: puges les imatges (fetes amb ChatGPT o lliures) i tries quina usar en cada vídeo.
 
 ## Posada en marxa
 
@@ -53,7 +53,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-En Linux Mint, consulta la [instal·lació local i Forge](docs/INSTAL_LINUX_MINT.md). Per obrir els programes amb doble clic, usa els [accessos directes](docs/ACCESSOS_DIRECTES.md).
+En Linux Mint, consulta la [instal·lació local](docs/INSTAL_LINUX_MINT.md). Per obrir el programa amb doble clic, usa l'[accés directe](docs/ACCESSOS_DIRECTES.md).
 
 ## Recursos
 
@@ -147,11 +147,9 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 ## Documentació
 
 - [Mode automàtic](docs/MODE_AUTOMATIC.md).
-- [Fons de qualitat: FLUX.1 schnell i Biblioteca de fons](docs/FONS_I_FLUX.md).
 - [Guia d’ús](docs/GUIA_US.md).
-- [Linux Mint, Forge i correcció d’errors](docs/INSTAL_LINUX_MINT.md).
+- [Instal·lació en Linux Mint](docs/INSTAL_LINUX_MINT.md).
 - [Accessos directes en Linux](docs/ACCESSOS_DIRECTES.md).
-- [Generació local: imatges, clips, efectes i música](docs/GENERACIO_LOCAL.md).
 - [Àudios, bucles, procedència i crèdits](docs/AUDIO_I_LLICENCIES.md).
 - [Catàleg de 38 efectes i 20 peces musicals](assets/audio-catalog.json).
 - `docs/arquitectura.md`: components i decisions tècniques.
@@ -180,7 +178,7 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 
 - Un renderitzat interromput per un reinici no es reprén des del punt on estava.
 - Els clips verticals promocionals queden pendents per a v0.9.
-- La IA és opcional. La generació d’imatges té connector A1111/Forge; vídeo, efectes i música generats amb IA encara s’han d’importar manualment.
+- L'aplicació no genera imatges ni música amb IA: els fons, efectes i música s'importen.
 - En el mode avançat es mescla una sola peça musical repetida; el mode automàtic ja fa llistes sense repeticions. Els bucles dels efectes no tenen costura garantida.
 - En el mode avançat els crèdits dels àudios es copien manualment; el mode automàtic els afig sols a la descripció.
 - La integració directa de publicació està centrada en YouTube.
@@ -189,7 +187,3 @@ FFmpeg s'executa sense `shell=True`, amb `-nostdin`. La cua limita el sistema a 
 
 Pomodoro Studio està dissenyat per a contingut original o correctament llicenciat. No descarrega ni republica vídeos de tercers, música protegida o elements de franquícies sense autorització. Evita usar noms, personatges, logotips o altres elements distintius de franquícies com a substitut d'una ambientació original.
 
-
-### Generació opcional d’ambientacions
-
-La vista del projecte permet generar amb A1111/Forge, previsualitzar i acceptar explícitament un resultat com a fons amb metadades de procedència. El mode manual continua disponible sense IA. Vegeu [v0.8](docs/v0.8.md).

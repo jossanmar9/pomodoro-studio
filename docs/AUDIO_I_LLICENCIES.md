@@ -68,4 +68,4 @@ La frase de canvis ha de descriure el muntatge real. Els materials descarregats 
 
 ## Generació local futura
 
-La v0.8 no genera música ni efectes. Pots generar-los externament i importar el resultat en els mateixos formats. En eixe cas registra model, versió, prompt, data, condicions aplicables i qualsevol material de referència utilitzat. La integració actual d’IA en la web és per a imatges amb A1111/Forge.
+La v0.8 no genera música ni efectes. Pots generar-los externament i importar el resultat en els mateixos formats. En eixe cas registra model, versió, prompt, data, condicions aplicables i qualsevol material de referència utilitzat.

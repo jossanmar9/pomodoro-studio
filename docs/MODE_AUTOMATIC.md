@@ -61,7 +61,7 @@ Els sons de ciutat, cafeteria, restaurant, bar, Japó i parc són de [BigSoundBa
 
 Els fons els poses tu. En **Biblioteca de fons** (`/fons`) pots afegir imatges (fetes amb ChatGPT o lliures de Pexels, Unsplash…), indicar opcionalment per a quin format i entorn són, i eliminar les que no vulgues. També pots copiar imatges a `assets/backgrounds/` amb un nom que comence pel tema, per exemple `biblioteca-medieval-01.png`.
 
-En la pàgina principal, en triar el tema veus les miniatures dels seus fons: tria'n una o deixa **🎲 A l'atzar**. L'aplicació ja no genera imatges amb Forge.
+En la pàgina principal, en triar el tema veus les miniatures dels seus fons: tria'n una o deixa **🎲 A l'atzar**. L'aplicació no genera imatges: no cal Forge ni cap altre programa.
 
 ### 3. YouTube
 
@@ -79,7 +79,6 @@ Si YouTube no està connectat, el vídeo es fa igualment i apareix el botó **Pu
 ```text
 AUTO_DEFAULT_PRIVACY=public   # public, unlisted o private
 AUTO_MUSIC_DEFAULT=false      # true perquè «Afegir música» isca marcat
-IMAGE_MODEL_PROFILE=auto      # auto, flux-schnell, flux-dev o sdxl
 ```
 
 ## Si alguna cosa falla
