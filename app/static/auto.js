@@ -152,11 +152,38 @@
   reshuffle?.addEventListener("click", () => { files.value = ""; preview(false); });
   form?.querySelectorAll('input[name="environment"]').forEach((el) => el.addEventListener("change", forgetSounds));
 
+  // Fons: miniatures del tema triat. Primer els fets per al format i l'entorn triats.
+  const picker = document.querySelector("#bg-picker");
+  const BACKGROUNDS = window.__BACKGROUNDS__ || {};
+  const labelOf = (name, value) => form?.querySelector(`input[name="${name}"][value="${CSS.escape(value)}"] + span`)?.firstChild?.textContent?.trim() || "";
+  function renderBackgrounds() {
+    if (!picker) return;
+    const theme = form.querySelector('input[name="theme"]:checked')?.value || "";
+    const format = currentFormat();
+    const environment = form.querySelector('input[name="environment"]:checked')?.value || "";
+    const previous = form.querySelector('input[name="background"]:checked')?.value || "";
+    const score = (b) => (b.format === format ? 2 : 0) + (b.environment === environment ? 1 : 0);
+    const items = [...(BACKGROUNDS[theme] || [])].sort((a, b) => score(b) - score(a));
+    if (!items.length) {
+      picker.innerHTML = `<p class="missing">Encara no hi ha cap fons de «${esc(theme)}». <a class="back" href="/fons#importar">Afegir-ne un</a></p>`;
+      return;
+    }
+    const keep = items.some((b) => b.name === previous) ? previous : "";
+    picker.innerHTML = `<label class="bg-option"><input type="radio" name="background" value="" ${keep ? "" : "checked"}><span class="random">🎲 A l'atzar<br><small>${items.length} fons</small></span></label>` +
+      items.map((b) => {
+        const tags = [b.format && labelOf("format", b.format), b.environment && labelOf("environment", b.environment)].filter(Boolean).join(" · ");
+        return `<label class="bg-option" title="${esc(b.name)}"><input type="radio" name="background" value="${esc(b.name)}" ${b.name === keep ? "checked" : ""}><span style="background-image:url('${encodeURI(b.url)}')"><small>${esc(tags || "Qualsevol")}</small></span></label>`;
+      }).join("");
+  }
+  form?.querySelectorAll('input[name="theme"], input[name="format"], input[name="environment"]').forEach((el) => el.addEventListener("change", renderBackgrounds));
+  renderBackgrounds();
+
   document.querySelector("#random")?.addEventListener("click", () => {
     for (const name of ["theme", "environment", "noise"]) {
       const options = [...form.querySelectorAll(`input[name="${name}"]`)];
       options[Math.floor(Math.random() * options.length)].checked = true;
     }
     forgetSounds();
+    renderBackgrounds();
   });
 })();

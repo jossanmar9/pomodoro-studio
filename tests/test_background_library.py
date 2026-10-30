@@ -33,36 +33,7 @@ def jpeg_bytes(size) -> bytes:
 @pytest.fixture
 def dirs(tmp_path, monkeypatch):
     monkeypatch.setattr(lib.settings, "assets_dir", tmp_path / "assets")
-    monkeypatch.setattr(lib.settings, "image_generation_dir", tmp_path / "generated")
-    calls = []
-
-    def fake_generate_one(theme, environment, fmt, output_dir):
-        calls.append((theme, environment, fmt))
-        path = png(output_dir / f"generated-{len(calls)}.png")
-        return path, {"prompt": f"{theme} scene", "negative_prompt": "", "provider": "a1111", "model": "FLUX.1 schnell",
-                      "license": "Generat localment amb Forge", "source_notes": "seed 1", "generation": {"profile": "flux-schnell"}}
-
-    monkeypatch.setattr(lib, "generate_one", fake_generate_one)
-    return SimpleNamespace(root=tmp_path, calls=calls)
-
-
-def test_generated_candidates_can_be_kept_or_discarded(dirs):
-    job = lib.candidate_generator.submit("Masmorra", "masmorra", "rol", 3)
-    lib.candidate_generator._worker.join(timeout=10)
-    assert job.finished and job.done == 3 and job.error is None
-    candidates = lib.list_candidates()
-    assert len(candidates) == 3 and {c["theme"] for c in candidates} == {"Masmorra"}
-    kept = lib.approve_candidate(candidates[0]["id"])
-    assert kept.parent == lib.library_dir().resolve() and kept.name.startswith("masmorra-masmorra-")
-    meta = json.loads(kept.with_suffix(".png.json").read_text())
-    assert meta["model"] == "FLUX.1 schnell" and meta["prompt"] == "Masmorra scene"
-    lib.discard_candidate(candidates[1]["id"])
-    assert [c["id"] for c in lib.list_candidates()] == [candidates[2]["id"]]
-    assert len([g for g in lib.library() if g["theme"] == "Masmorra"][0]["items"]) == 1
-    with pytest.raises(ValueError):
-        lib.approve_candidate("../../etc")
-    with pytest.raises(ValueError):
-        lib.candidate_generator.submit("Masmorra", "masmorra", "rol", 40)
+    return SimpleNamespace(root=tmp_path)
 
 
 def test_import_checks_size_orientation_and_source(dirs):
@@ -82,48 +53,46 @@ def test_import_checks_size_orientation_and_source(dirs):
     assert not path.exists() and not path.with_suffix(".jpg.json").exists()
     with pytest.raises(ValueError):
         lib.delete_background("../secret.png")
+    mine = lib.import_uploaded(jpeg_bytes((1920, 1080)), "nook.png", "Racó de lectura", "chatgpt", "", "", "llegir", "pluja")
+    assert mine.name.startswith("raco-de-lectura-pluja-llegir-")
+    meta = json.loads(mine.with_suffix(mine.suffix + ".json").read_text())
+    assert meta["license"] == "Generat amb ChatGPT (OpenAI)" and meta["generation"]["format"] == "llegir"
+    item = [g for g in lib.library() if g["theme"] == "Racó de lectura"][0]["items"][0]
+    assert item["format"] == "llegir" and item["environment"] == "pluja"
+    with pytest.raises(ValueError, match="Entorn"):
+        lib.import_uploaded(jpeg_bytes((1920, 1080)), "a.jpg", "Bosc", "chatgpt", "", "", "", "inventat")
 
 
 def test_automatic_mode_prefers_library_and_avoids_recent(dirs, monkeypatch):
     root = lib.library_dir()
     for n in range(3):
         png(root / f"bosc-0{n}.png")
-    monkeypatch.setattr(auto, "forge_ready", lambda: True)
-    monkeypatch.setattr(auto, "_generate_background", lambda *a: pytest.fail("no s'havia de generar"))
     picks = {auto.choose_background("Bosc", "bosc", random.Random(seed), recent={"bosc-00.png", "bosc-01.png"})[0].name for seed in range(10)}
     assert picks == {"bosc-02.png"}
-    generated = []
-    monkeypatch.setattr(auto, "_generate_background", lambda *a: generated.append(a) or png(root / "bosc-nou.png"))
-    path, note = auto.choose_background("Bosc", "bosc", random.Random(0), force_new=True)
-    assert path.name == "bosc-nou.png" and "sense revisar" in note and generated
+    path, note = auto.choose_background("Bosc", "bosc", random.Random(0), chosen="bosc-00.png", recent={"bosc-00.png"})
+    assert path.name == "bosc-00.png" and note == "Fons triat a mà"
+    path, note = auto.choose_background("Bosc", "bosc", random.Random(0), chosen="esborrat.png")
+    assert path.name.startswith("bosc-0") and "ja no existeix" in note
+    with pytest.raises(auto.AutopilotError, match="Biblioteca de fons"):
+        auto.choose_background("Masmorra", "masmorra", random.Random(0))
 
 
 def test_library_page_and_api(dirs, monkeypatch):
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     monkeypatch.setattr(main, "SessionLocal", sessionmaker(bind=engine))
-    monkeypatch.setattr(lib, "forge_ready", lambda: False)
     with TestClient(main.app) as client:
         page = client.get("/fons")
-        assert page.status_code == 200 and "Biblioteca de fons" in page.text and "Forge no està obert" in page.text
-        assert client.post("/api/fons/generar", data={"theme": "Bosc", "environment": "bosc"}).status_code == 409
-        monkeypatch.setattr(lib, "forge_ready", lambda: True)
-        monkeypatch.setattr("app.services.library_web.forge_profile", lambda: None)
-        assert client.post("/api/fons/generar", data={"theme": "Inventat", "environment": "bosc"}).status_code == 400
-        assert client.post("/api/fons/generar", data={"theme": "Bosc", "environment": "bosc", "count": "2"}).status_code == 202
-        lib.candidate_generator._worker.join(timeout=10)
-        status = client.get("/api/fons").json()
-        assert len(status["candidates"]) == 2
-        first = status["candidates"][0]
-        assert client.get(first["image_url"]).headers["content-type"] == "image/png"
-        assert client.post(f"/api/fons/opcions/{first['id']}/guardar").status_code == 201
-        assert client.post(f"/api/fons/opcions/{first['id']}/guardar").status_code == 404
+        assert page.status_code == 200 and "Biblioteca de fons" in page.text and "Forge" not in page.text
+        assert client.post("/api/fons/generar", data={"theme": "Bosc", "environment": "bosc"}).status_code in (404, 405)
+        png(lib.library_dir() / "bosc-a.png")
         upload = client.post("/fons/importar", data={"theme": "Bosc", "license": "pixabay", "source_url": "https://pixabay.com/x"},
                              files={"image": ("bosc.jpg", jpeg_bytes((1920, 1080)), "image/jpeg")}, follow_redirects=False)
         assert upload.status_code == 303 and "ok=" in upload.headers["location"]
         assert "bosc-importat-" in client.get("/fons").text
         home = client.get("/")
-        assert "Biblioteca de fons" in home.text and "2 fons" in home.text
+        assert "Biblioteca de fons" in home.text and "2 fons" in home.text and "Forge" not in home.text
+        assert "/assets/backgrounds/bosc-a.png" in home.text
 
 
 def test_automatic_mode_prefers_backgrounds_made_for_the_same_format_and_environment(dirs):

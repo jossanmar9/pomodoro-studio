@@ -311,14 +311,12 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto.settings, "assets_dir", assets)
     monkeypatch.setattr(auto.settings, "output_dir", tmp_path / "output")
     monkeypatch.setattr(auto.settings, "audio_catalog", tmp_path / "missing-catalog.json")
-    monkeypatch.setattr(auto, "forge_ready", lambda: False)
     monkeypatch.setattr(auto, "probe_duration", lambda path: 300.0, raising=False)
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
     monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
     monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
-    monkeypatch.setattr(main, "forge_ready", lambda: False)
     rendered = {}
 
     def fake_enqueue(project_id, spec):
@@ -433,7 +431,7 @@ def test_run_fails_clearly_without_background(env):
         run = db.get(AutoRun, run_id)
         project = db.get(Project, run.project_id)
     assert run.step == "FAILED"
-    assert "nau-espacial" in run.error and "Forge" in run.error
+    assert "nau-espacial" in run.error and "Biblioteca de fons" in run.error
     assert project.status == "FAILED"
 
 
@@ -510,3 +508,19 @@ def test_published_video_can_be_uploaded_again(env, monkeypatch):
     assert not (folder / ".youtube-video-id").exists()
     with env.session() as db:
         assert db.get(AutoRun, run_id).video_id is None
+
+
+def test_chosen_background_is_used(env, monkeypatch):
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        assert "biblioteca-medieval-01.png" in client.get("/").text
+        base = {"theme": "Biblioteca medieval", "environment": "pluja", "duration_minutes": "60", "publish": "1"}
+        assert client.post("/auto", data=base | {"background": "../secret.png"}).status_code == 400
+        assert client.post("/auto", data=base | {"background": "bosc-01.png"}).status_code == 400
+        assert client.post("/auto", data=base | {"background": "biblioteca-medieval-01.png"}, follow_redirects=False).status_code == 303
+    with env.session() as db:
+        run_id = db.query(AutoRun).order_by(AutoRun.id.desc()).first().id
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and run.background == "biblioteca-medieval-01.png" and "Fons triat a mà" in run.message

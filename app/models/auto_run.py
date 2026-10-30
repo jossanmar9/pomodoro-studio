@@ -8,7 +8,7 @@ from app.database import Base
 # Passos del mode automàtic, en l'ordre en què s'executen.
 AUTO_STEPS = {
     "QUEUED": "En cua",
-    "BACKGROUND": "Creant el fons",
+    "BACKGROUND": "Preparant el fons",
     "AUDIO": "Preparant efectes i música",
     "RENDERING": "Renderitzant el vídeo",
     "PUBLISHING": "Publicant a YouTube",
@@ -41,13 +41,14 @@ class AutoRun(Base):
     noise: Mapped[str | None] = mapped_column(String(20), nullable=True)
     dim: Mapped[int] = mapped_column(Integer, default=0)
     motion: Mapped[int] = mapped_column(Integer, default=1)
-    # 1 = generar un fons nou amb Forge encara que n'hi haja d'aprovats.
+    # En desús: abans demanava generar un fons nou amb Forge. Es conserva per a les bases de dades antigues.
     new_background: Mapped[int] = mapped_column(Integer, default=0)
     # 1 = apagar l'ordinador quan acabe (si és l'últim de la cua i ha anat bé).
     shutdown: Mapped[int] = mapped_column(Integer, default=0)
     # 1 = esborrar video.mp4 uns dies després de publicar-lo (es conserven miniatura i textos).
     delete_after: Mapped[int] = mapped_column(Integer, default=0)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Fons triat a mà en el formulari; després de fer el vídeo, el fons que s'ha usat.
     background: Mapped[str | None] = mapped_column(String(200), nullable=True)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

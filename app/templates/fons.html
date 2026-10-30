@@ -14,7 +14,7 @@
     <div>
       <p class="eyebrow">THE AMBER WINDOW · POMODORO STUDIO</p>
       <h1>Biblioteca de fons</h1>
-      <p class="muted">Genera opcions amb Forge, guarda només les bones o importa imatges lliures. El mode automàtic tria sempre entre els fons guardats.</p>
+      <p class="muted">Puja les teues imatges i elimina les que no vulgues. En la pàgina principal pots triar quina usar o deixar que en trie una a l'atzar.</p>
     </div>
     <a class="back" href="/">← Mode automàtic</a>
   </header>
@@ -22,39 +22,9 @@
   {% if error %}<div class="warning">{{ error }}</div>{% endif %}
   {% if ok %}<div class="notice">{{ ok }}</div>{% endif %}
 
-  <section class="card" id="generar">
-    <h2>Generar opcions</h2>
-    <p class="muted" id="forge-status">
-      {% if status.forge_ready %}Forge obert · model: <strong>{{ status.profile }}</strong>{% if not status.is_flux %}. Per a fons de més qualitat, carrega <strong>FLUX.1 schnell</strong> en Forge (vegeu la guia).{% endif %}
-      {% else %}Forge no està obert. Obri'l per a generar opcions; mentrestant pots importar imatges.{% endif %}
-    </p>
-    <form id="generate-form" class="grid">
-      <label>Tema
-        <select name="theme">{% for t in themes %}<option>{{ t }}</option>{% endfor %}</select>
-      </label>
-      <label>Llum i oratge (entorn)
-        <select name="environment">{% for e in environments %}<option value="{{ e.key }}">{{ e.label }}</option>{% endfor %}<option value="soroll">Fosc i tranquil (soroll)</option></select>
-      </label>
-      <label>Estil
-        <select name="format">{% for key, label in formats.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
-      </label>
-      <label>Opcions
-        <select name="count">{% for n in [2, 4, 6] %}<option {% if n == 4 %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
-      </label>
-      <button type="submit" {% if not status.forge_ready %}disabled{% endif %}>Generar</button>
-      <small class="muted" id="generate-info" aria-live="polite"></small>
-    </form>
-  </section>
-
-  <section class="card" id="revisar">
-    <h2>Per revisar</h2>
-    <p class="muted" id="empty-candidates">No hi ha cap opció pendent.</p>
-    <div class="gallery" id="candidates"></div>
-  </section>
-
   <section class="card" id="importar">
-    <h2>Importar una imatge lliure</h2>
-    <p class="muted">De Pexels, Unsplash, Pixabay o pintures de domini públic (The Met, Rijksmuseum…). Horitzontal i de com a mínim 1920×1080, sense persones recognoscibles ni marques.</p>
+    <h2>Afegir una imatge</h2>
+    <p class="muted">Feta per tu (ChatGPT, etc.) o lliure de Pexels, Unsplash, Pixabay o domini públic. Horitzontal i de com a mínim 1920×1080, sense persones recognoscibles ni marques.</p>
     <form action="/fons/importar" method="post" enctype="multipart/form-data" class="grid">
       <label>Imatge<input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label>
       <label>Tema
@@ -63,9 +33,15 @@
       <label>Llicència
         <select name="license" required>{% for key, label in licenses.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
       </label>
-      <label>Enllaç d'on l'has treta<input type="url" name="source_url" placeholder="https://www.pexels.com/photo/…"></label>
+      <label>Format (opcional)
+        <select name="format"><option value="">Qualsevol</option>{% for key, label in formats.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+      </label>
+      <label>Entorn (opcional)
+        <select name="environment"><option value="">Qualsevol</option>{% for key, label in environments.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+      </label>
+      <label>Enllaç d'on l'has treta (si no és teua)<input type="url" name="source_url" placeholder="https://www.pexels.com/photo/…"></label>
       <label>Autor (opcional)<input name="author" maxlength="120"></label>
-      <button type="submit">Importar</button>
+      <button type="submit">Afegir</button>
     </form>
   </section>
 
@@ -80,7 +56,7 @@
           <figure>
             <img src="{{ item.url }}" alt="Fons de {{ group.theme }}" loading="lazy">
             <figcaption>
-              <span class="muted">{{ item.license or 'Sense llicència registrada' }}{% if item.model %} · {{ item.model }}{% endif %}</span>
+              <span class="muted">{{ item.license or 'Sense llicència registrada' }}{% if item.format %} · {{ formats.get(item.format, item.format) }}{% endif %}{% if item.environment %} · {{ environments.get(item.environment, item.environment) }}{% endif %}</span>
               <form action="/fons/{{ item.name }}/eliminar" method="post" onsubmit="return confirm('Eliminar este fons de la biblioteca?')"><button type="submit" class="mini secondary">Eliminar</button></form>
             </figcaption>
           </figure>
@@ -91,6 +67,5 @@
     {% endfor %}
   </section>
 </main>
-<script src="/static/fons.js"></script>
 </body>
 </html>

@@ -27,7 +27,7 @@
   <section class="status-bar">
     <div class="pill {{ 'ok' if themes|selectattr('backgrounds')|list else 'warn' }}">
       <strong>Fons</strong>
-      <span>{{ themes|selectattr('backgrounds')|list|length }} de {{ themes|length }} temes amb fons guardats · <a class="back" href="/fons">revisar</a>{% if forge_ready %} · Forge obert{% endif %}</span>
+      <span>{{ themes|selectattr('backgrounds')|list|length }} de {{ themes|length }} temes amb fons guardats · <a class="back" href="/fons">afegir</a></span>
     </div>
     <div class="pill {{ 'ok' if counts.ambience and counts.music else 'warn' }}">
       <strong>So</strong>
@@ -68,6 +68,11 @@
         </label>
         {% endfor %}
       </div>
+    </fieldset>
+
+    <fieldset class="choice-block">
+      <legend>Fons</legend>
+      <div class="bg-picker" id="bg-picker" aria-live="polite"></div>
     </fieldset>
 
     <fieldset class="choice-block">
@@ -126,7 +131,6 @@
       <div class="publish-options">
         <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
-        <label class="check"><input type="checkbox" name="new_background" value="1"> Generar un fons nou amb Forge (sense revisar)</label>
         <label class="check"><input type="checkbox" name="motion" value="1" checked> Moviment suau (càmera i llum del foc)</label>
         <label class="check" data-hide-for="soroll"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
@@ -150,7 +154,7 @@
     </div>
   </section>
 </main>
-<script>window.__RUNS__ = {{ runs | tojson }};</script>
+<script>window.__RUNS__ = {{ runs | tojson }}; window.__BACKGROUNDS__ = {{ backgrounds | tojson }};</script>
 <script src="/static/auto.js"></script>
 </body>
 </html>
