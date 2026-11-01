@@ -143,7 +143,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         with_motion = bool(run.motion)
         chosen_background = run.background
         breath = run.breath
-        style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment)
+        style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment, run.theme)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
         if fmt != "pomodoro":

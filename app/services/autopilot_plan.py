@@ -307,15 +307,19 @@ MUSIC_STYLES = {
     "medieval": ("Medieval i folk", "medieval folk music"),
     "fosca": ("Fantasia fosca", "dark fantasy music"),
     "jazz": ("Jazz de cafeteria", "soft jazz"),
+    "nadal": ("Nadal", "calm Christmas music"),
 }
+CHRISTMAS_THEMES = {"Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"}
 _JAZZ_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "pluja-ciutat", "ciutat-nit", "japo-carrer", "transit"}
 _MEDIEVAL_ENVIRONMENTS = {"taverna", "campament"}
 _DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar", "cova"}
 _DARK_RPG_ENVIRONMENTS = _DARK_ENVIRONMENTS | {"tempesta", "vent", "nit", "temporal"}
 
 
-def music_style(fmt: str, environment: str) -> str:
-    """Estil de música que encaixa amb el format i l'entorn."""
+def music_style(fmt: str, environment: str, theme: str | None = None) -> str:
+    """Estil de música que encaixa amb el format, l'entorn i (per a Nadal) el tema."""
+    if theme in CHRISTMAS_THEMES and fmt != "rol":
+        return "nadal"
     if fmt == "dormir":
         return "calma"
     if fmt == "rol":

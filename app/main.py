@@ -312,7 +312,7 @@ def _preview_dir()->Path:
 
 
 @app.post("/api/auto/preview")
-def auto_preview(environment:str=Form(""),ambience_level:int=Form(0),music:str=Form(""),music_style:str=Form(""),chime:str=Form(""),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form("")):
+def auto_preview(theme:str=Form(""),environment:str=Form(""),ambience_level:int=Form(0),music:str=Form(""),music_style:str=Form(""),chime:str=Form(""),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form("")):
     """30 segons amb els sons i el volum que tindrà el vídeo."""
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
@@ -330,7 +330,7 @@ def auto_preview(environment:str=Form(""),ambience_level:int=Form(0),music:str=F
         if env.noise: noise_color=env.noise
     if env is not None and env.music and format!="ambient" and (music or not env.layers):
         names=load_catalog(settings.audio_catalog)
-        style=music_style if music_style in MUSIC_STYLES else music_style_for(format,environment)
+        style=music_style if music_style in MUSIC_STYLES else music_style_for(format,environment,theme)
         tracks=music_tracks(settings.assets_dir/"music",style,names) or music_tracks(settings.assets_dir/"music","calma",names)
         if tracks: track=rng.choice(tracks)
     folder=_preview_dir()
