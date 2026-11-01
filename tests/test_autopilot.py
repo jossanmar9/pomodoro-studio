@@ -316,6 +316,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
     monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
     monkeypatch.setattr(auto, "ensure_overlay", lambda style, **kw: touch(tmp_path / "overlays" / f"{style}.mp4"))
+    monkeypatch.setattr(auto, "ensure_breath_clip", lambda pattern, **kw: touch(tmp_path / "overlays" / f"respiracio-{pattern}.mp4"))
     monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
@@ -626,3 +627,78 @@ def test_new_ambient_themes_are_ready():
     for key in ("bosc-tempesta", "platja-tempesta", "riu", "llar-tempesta", "biblioteca", "port", "avio"):
         assert key in ENVIRONMENTS
     assert overlay_style("Platja", "platja-tempesta") == "pluja-forta" and overlay_style("Avió", "avio") is None
+
+
+def test_breathing_cycle_loops_and_follows_the_pattern():
+    from app.services import breathing
+    assert breathing.cycle_seconds("quadrada") == 16 and breathing.cycle_seconds("478") == 19
+    assert breathing.state("quadrada", 0)[:2] == ("inhale", 0.0)
+    assert breathing.state("quadrada", 5) == ("hold", 1.0, 3)
+    assert breathing.state("478", 12)[0] == "exhale" and breathing.state("478", 18.9)[1] < 0.01
+    first = breathing.render_frame("coherent", 0, 96, 54).tobytes()
+    assert first == breathing.render_frame("coherent", 10, 96, 54).tobytes()
+    assert first != breathing.render_frame("coherent", 5, 96, 54).tobytes()
+
+
+def test_breathing_run_uses_the_circle_and_its_own_durations(env, monkeypatch):
+    run_id = make_run(env.session, format="respiracio", breath="478", duration_minutes=10, environment="pluja")
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        assert db.get(AutoRun, run_id).step == "DONE", db.get(AutoRun, run_id).error
+    spec = env.rendered["spec"]
+    assert spec.overlay.name == "respiracio-478.mp4" and spec.darken > 0 and spec.show_timer is False
+    assert spec.timeline.total_seconds == 600
+    upload = env.uploads[-1]
+    assert "10 Minute 4-7-8 Breathing" in upload.title and upload.category_id == "26"
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        assert "Respiració guiada" in client.get("/").text
+        base = {"theme": "Bosc", "environment": "bosc", "format": "respiracio"}
+        assert client.post("/auto", data=base | {"breath": "quadrada", "duration_minutes": "120"}).status_code == 400
+        assert client.post("/auto", data=base | {"breath": "inventada", "duration_minutes": "10"}).status_code == 400
+        assert client.post("/auto", data=base | {"breath": "quadrada", "duration_minutes": "10", "publish": "1", "shorts": "1"}, follow_redirects=False).status_code == 303
+    with env.session() as db:
+        saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+    assert saved.breath == "quadrada" and saved.duration_minutes == 10 and saved.shorts == 1
+
+
+def test_short_is_published_after_the_video(env, monkeypatch):
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    run_id = make_run(env.session, shorts=1)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and run.short_video_id == "abc123"
+    main_upload, short_upload = env.uploads[-2:]
+    assert short_upload.title.endswith("#shorts") and "https://youtu.be/abc123" in short_upload.description
+    assert short_upload.video.name == "short.mp4" and short_upload.privacy == main_upload.privacy
+
+
+def test_short_failure_does_not_undo_the_published_video(env, monkeypatch):
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", "exit 1"])
+    run_id = make_run(env.session, shorts=1)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and run.video_id == "abc123" and run.short_video_id is None and "Short no fet" in run.message
+
+
+def test_short_command_renders_a_vertical_clip(tmp_path):
+    from app.services.shorts import build_short_command
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x445566:s=320x180", "-frames:v", "1", str(background)], check=True)
+    video = tmp_path / "v.mp4"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "anoisesrc=d=8", "-f", "lavfi", "-i", "color=black:s=64x36:d=8", "-shortest", str(video)], check=True)
+    output = tmp_path / "short.mp4"
+    subprocess.run(build_short_command(background, video, output, title="Christmas Library", subtitle="2 Hours · Rain", start=1, seconds=4), check=True)
+    probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(output)], capture_output=True, text=True, check=True)
+    assert probe.stdout.strip() == "1080,1920"
+
+
+def test_christmas_themes_are_ready():
+    from app.services.fonts import THEME_FONTS
+    from app.services.overlays import overlay_style
+    for theme in ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"):
+        assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS and "Christmas" in THEMES[theme]
+    assert overlay_style("Poble nevat", "nit") == "neu" and overlay_style("Cabana de Nadal", "llar") == "pols"

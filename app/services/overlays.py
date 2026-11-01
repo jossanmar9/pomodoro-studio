@@ -41,6 +41,8 @@ VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv"}
 
 # Temes on la foto és a l'aire lliure: només ací cau pluja o neu per tota la imatge.
 OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port"}
+# Temes de Nadal a l'aire lliure: sempre neva.
+SNOW_THEMES = {"Poble nevat", "Mercat de Nadal"}
 # Temes on la pols flotant no té sentit.
 NO_DUST_THEMES = {"Nau espacial", "Avió"}
 _RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca"}
@@ -50,6 +52,8 @@ _FIRE_OUTSIDE = {"campament"}
 
 def overlay_style(theme: str, environment: str) -> str | None:
     """Estil de capa que encaixa amb el tema i l'entorn (None = cap)."""
+    if theme in SNOW_THEMES:
+        return "neu"
     if theme in OUTDOOR_THEMES:
         if environment in _STORM:
             return "pluja-forta"

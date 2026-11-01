@@ -259,6 +259,12 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Hivernacle": ("old victorian glass greenhouse", "raindrops on the glass roof, lush plants, hanging ferns and orchids, a small wrought-iron table with a teapot", "victorian"),
     "Port": ("quiet old harbour", "small wooden boats gently rocking, warm lamps reflected on wet stones and water, light fog over the sea", "timeless"),
     "Cabana a la neu": ("small wooden cabin on a winter night", "a frosted window with heavy snowfall and snowy pine trees, a glowing fireplace, a mug of hot chocolate and a blanket on a window seat", "cozy"),
+    "Cabana de Nadal": ("cozy wooden cabin decorated for Christmas", "a decorated Christmas tree with warm lights, a crackling stone fireplace with stockings, a frosted window with falling snow, gifts and a blanket on an armchair", "cozy"),
+    "Sala de Nadal": ("cozy living room on Christmas Eve", "a tall Christmas tree with golden lights, garlands on the fireplace mantel, candles, a cup of hot chocolate, snow falling outside the window", "cozy"),
+    "Cafeteria de Nadal": ("cozy coffee shop decorated for Christmas", "string lights and garlands, a small Christmas tree, gingerbread cookies and steaming mugs, snowy street visible through the window", "cozy"),
+    "Biblioteca de Nadal": ("old library decorated for Christmas", "tall bookshelves with garlands and red ribbons, a Christmas tree with warm lights, a fireplace, snow falling outside tall arched windows", "victorian"),
+    "Poble nevat": ("snowy village at night at Christmas time", "small houses with warm lit windows, Christmas lights, snow-covered roofs and pine trees, a quiet cobblestone street with lanterns", "cozy"),
+    "Mercat de Nadal": ("quiet Christmas market at dusk", "wooden stalls with warm lights, garlands and ornaments, a big Christmas tree in the square, light snow falling", "cozy"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
@@ -270,6 +276,7 @@ FORMATS = {
     "dormir": "Per a dormir",
     "llegir": "Per a llegir",
     "ambient": "So ambiental",
+    "respiracio": "Respiració guiada",
     "rol": "Partida de rol",
     "soroll": "Soroll de color",
 }
@@ -283,11 +290,12 @@ NOISE_ENVIRONMENT = "soroll"
 # La pantalla es fon a negre després de 30 minuts (vídeos per a dormir i soroll).
 DIM_AFTER_SECONDS = 30 * 60
 # Categoria de YouTube per format: 27 Education, 22 People & Blogs, 20 Gaming.
-YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "ambient": "22", "soroll": "22", "rol": "20"}
+YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "ambient": "22", "respiracio": "26", "soroll": "22", "rol": "20"}
 FORMAT_MOODS = {
     "pomodoro": "quiet, immersive, focused, cozy, no people",
     "dormir": "calm, restful, dim and sleepy, soft low light, no people",
     "ambient": "calm, immersive and peaceful, natural light, no people",
+    "respiracio": "calm, serene and peaceful, soft light, uncluttered center, no people",
     "llegir": "cozy, warm and inviting, soft golden reading light, peaceful, no people",
     "soroll": "calm, restful, dark and minimal, soft low light, no people",
     "rol": "atmospheric, adventurous, immersive, mysterious, no people",
@@ -553,7 +561,7 @@ def _join_blocks(*blocks: str) -> str:
     return "\n\n".join(block.strip() for block in blocks if block and block.strip())
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma") -> AutoTexts:
+def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None) -> AutoTexts:
     music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1]
     if fmt == "pomodoro":
         return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime, music_text=music_text)
@@ -605,6 +613,26 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             )
             tags = ["sleep sounds", "sleep ambience", "relaxing sounds", f"{env.public_label.lower()} for sleep", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} sleep sounds", "fall asleep fast"] + (["dark screen", "black screen sleep sounds"] if dim else [])
             thumbnail = f"{label.upper()} · {env.public_label.upper()}"
+        elif fmt == "respiracio":
+            from app.services.breathing import PATTERNS
+            if breath not in PATTERNS:
+                raise ValueError("Respiració no vàlida")
+            pattern = PATTERNS[breath]
+            minutes = f"{duration} Minute"
+            title = _fit_title([
+                f"{minutes} {pattern.public} | Guided Breathing Exercise | {public_theme}",
+                f"{minutes} {pattern.public} | Guided Breathing Exercise",
+                f"{minutes} {pattern.public}",
+            ])
+            compose = lambda credit_text: _join_blocks(
+                f"Follow the circle: breathe in as it grows, hold when it stops, and breathe out as it shrinks. {pattern.how}",
+                f"{duration} minutes to calm down, focus before studying or unwind before sleep, in a {public_theme.lower()} with {sound}. No talking.",
+                "Breathe gently and never force it. If you feel dizzy, stop and breathe normally.",
+                credit_text,
+                outro,
+            )
+            tags = [pattern.public.lower(), "breathing exercise", "guided breathing", "breathwork", "calm breathing", "breathing for anxiety", "relaxation", "meditation", f"{duration} minute breathing", public_theme.lower()]
+            thumbnail = f"{pattern.public.upper()} · {duration} MIN"
         elif fmt == "ambient":
             title = _fit_title([
                 f"{label} {env.public_label} Ambience | {public_theme} | No Music",
