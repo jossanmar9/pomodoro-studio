@@ -20,7 +20,7 @@ from app.database import SessionLocal
 from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
-    choose_ambience, duration_label, find_backgrounds, load_catalog, slugify,
+    CHANNEL_URL, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
@@ -29,7 +29,7 @@ from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip
 from app.services.overlays import ensure_overlay, overlay_opacity, overlay_style
-from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, WIDTH as SHORT_WIDTH, build_short_command, short_start, short_texts
+from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
 from app.services.timer import build_chapters, build_timeline
@@ -163,6 +163,10 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background})
         _update(run_id, background=background.name)
         notes.append(note)
+        if fmt == "short":
+            _execute_channel_short(run_id, project_id, theme, environment, rng, background, level=level, preferred=preferred,
+                                   with_music=with_music, style=style, with_motion=with_motion, privacy=privacy, publish=publish, notes=notes)
+            return
 
         _update(run_id, step="AUDIO", message="Triant efectes i preparant la música…")
         timeline = build_timeline(focus, pause, duration)
@@ -313,6 +317,69 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
         short_note = f"El Short ha fallat: {exc}"[:300]
     if short_note:
         _update(run_id, message="; ".join([*notes, short_note]))
+
+
+def _execute_channel_short(run_id: int, project_id: int, theme: str, environment: str, rng: random.Random, background: Path, *,
+                           level: int, preferred: list[str], with_music: bool, style: str, with_motion: bool, privacy: str, publish: bool, notes: list[str]) -> None:
+    """Short independent de 45 s que porta al canal: sense vídeo llarg."""
+    _update(run_id, step="AUDIO", message="Preparant els sons del Short…")
+    env = ENVIRONMENTS[environment]
+    catalog = load_catalog(settings.audio_catalog)
+    ambience = choose_ambience(settings.assets_dir / "ambience", environment, rng, level=level, preferred=preferred)
+    track = None
+    if env.music and (with_music or not env.layers):
+        tracks = music_tracks(settings.assets_dir / "music", style, catalog) or music_tracks(settings.assets_dir / "music", "calma", catalog)
+        track = rng.choice(tracks) if tracks else None
+    if not ambience and track is None and not env.noise:
+        raise AutopilotError("No hi ha cap so disponible per a este Short")
+    folder = create_output_dir(project_id, theme)
+    audio = folder / "short-audio.mp3"
+    result = subprocess.run(build_preview_command(ambience, track, False, audio, seconds=SHORT_SECONDS + 2, noise=env.noise,
+                                                  noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level), capture_output=True, text=True, check=False)
+    if result.returncode != 0 or not audio.is_file():
+        raise AutopilotError(f"No s'ha pogut preparar l'àudio del Short: {(result.stderr or '')[-300:]}")
+
+    _update(run_id, step="RENDERING", message="Fent el Short…")
+    fonts = fonts_for_theme(theme)
+    overlay, opacity = None, 0.0
+    layer_style = overlay_style(theme, environment) if with_motion else None
+    if layer_style:
+        try:
+            overlay = ensure_overlay(layer_style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays", width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS)
+            opacity = overlay_opacity(layer_style)
+        except Exception as exc:
+            notes.append(f"Sense efectes de moviment: {exc}"[:200])
+    public_theme = publication_theme(theme)
+    output = folder / "short.mp4"
+    command = build_short_command(background, audio, output, title=public_theme, subtitle=env.public_label, start=0,
+                                  label_font=fonts.label, text_font=fonts.digits, overlay=overlay, overlay_opacity=opacity,
+                                  footer="More cozy ambience on the channel")
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    audio.unlink(missing_ok=True)
+    if result.returncode != 0 or not output.is_file():
+        raise AutopilotError(f"No s'ha pogut fer el Short: {(result.stderr or '')[-300:]}")
+    music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1] if track else None
+    title, description, tags = channel_short_texts(public_theme, env.public_label, CHANNEL_URL, music_text)
+    if track:
+        description += "\n\n" + build_credits([track], [], catalog, compact=True)
+    generate_thumbnail(background, folder / "thumbnail.jpg", public_theme.upper(), fitting_fontsize(public_theme.upper()), fonts.label)
+    with SessionLocal() as db:
+        saved = db.get(Project, project_id)
+        saved.output_path, saved.status = str(folder), "COMPLETED"
+        db.add(PublicationMetadata(project_id=project_id, title=title, description=description, chapters="", tags=", ".join(tags), language="en"))
+        db.commit()
+    if not publish:
+        _update(run_id, step="DONE_LOCAL", message="; ".join(notes + ["Short fet; no s'ha demanat publicar-lo"]))
+        return
+    if not youtube_connected():
+        _update(run_id, step="DONE_LOCAL", message="; ".join(notes + ["Short fet, però YouTube no està connectat"]))
+        return
+    _update(run_id, step="PUBLISHING", message="Pujant el Short a YouTube…")
+    try:
+        short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, YOUTUBE_CATEGORIES["short"], "en", privacy, None))
+    except Exception as exc:
+        raise AutopilotError(f"El Short està fet, però YouTube ha fallat: {exc}") from exc
+    _update(run_id, step="DONE", video_id=short_id, short_video_id=short_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
 
 
 def _short_subtitle(run: AutoRun) -> str:

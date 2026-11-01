@@ -22,6 +22,7 @@ from app.services.renderer import (
 from app.services.timer import format_timestamp
 
 CHANNEL_NAME = "The Amber Window"
+CHANNEL_URL = "https://www.youtube.com/@TheAmberWindow"
 
 # Sonoritat objectiu (LUFS). La música i els efectes es normalitzen perquè cap
 # pista tape les altres, independentment de com s'haja gravat cada fitxer.
@@ -277,6 +278,7 @@ FORMATS = {
     "llegir": "Per a llegir",
     "ambient": "So ambiental",
     "respiracio": "Respiració guiada",
+    "short": "Només un Short",
     "rol": "Partida de rol",
     "soroll": "Soroll de color",
 }
@@ -290,12 +292,13 @@ NOISE_ENVIRONMENT = "soroll"
 # La pantalla es fon a negre després de 30 minuts (vídeos per a dormir i soroll).
 DIM_AFTER_SECONDS = 30 * 60
 # Categoria de YouTube per format: 27 Education, 22 People & Blogs, 20 Gaming.
-YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "ambient": "22", "respiracio": "26", "soroll": "22", "rol": "20"}
+YOUTUBE_CATEGORIES = {"pomodoro": "27", "dormir": "22", "llegir": "22", "ambient": "22", "respiracio": "26", "short": "22", "soroll": "22", "rol": "20"}
 FORMAT_MOODS = {
     "pomodoro": "quiet, immersive, focused, cozy, no people",
     "dormir": "calm, restful, dim and sleepy, soft low light, no people",
     "ambient": "calm, immersive and peaceful, natural light, no people",
     "respiracio": "calm, serene and peaceful, soft light, uncluttered center, no people",
+    "short": "quiet, immersive, cozy, no people",
     "llegir": "cozy, warm and inviting, soft golden reading light, peaceful, no people",
     "soroll": "calm, restful, dark and minimal, soft low light, no people",
     "rol": "atmospheric, adventurous, immersive, mysterious, no people",

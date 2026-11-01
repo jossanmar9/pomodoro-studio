@@ -248,7 +248,10 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
     if format!="pomodoro": chime=""
     if format not in {"dormir","soroll"}: dim=""
     if background and background not in {p.name for p in find_backgrounds(settings.assets_dir/"backgrounds",theme)}: raise HTTPException(400,"Fons no vàlid")
-    if format=="respiracio":
+    if format=="short":
+        if not ENVIRONMENTS[environment].layers and not ENVIRONMENTS[environment].noise and not ENVIRONMENTS[environment].music: raise HTTPException(400,"Entorn no vàlid")
+        breath,shorts,duration_minutes="", "", 1
+    elif format=="respiracio":
         if breath not in BREATH_PATTERNS: raise HTTPException(400,"Respiració no vàlida")
         if duration_minutes not in BREATH_DURATIONS: raise HTTPException(400,"Duració no vàlida")
     else:

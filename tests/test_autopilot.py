@@ -704,3 +704,26 @@ def test_christmas_themes_are_ready():
     for theme in ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"):
         assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS and "Christmas" in THEMES[theme]
     assert overlay_style("Poble nevat", "nit") == "neu" and overlay_style("Cabana de Nadal", "llar") == "pols"
+
+
+def test_channel_short_is_made_alone_and_links_to_the_channel(env, monkeypatch):
+    monkeypatch.setattr(auto, "build_preview_command", lambda ambience, track, chime, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, audio, output, **kw: ["bash", "-c", f"touch '{output}'"] if kw.get("footer") != "Full video on the channel" else pytest.fail("footer"))
+    run_id = make_run(env.session, format="short", duration_minutes=1)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE", run.error
+    assert "spec" not in env.rendered  # no hi ha vídeo llarg
+    upload = env.uploads[-1]
+    assert upload.video.name == "short.mp4" and upload.title.endswith("#shorts")
+    assert "https://www.youtube.com/@TheAmberWindow" in upload.description and "youtu.be" not in upload.description
+    assert run.video_id == run.short_video_id == "abc123"
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        assert "Només un Short" in client.get("/").text
+        response = client.post("/auto", data={"format": "short", "theme": "Bosc", "environment": "bosc", "duration_minutes": "120", "shorts": "1", "publish": "1"}, follow_redirects=False)
+        assert response.status_code == 303
+    with env.session() as db:
+        saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+    assert saved.format == "short" and saved.duration_minutes == 1 and saved.shorts == 0

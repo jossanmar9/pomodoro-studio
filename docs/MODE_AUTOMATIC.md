@@ -37,6 +37,8 @@ Pots tancar la pàgina mentre treballa; en tornar a obrir-la veuràs com va cada
 
 Si **Publicar també un Short** està marcat (ho està per defecte), després de publicar el vídeo es fa un clip vertical de 45 segons amb el mateix fons, la capa de moviment, el nom del tema i «Full video on the channel», i es puja a YouTube amb un enllaç al vídeo llarg en la descripció. Si el Short falla, el vídeo llarg continua publicat i la pàgina ho avisa.
 
+Amb el format **Només un Short** no es fa cap vídeo llarg: tries tema, entorn i fons, i es fa i es puja un Short de 45 segons amb els sons de l'entorn (i música si la marques) que convida a anar al canal. La descripció porta l'enllaç del canal.
+
 ### On es guarden els vídeos
 
 Cada vídeo es guarda en `output/<data>-<tema>-<número>/` amb `video.mp4`, la miniatura i els textos publicats. Si la casella **Esborrar el vídeo de l'ordinador 3 dies després de publicar-lo** està marcada (ho està per defecte), passats eixos dies s'esborra `video.mp4` i es conserven la miniatura i els textos. Els 3 dies són perquè tingues temps de comprovar que YouTube l'ha acceptat; mentrestant encara el pots **Tornar a pujar**. Els dies es poden canviar en `.env` amb `KEEP_PUBLISHED_DAYS`.

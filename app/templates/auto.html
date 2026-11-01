@@ -107,7 +107,7 @@
       </div>
     </fieldset>
 
-    <fieldset class="choice-block">
+    <fieldset class="choice-block" data-hide-for="short">
       <legend>3 · Duració</legend>
       <div class="choices compact" data-hide-for="respiracio">
         {% for d in durations %}
@@ -156,7 +156,7 @@
           </select>
         </label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
-        <label class="check"><input type="checkbox" name="shorts" value="1" checked> Publicar també un Short (45 s en vertical) que enllace amb el vídeo</label>
+        <label class="check" data-hide-for="short"><input type="checkbox" name="shorts" value="1" checked> Publicar també un Short (45 s en vertical) que enllace amb el vídeo</label>
         <label class="check"><input type="checkbox" name="delete_after" value="1" checked> Esborrar el vídeo de l'ordinador {{ keep_days }} dies després de publicar-lo</label>
         <label class="check"><input type="checkbox" name="shutdown" value="1"> Apagar l'ordinador en acabar</label>
         <label>Visibilitat
