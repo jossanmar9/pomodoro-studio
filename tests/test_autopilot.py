@@ -727,3 +727,33 @@ def test_channel_short_is_made_alone_and_links_to_the_channel(env, monkeypatch):
     with env.session() as db:
         saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
     assert saved.format == "short" and saved.duration_minutes == 1 and saved.shorts == 0
+
+
+def test_queued_and_running_videos_can_be_cancelled(env, monkeypatch):
+    queued = make_run(env.session)
+    runner = auto.AutopilotRunner()
+    runner._queue = [("run", queued)]
+    assert runner.cancel(queued) is True and runner._queue == []
+    with env.session() as db:
+        assert db.get(AutoRun, queued).step == "CANCELLED"
+    assert runner.cancel(queued) is False  # ja no està actiu
+
+    running = make_run(env.session)
+    runner._current = running
+    monkeypatch.setattr(auto.render_queue, "cancel", lambda project_id: True)
+    assert runner.cancel(running) is True and auto.is_cancelled(running)
+    auto.execute(running, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, running)
+    assert run.step == "CANCELLED" and run.error is None and "Cancel·lat" in run.message
+    assert not auto.is_cancelled(running) and env.uploads == []
+
+
+def test_cancel_endpoint(env, monkeypatch):
+    done = make_run(env.session, step="DONE", video_id="x")
+    waiting = make_run(env.session)
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        assert client.post(f"/auto/{done}/cancel").status_code == 409
+        assert client.post(f"/auto/{waiting}/cancel").json() == {"cancelled": True}
+        assert client.get("/api/auto").json()["runs"][0]["step_label"] == "Cancel·lat"

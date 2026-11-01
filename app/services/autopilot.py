@@ -17,7 +17,7 @@ from time import sleep
 
 from app.config import settings
 from app.database import SessionLocal
-from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
+from app.models import AUTO_ACTIVE_STEPS, AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     CHANNEL_URL, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
@@ -49,7 +49,28 @@ def youtube_connected() -> bool:
     return settings.youtube_token_file.is_file()
 
 
+class RunCancelled(Exception):
+    """L'usuari ha cancel·lat el vídeo."""
+
+
+_cancelled: set[int] = set()
+_cancel_lock = threading.Lock()
+
+
+def is_cancelled(run_id: int) -> bool:
+    with _cancel_lock:
+        return run_id in _cancelled
+
+
+def _check_cancel(run_id: int) -> None:
+    if is_cancelled(run_id):
+        raise RunCancelled()
+
+
 def _update(run_id: int, **fields) -> None:
+    # En passar a un pas nou es comprova si s'ha cancel·lat (un vídeo ja publicat no es pot desfer).
+    if fields.get("step") in AUTO_ACTIVE_STEPS:
+        _check_cancel(run_id)
     with SessionLocal() as db:
         run = db.get(AutoRun, run_id)
         if not run:
@@ -120,7 +141,11 @@ def prepare_music(playlist: list[Path], folder: Path) -> Path:
 def _wait_for_render(project_id: int) -> None:
     while True:
         job = render_queue.jobs.get(project_id)
+        if job and is_cancelled_project(project_id):
+            render_queue.cancel(project_id)
         if job and job.status in FINAL_RENDER_STATUSES:
+            if job.status == "CANCEL·LAT":
+                raise RunCancelled()
             if job.status != "COMPLETAT":
                 raise AutopilotError("El renderitzat ha fallat: " + (job.error or job.status))
             return
@@ -266,6 +291,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             _update(run_id, step="DONE_LOCAL", message="; ".join(notes + ["Vídeo fet, però YouTube no està connectat. Connecta'l i prem «Publicar ara»"]))
             return
         publish_project(run_id, project_id, privacy, notes)
+    except RunCancelled:
+        _finish_cancelled(run_id, project_id, notes)
     except Exception as exc:
         logger.exception("Execució automàtica %s fallida", run_id)
         message = str(exc) if isinstance(exc, (AutopilotError, ValueError)) else f"Error inesperat: {exc}"
@@ -275,6 +302,26 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             if project and project.status not in {"COMPLETED"}:
                 project.status = "FAILED"
                 db.commit()
+
+
+def _finish_cancelled(run_id: int, project_id: int | None, notes: list[str] | None = None) -> None:
+    with _cancel_lock:
+        _cancelled.discard(run_id)
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if run:
+            run.step, run.error = "CANCELLED", None
+            run.message = "; ".join([*(notes or []), "Cancel·lat per tu"])
+        project = db.get(Project, project_id) if project_id else None
+        if project and project.status != "COMPLETED":
+            project.status = "CANCELLED"
+        db.commit()
+
+
+def is_cancelled_project(project_id: int) -> bool:
+    with SessionLocal() as db:
+        run = db.query(AutoRun).filter(AutoRun.project_id == project_id).first()
+    return bool(run and is_cancelled(run.id))
 
 
 def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str] | None = None) -> None:
@@ -434,6 +481,29 @@ class AutopilotRunner:
         self._queue: list[tuple[str, int]] = []
         self._lock = threading.Lock()
         self._worker: threading.Thread | None = None
+        self._current: int | None = None
+
+    def cancel(self, run_id: int) -> bool:
+        """Cancel·la un vídeo en cua o en marxa. No es pot cancel·lar mentre es puja a YouTube."""
+        with SessionLocal() as db:
+            run = db.get(AutoRun, run_id)
+            if not run or run.step not in AUTO_ACTIVE_STEPS or run.step == "PUBLISHING":
+                return False
+            project_id = run.project_id
+        with self._lock:
+            queued = [item for item in self._queue if item[1] == run_id]
+            for item in queued:
+                self._queue.remove(item)
+            running = self._current == run_id
+        if queued or not running:
+            # En cua (o d'una execució anterior que ja no està en marxa): es tanca ara mateix.
+            _finish_cancelled(run_id, project_id)
+            return True
+        with _cancel_lock:
+            _cancelled.add(run_id)
+        if project_id:
+            render_queue.cancel(project_id)
+        return True
 
     def submit(self, run_id: int) -> None:
         self._push(("run", run_id))
@@ -456,13 +526,19 @@ class AutopilotRunner:
                 if not self._queue:
                     return
                 kind, run_id = self._queue.pop(0)
+                self._current = run_id
             try:
                 if kind == "run":
                     execute(run_id)
                 else:
                     _publish_existing(run_id)
+            except RunCancelled:
+                _finish_cancelled(run_id, None)
             except Exception:
                 logger.exception("Tasca automàtica %s fallida", run_id)
+            finally:
+                with self._lock:
+                    self._current = None
             try:
                 cleanup_published_videos()
             except Exception:

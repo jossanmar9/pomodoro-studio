@@ -64,3 +64,4 @@ button.big:hover{background:#f0b862}
 .bg-option input:checked+span{border-color:#e3a54a;box-shadow:0 0 0 2px #e3a54a}
 .bg-option input:focus-visible+span{outline:2px solid #e3a54a;outline-offset:2px}
 .bg-picker .missing{grid-column:1/-1;color:#d08a8a;margin:0}
+.run-step.CANCELLED{color:#aebbc9}

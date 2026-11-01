@@ -15,6 +15,7 @@ AUTO_STEPS = {
     "DONE": "Publicat",
     "DONE_LOCAL": "Vídeo fet (sense publicar)",
     "FAILED": "Error",
+    "CANCELLED": "Cancel·lat",
 }
 AUTO_ACTIVE_STEPS = {"QUEUED", "BACKGROUND", "AUDIO", "RENDERING", "PUBLISHING"}
 
