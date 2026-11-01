@@ -537,6 +537,8 @@ def test_music_style_follows_format_and_environment(tmp_path):
     assert music_style("pomodoro", "taverna") == "medieval" and music_style("rol", "bosc") == "medieval"
     assert music_style("rol", "masmorra") == "fosca" and music_style("rol", "tempesta") == "fosca"
     assert music_style("dormir", "taverna") == "calma"
+    assert music_style("pomodoro", "llar", "Cabana de Nadal") == "nadal" and music_style("dormir", "hivern", "Poble nevat") == "nadal"
+    assert music_style("rol", "taverna", "Mercat de Nadal") == "medieval"
     for name in ("healing.mp3", "jazz-lobby-time.mp3", "medieval-folk-round.mp3", "fosca-moorland.mp3"):
         touch(tmp_path / name)
     assert [p.name for p in music_tracks(tmp_path, "jazz")] == ["jazz-lobby-time.mp3"]
