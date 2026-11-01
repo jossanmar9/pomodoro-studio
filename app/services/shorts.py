@@ -21,7 +21,8 @@ def short_start(total_seconds: int, seconds: int = SECONDS) -> int:
 
 def build_short_command(background: Path, video: Path, output: Path, *, title: str, subtitle: str, start: int,
                         seconds: int = SECONDS, label_font: Path | None = None, text_font: Path | None = None,
-                        overlay: Path | None = None, overlay_opacity: float = 0.6, darken: float = 0.0) -> list[str]:
+                        overlay: Path | None = None, overlay_opacity: float = 0.6, darken: float = 0.0,
+                        footer: str = "Full video on the channel") -> list[str]:
     command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error",
                "-loop", "1", "-framerate", str(FPS), "-i", str(background),
                "-ss", str(start), "-t", str(seconds), "-i", str(video)]
@@ -42,7 +43,7 @@ def build_short_command(background: Path, video: Path, output: Path, *, title: s
     texts = [
         f"drawtext={font_option(label_font)}:text='{_escape_drawtext(title)}':fontsize=84:fontcolor=white:x=(w-text_w)/2:y=h*0.11:{SHADOW}",
         f"drawtext={font_option(text_font)}:text='{_escape_drawtext(subtitle)}':fontsize=50:fontcolor=white@0.92:x=(w-text_w)/2:y=h*0.11+120:{SHADOW}",
-        f"drawtext={font_option(text_font)}:text='Full video on the channel':fontsize=46:fontcolor=white@0.9:x=(w-text_w)/2:y=h*0.86:{SHADOW}",
+        f"drawtext={font_option(text_font)}:text='{_escape_drawtext(footer)}':fontsize=46:fontcolor=white@0.9:x=(w-text_w)/2:y=h*0.86:{SHADOW}",
         "fade=t=in:st=0:d=0.6",
         f"fade=t=out:st={seconds - 1}:d=1",
     ]
@@ -63,3 +64,18 @@ def short_texts(title: str, description: str, tags: list[str], video_id: str) ->
     first = description.strip().split("\n\n")[0].strip()
     short_description = f"Watch the full video: https://youtu.be/{video_id}\n\n{first}\n\n#shorts"
     return short_title, short_description[:4900], list(dict.fromkeys([*tags, "shorts"]))[:30]
+
+
+def channel_short_texts(public_theme: str, sound: str, channel_url: str, music: str | None = None) -> tuple[str, str, list[str]]:
+    """Textos d'un Short independent que porta al canal (no a un vídeo concret)."""
+    title = f"{public_theme} · {sound} Ambience #shorts"
+    if len(title) > 100:
+        title = f"{public_theme} Ambience #shorts"[:100]
+    with_music = f" and {music}" if music else ""
+    description = (
+        f"A quiet moment in a {public_theme.lower()}, with {sound.lower()} sounds{with_music}.\n\n"
+        f"Long ambience videos for studying, reading and sleep on the channel: {channel_url}\n\n"
+        "#shorts #ambience #cozy #relaxing"
+    )
+    tags = ["shorts", "ambience", "cozy ambience", f"{sound.lower()} sounds", public_theme.lower(), "relaxing sounds", "study ambience"]
+    return title, description, tags
