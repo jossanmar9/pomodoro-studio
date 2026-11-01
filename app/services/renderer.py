@@ -50,6 +50,8 @@ class RenderSpec:
     # Capa de moviment natural (vídeo de partícules sobre negre) que es barreja amb el fons.
     overlay: Path | None = None
     overlay_opacity: float = 0.6
+    # Enfosquix el fons (0-1) perquè la capa (p. ex. la respiració guiada) es llija bé.
+    darken: float = 0.0
 
 
 # Marge d'ampliació perquè la càmera puga moure's sense mostrar vores.
@@ -207,6 +209,8 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
         video = [f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"]
     if spec.flicker:
         video.append(FLICKER_FILTER)
+    if spec.darken > 0:
+        video.append(f"eq=brightness={-min(0.5, spec.darken):g}:saturation=0.85")
     parts: list[str] = []
     if overlay_input is not None:
         opacity = min(1.0, max(0.0, spec.overlay_opacity))

@@ -144,6 +144,12 @@
     const format = currentFormat();
     form.querySelectorAll("[data-show-for]").forEach((el) => { el.hidden = !el.dataset.showFor.split(" ").includes(format); });
     form.querySelectorAll("[data-hide-for]").forEach((el) => { el.hidden = el.dataset.hideFor.split(" ").includes(format); });
+    // La respiració té les seues duracions (en minuts): marca'n una de visible.
+    const checked = form.querySelector('input[name="duration_minutes"]:checked');
+    if (!checked || checked.closest("[hidden]")) {
+      const first = format === "respiracio" ? form.querySelector("input[data-breath-duration]") : form.querySelector('input[name="duration_minutes"][value="120"]');
+      if (first) first.checked = true;
+    }
   }
   form?.querySelectorAll('input[name="format"], input[name="noise"]').forEach((el) => el.addEventListener("change", () => { applyFormat(); forgetSounds(); }));
   if (form) applyFormat();

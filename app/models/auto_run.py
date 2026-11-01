@@ -51,6 +51,11 @@ class AutoRun(Base):
     delete_after: Mapped[int] = mapped_column(Integer, default=0)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Fons triat a mà en el formulari; després de fer el vídeo, el fons que s'ha usat.
+    # Respiració guiada: patró (quadrada, 478, coherent).
+    breath: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # 1 = publicar també un Short vertical que enllaça amb el vídeo.
+    shorts: Mapped[int] = mapped_column(Integer, default=0)
+    short_video_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     background: Mapped[str | None] = mapped_column(String(200), nullable=True)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

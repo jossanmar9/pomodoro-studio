@@ -109,11 +109,27 @@
 
     <fieldset class="choice-block">
       <legend>3 · Duració</legend>
-      <div class="choices compact">
+      <div class="choices compact" data-hide-for="respiracio">
         {% for d in durations %}
         <label class="choice">
           <input type="radio" name="duration_minutes" value="{{ d }}" {% if d == 120 %}checked{% endif %} required>
           <span>{{ d // 60 }} h</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="choices compact" data-show-for="respiracio" hidden>
+        {% for d in breath_durations %}
+        <label class="choice">
+          <input type="radio" name="duration_minutes" value="{{ d }}" data-breath-duration>
+          <span>{{ d }} min</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="choices compact formats" data-show-for="respiracio" hidden>
+        {% for key, label in breath_patterns.items() %}
+        <label class="choice">
+          <input type="radio" name="breath" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+          <span>{{ label }}</span>
         </label>
         {% endfor %}
       </div>
@@ -131,7 +147,7 @@
       <div class="publish-options">
         <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
-        <label class="check"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
+        <label class="check" data-hide-for="respiracio"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
         <label class="check" data-hide-for="soroll ambient"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música</label>
         <label data-hide-for="soroll ambient">Estil de música
           <select name="music_style" id="music-style">
@@ -140,6 +156,7 @@
           </select>
         </label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
+        <label class="check"><input type="checkbox" name="shorts" value="1" checked> Publicar també un Short (45 s en vertical) que enllace amb el vídeo</label>
         <label class="check"><input type="checkbox" name="delete_after" value="1" checked> Esborrar el vídeo de l'ordinador {{ keep_days }} dies després de publicar-lo</label>
         <label class="check"><input type="checkbox" name="shutdown" value="1"> Apagar l'ordinador en acabar</label>
         <label>Visibilitat

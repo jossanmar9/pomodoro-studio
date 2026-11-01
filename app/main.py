@@ -28,6 +28,7 @@ from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credenti
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, youtube_connected
 from app.services.background_library import library as background_library
+from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.autopilot_plan import MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
@@ -228,12 +229,12 @@ def auto_home(request:Request,error:str=Query("")):
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,
-        "keep_days":settings.keep_published_days,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},
+        "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form("")):
+def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
     if format=="soroll":
@@ -247,7 +248,12 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
     if format!="pomodoro": chime=""
     if format not in {"dormir","soroll"}: dim=""
     if background and background not in {p.name for p in find_backgrounds(settings.assets_dir/"backgrounds",theme)}: raise HTTPException(400,"Fons no vàlid")
-    if duration_minutes not in DURATION_CHOICES: raise HTTPException(400,"Duració no vàlida")
+    if format=="respiracio":
+        if breath not in BREATH_PATTERNS: raise HTTPException(400,"Respiració no vàlida")
+        if duration_minutes not in BREATH_DURATIONS: raise HTTPException(400,"Duració no vàlida")
+    else:
+        breath=""
+        if duration_minutes not in DURATION_CHOICES: raise HTTPException(400,"Duració no vàlida")
     if pomodoro not in POMODORO_CHOICES: raise HTTPException(400,"Pomodoro no vàlid")
     if privacy not in PRIVACY_CHOICES: raise HTTPException(400,"Privacitat no vàlida")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
@@ -255,7 +261,7 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=1 if shorts and publish else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)

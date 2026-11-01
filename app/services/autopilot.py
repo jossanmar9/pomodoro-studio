@@ -20,14 +20,16 @@ from app.database import SessionLocal
 from app.models import AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
-    choose_ambience, find_backgrounds, load_catalog, slugify,
+    choose_ambience, duration_label, find_backgrounds, load_catalog, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
 from app.services.jobs import render_queue
 from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
+from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip
 from app.services.overlays import ensure_overlay, overlay_opacity, overlay_style
+from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, WIDTH as SHORT_WIDTH, build_short_command, short_start, short_texts
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
 from app.services.timer import build_chapters, build_timeline
@@ -140,6 +142,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         run_noise = run.noise
         with_motion = bool(run.motion)
         chosen_background = run.background
+        breath = run.breath
         style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
@@ -207,7 +210,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             chapters=chapters,
             credits=build_credits(playlist, ambience_paths, catalog),
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
-            music=bool(playlist), chime=with_chime, style=style,
+            music=bool(playlist), chime=with_chime, style=style, breath=breath,
             fmt=fmt, noise=run_noise, dim=dim_after is not None,
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
@@ -225,9 +228,13 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             db.add(PublicationMetadata(project_id=project_id, title=draft.title, description=draft.description, chapters=draft.chapters, tags=draft.tags, language=draft.language))
             db.commit()
 
-        overlay, opacity = None, 0.0
-        layer_style = overlay_style(theme, environment) if with_motion else None
-        if layer_style:
+        overlay, opacity, darken = None, 0.0, 0.0
+        layer_style = overlay_style(theme, environment) if with_motion and fmt != "respiracio" else None
+        if fmt == "respiracio":
+            overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=int(RESOLUTION.split("x")[0]),
+                                         height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps, font=fonts.label)
+            opacity, darken = BREATH_OPACITY, BREATH_DARKEN
+        elif layer_style:
             try:
                 overlay = ensure_overlay(layer_style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays",
                                          width=int(RESOLUTION.split("x")[0]), height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps)
@@ -242,7 +249,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
             noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
-            overlay=overlay, overlay_opacity=opacity,
+            overlay=overlay, overlay_opacity=opacity, darken=darken,
         ))
         _wait_for_render(project_id)
         if music_track:
@@ -299,6 +306,58 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
         record.status, record.video_id, record.error = "PUBLISHED", video_id, None
         db.commit()
     _update(run_id, step="DONE", video_id=video_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
+    try:
+        short_note = publish_short(run_id, root, spec, video_id)
+    except Exception as exc:  # el vídeo llarg ja està publicat: el Short és un extra
+        logger.exception("No s'ha pogut publicar el Short")
+        short_note = f"El Short ha fallat: {exc}"[:300]
+    if short_note:
+        _update(run_id, message="; ".join([*notes, short_note]))
+
+
+def _short_subtitle(run: AutoRun) -> str:
+    if run.format == "respiracio" and run.breath in BREATH_PATTERNS:
+        return f"{BREATH_PATTERNS[run.breath].public} · {run.duration_minutes} min"
+    label = duration_label(run.duration_minutes)
+    if run.format == "soroll" and run.noise in NOISE_COLORS:
+        return f"{label} · {NOISE_COLORS[run.noise][1]} Noise"
+    env = ENVIRONMENTS.get(run.environment)
+    return f"{label} · {env.public_label}" if env else label
+
+
+def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: str) -> str | None:
+    """Fa i puja el Short vertical que enllaça amb el vídeo. Torna una nota per a l'usuari, o None."""
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not run or not run.shorts or run.short_video_id:
+            return None
+        theme, environment, fmt, breath, background_name = run.theme, run.environment, run.format, run.breath, run.background
+        subtitle, with_motion = _short_subtitle(run), bool(run.motion)
+        total = run.duration_minutes * 60
+    background = settings.assets_dir / "backgrounds" / (background_name or "")
+    if not background_name or not background.is_file():
+        return "Short no fet: no es troba el fons"
+    fonts = fonts_for_theme(theme)
+    overlay, opacity, darken = None, 0.0, 0.0
+    if fmt == "respiracio" and breath in BREATH_PATTERNS:
+        overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS, font=fonts.label)
+        opacity, darken = BREATH_OPACITY, BREATH_DARKEN
+    else:
+        style = overlay_style(theme, environment) if with_motion else None
+        if style:
+            overlay = ensure_overlay(style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays", width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS)
+            opacity = overlay_opacity(style)
+    output = folder / "short.mp4"
+    command = build_short_command(background, main.video, output, title=publication_theme(theme), subtitle=subtitle,
+                                  start=short_start(total), label_font=fonts.label, text_font=fonts.digits,
+                                  overlay=overlay, overlay_opacity=opacity, darken=darken)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0 or not output.is_file():
+        return f"Short no fet: {(result.stderr or '')[-200:]}"
+    title, description, tags = short_texts(main.title, main.description, main.tags, video_id)
+    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None))
+    _update(run_id, short_video_id=short_id)
+    return None
 
 
 class AutopilotRunner:
@@ -419,6 +478,7 @@ def cleanup_published_videos(now: datetime | None = None) -> int:
             try:
                 video.unlink()
                 (folder / "publication-package.zip").unlink(missing_ok=True)
+                (folder / "short.mp4").unlink(missing_ok=True)
             except OSError:
                 logger.exception("No s'ha pogut esborrar %s", video)
                 continue
