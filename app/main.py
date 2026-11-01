@@ -275,6 +275,12 @@ def auto_status():
     return {"runs":_recent_runs(),"youtube_connected":youtube_connected(),"shutdown":power.status()}
 
 
+@app.post("/auto/{run_id}/cancel")
+def auto_cancel(run_id:int):
+    if not autopilot.cancel(run_id): raise HTTPException(409,"Este vídeo ja no es pot cancel·lar")
+    return {"cancelled":True}
+
+
 @app.post("/api/shutdown/cancel")
 def cancel_shutdown():
     return {"cancelled":power.cancel()}

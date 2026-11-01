@@ -30,6 +30,7 @@
         detail = `${run.progress}%${run.eta ? ` · queden uns ${clock(run.eta)}` : ""}`;
       }
       const actions = [];
+      if (ACTIVE.has(run.step) && run.step !== "PUBLISHING") actions.push(`<button type="button" class="mini secondary" data-cancel="${run.id}">Cancel·lar</button>`);
       if (run.video_url) actions.push(`<a href="${esc(run.video_url)}" target="_blank" rel="noopener">Veure a YouTube ↗</a>`);
       if (run.project_id) actions.push(`<a href="/projects/${run.project_id}">Fitxa del vídeo</a>`);
       if (!run.video_id && run.project_id && run.video_available && (run.step === "DONE_LOCAL" || (run.step === "FAILED" && /YouTube/.test(run.error || "")))) {
@@ -51,6 +52,19 @@
       </article>`;
     }).join("");
   }
+
+  box?.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-cancel]");
+    if (!button || !confirm("Cancel·lar este vídeo?")) return;
+    button.disabled = true;
+    button.textContent = "Cancel·lant…";
+    const response = await fetch(`/auto/${button.dataset.cancel}/cancel`, {method: "POST"});
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      alert(result.detail || "No s'ha pogut cancel·lar");
+    }
+    refresh();
+  });
 
   async function refresh() {
     try {
