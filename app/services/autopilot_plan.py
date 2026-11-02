@@ -15,6 +15,7 @@ import subprocess
 import unicodedata
 
 from app.services.ambience_prompt import AmbiencePromptSpec
+from app.services.scenes import SCENES, SEASONS, season_slugs
 from app.services.renderer import (
     CHIME_BREAK_END, CHIME_FOCUS_END, SUPPORTED_AUDIO_SUFFIXES, SUPPORTED_IMAGE_SUFFIXES,
     SUPPORTED_VIDEO_SUFFIXES, _bell, noise_filter, noise_source,
@@ -278,26 +279,13 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Riu": ("gentle river in a green valley", "clear water over smooth stones, willow trees on the banks, a small wooden bridge in the distance", "natural"),
     "Hivernacle": ("old victorian glass greenhouse", "raindrops on the glass roof, lush plants, hanging ferns and orchids, a small wrought-iron table with a teapot", "victorian"),
     "Port": ("quiet old harbour", "small wooden boats gently rocking, warm lamps reflected on wet stones and water, light fog over the sea", "timeless"),
-    "Cabana a la neu": ("small wooden cabin on a winter night", "a frosted window with heavy snowfall and snowy pine trees, a glowing fireplace, a mug of hot chocolate and a blanket on a window seat", "cozy"),
-    "Cabana de Nadal": ("cozy wooden cabin decorated for Christmas", "a decorated Christmas tree with warm lights, a crackling stone fireplace with stockings, a frosted window with falling snow, gifts and a blanket on an armchair", "cozy"),
-    "Sala de Nadal": ("cozy living room on Christmas Eve", "a tall Christmas tree with golden lights, garlands on the fireplace mantel, candles, a cup of hot chocolate, snow falling outside the window", "cozy"),
-    "Cafeteria de Nadal": ("cozy coffee shop decorated for Christmas", "string lights and garlands, a small Christmas tree, gingerbread cookies and steaming mugs, snowy street visible through the window", "cozy"),
-    "Biblioteca de Nadal": ("old library decorated for Christmas", "tall bookshelves with garlands and red ribbons, a Christmas tree with warm lights, a fireplace, snow falling outside tall arched windows", "victorian"),
-    "Poble nevat": ("snowy village at night at Christmas time", "small houses with warm lit windows, Christmas lights, snow-covered roofs and pine trees, a quiet cobblestone street with lanterns", "cozy"),
-    "Mercat de Nadal": ("quiet Christmas market at dusk", "wooden stalls with warm lights, garlands and ornaments, a big Christmas tree in the square, light snow falling", "cozy"),
-    "Cabana de Halloween": ("cozy wooden cottage on Halloween night", "carved pumpkins with candlelight on the windowsill, a crackling fireplace, autumn leaves, a big window over a misty moonlit forest", "cozy"),
-    "Biblioteca de Halloween": ("old library on Halloween night", "tall shelves with ancient books, flickering candles, jack-o'-lanterns, cobwebs, a full moon through a gothic window", "gothic"),
-    "Matí de Pasqua": ("bright cozy cottage kitchen on an Easter morning", "pastel painted eggs in a basket, spring flowers in jars, a fresh cake, an open window over a blooming garden", "cozy"),
-    "Cabana de tardor": ("cozy cabin in autumn", "a window seat with a knitted blanket and tea, a big window over red and golden trees in soft rain, warm lamp light", "cozy"),
-    "Cafeteria de tardor": ("cozy caf\u00e9 in autumn", "pumpkin spice latte and cinnamon rolls on a wooden table, golden leaves outside the rainy window, warm string lights", "cozy"),
-    "Bosc de tardor": ("peaceful forest path in autumn", "red, orange and golden trees, fallen leaves, soft morning light and light mist, a small wooden bench", "natural"),
-    "Jardí de primavera": ("blooming spring garden", "cherry blossom trees, tulips and daffodils, a stone path and a small wooden gazebo, soft sunlight", "natural"),
-    "Racó de primavera": ("cozy reading nook by an open window in spring", "white curtains in the breeze, cherry blossoms outside, books, fresh flowers and a cup of tea", "cozy"),
-    "Porxo d'estiu": ("wooden porch of a countryside house on a summer evening", "a hammock and string lights, golden sunset over wheat fields, fireflies starting to glow", "natural"),
-    "Nit d'estiu": ("quiet lake on a summer night", "a wooden dock with a lantern, starry sky reflected in still water, pine trees and fireflies", "natural"),
-    "Casa de la platja": ("cozy beach house living room in summer", "white wooden walls, an open door to the sea, linen curtains in the breeze, seashells and books", "coastal"),
-    "Cafeteria d'hivern": ("cozy coffee shop on a snowy winter afternoon", "steaming mugs of hot chocolate with whipped cream, warm lamps, a knitted scarf on a chair, a big window with heavy snow on a quiet street", "cozy"),
-    "Bosc nevat": ("peaceful snowy forest at dusk", "tall pine trees covered in fresh snow, a narrow path with footprints, a small cabin with a warm lit window in the distance, gentle snowfall", "natural"),
+    "Estiu": ("cozy summer scene", "warm golden summer light, open windows, sea, fields and warm evenings", "cozy"),
+    "Tardor": ("cozy autumn scene", "red and golden trees, falling leaves, soft rain and warm lamps", "cozy"),
+    "Primavera": ("cozy spring scene", "cherry blossoms, fresh flowers, soft bright light and green leaves", "cozy"),
+    "Hivern": ("cozy winter scene", "snow outside the windows, warm fireplaces and hot drinks", "cozy"),
+    "Nadal": ("cozy christmas scene", "christmas trees with warm lights, garlands, candles and snow outside", "cozy"),
+    "Halloween": ("cozy halloween scene", "carved pumpkins with candlelight, autumn leaves, a full moon and light fog", "cozy"),
+    "Pasqua": ("cozy easter scene", "pastel painted eggs, spring flowers and soft morning sunlight", "cozy"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
@@ -311,13 +299,13 @@ THEME_GROUPS: dict[str, tuple[str, tuple[str, ...]]] = {
     "Viatges": ("🚆", ("Tren", "Avió", "Vaixell pirata")),
     "Història": ("🏛️", ("Roma antiga", "Grècia antiga", "Japó feudal", "Castell gòtic")),
     "Fantasia i rol": ("🐉", ("Taverna medieval", "Torre de l'alquimista", "Masmorra", "Campament d'aventurers", "Cova del drac")),
-    "Estiu": ("☀️", ("Porxo d'estiu", "Nit d'estiu", "Casa de la platja")),
-    "Tardor": ("🍂", ("Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor")),
-    "Primavera": ("🌸", ("Jardí de primavera", "Racó de primavera")),
-    "Hivern": ("❄️", ("Cabana a la neu", "Cafeteria d'hivern", "Bosc nevat")),
-    "Nadal": ("🎄", ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal")),
-    "Halloween": ("🎃", ("Cabana de Halloween", "Biblioteca de Halloween")),
-    "Pasqua": ("🐣", ("Matí de Pasqua",)),
+    "Estiu": ("☀️", ("Estiu",)),
+    "Tardor": ("🍂", ("Tardor",)),
+    "Primavera": ("🌸", ("Primavera",)),
+    "Hivern": ("❄️", ("Hivern",)),
+    "Nadal": ("🎄", ("Nadal",)),
+    "Halloween": ("🎃", ("Halloween",)),
+    "Pasqua": ("🐣", ("Pasqua",)),
 }
 # Valor del formulari per a «qualsevol tema d'este quadre».
 GROUP_PREFIX = "grup:"
@@ -377,11 +365,8 @@ MUSIC_STYLES = {
     "nadal": ("Nadal", "calm Christmas music"),
 }
 # Música de temporada per tema (com Nadal): Halloween fosca; estiu, jazz suau.
-SEASON_MUSIC = {
-    "Cabana de Halloween": "fosca", "Biblioteca de Halloween": "fosca",
-    "Porxo d'estiu": "jazz", "Nit d'estiu": "jazz", "Casa de la platja": "jazz",
-}
-CHRISTMAS_THEMES = {"Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"}
+SEASON_MUSIC = {"Halloween": "fosca", "Estiu": "jazz"}
+CHRISTMAS_THEMES = {"Nadal"}
 _JAZZ_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "pluja-ciutat", "ciutat-nit", "japo-carrer", "transit"}
 _MEDIEVAL_ENVIRONMENTS = {"taverna", "campament"}
 _DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar", "cova", "nit-halloween"}
@@ -496,13 +481,14 @@ def find_backgrounds(folder: Path, theme: str) -> list[Path]:
     """Fons existents que pertanyen a l'ambientació (pel nom del fitxer)."""
     if not folder.is_dir():
         return []
-    slug = slugify(theme)
+    own = season_slugs(theme) or [slugify(theme)]
     suffixes = SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_VIDEO_SUFFIXES
-    # Un fitxer és del tema amb el nom més llarg que hi encaixa: «bosc-nevat-…» és de «Bosc nevat», no de «Bosc».
-    longer = [s for s in (slugify(t) for t in THEME_VISUALS) if s != slug and s.startswith(slug + "-")]
+    # Un fitxer és del nom més llarg que hi encaixa: «bosc-nevat-…» és de l'escena «Bosc nevat» (Hivern), no de «Bosc».
+    known = {slugify(t) for t in THEME_VISUALS} | {slugify(scene) for scene in SCENES}
+    longer = [k for k in known if k not in own and any(k.startswith(o + "-") for o in own)]
 
     def belongs(stem: str) -> bool:
-        if not (stem == slug or stem.startswith(slug + "-")):
+        if not any(stem == o or stem.startswith(o + "-") for o in own):
             return False
         return not any(stem == other or stem.startswith(other + "-") for other in longer)
 
@@ -523,6 +509,8 @@ class AmbienceLayer:
 
 # Volum de l'ambient triat en la pàgina: desplaçament en dB sobre la sonoritat base.
 AMBIENCE_LEVELS = {-6: "Molt baix", 0: "Baix", 4: "Normal"}
+# Volum de la música respecte del nivell normal (dB).
+MUSIC_LEVELS = {-8: "Molt baixa", -4: "Baixa", 0: "Normal", 3: "Alta"}
 
 
 def choose_ambience(folder: Path, environment: str, rng: random.Random, *, level: int = 0, preferred: list[str] | None = None) -> list[AmbienceLayer]:
@@ -597,14 +585,14 @@ def loudnorm_filter(target: float) -> str:
     return f"loudnorm=I={target:g}:TP=-2:LRA=11,aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo"
 
 
-def build_music_mix_command(playlist: list[Path], output: Path, *, crossfade: int = MUSIC_CROSSFADE_SECONDS) -> list[str]:
+def build_music_mix_command(playlist: list[Path], output: Path, *, crossfade: int = MUSIC_CROSSFADE_SECONDS, level: int = 0) -> list[str]:
     """Una sola pista de música amb totes les peces encadenades i fosa entre elles."""
     if not playlist:
         raise ValueError("La llista musical és buida")
     command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error"]
     for track in playlist:
         command += ["-i", str(track)]
-    parts = [f"[{i}:a]{loudnorm_filter(MUSIC_LOUDNESS)}[m{i}]" for i in range(len(playlist))]
+    parts = [f"[{i}:a]{loudnorm_filter(MUSIC_LOUDNESS + level)}[m{i}]" for i in range(len(playlist))]
     last = "m0"
     for i in range(1, len(playlist)):
         label = f"x{i}"
@@ -898,7 +886,7 @@ class AutoPlan:
 PREVIEW_SECONDS = 30
 
 
-def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS, noise: str | None = None, noise_loudness: float = -30.0) -> list[str]:
+def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS, noise: str | None = None, noise_loudness: float = -30.0, music_level: int = 0) -> list[str]:
     """Mostra d'àudio amb els mateixos nivells que el vídeo final.
 
     La campaneta sona als 10 s (final de concentració) i als 20 s (final de descans).
@@ -920,7 +908,7 @@ def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chi
         mix.append(f"[a{index}]"); index += 1
     if music is not None:
         command += ["-stream_loop", "-1", "-i", str(music)]
-        parts.append(f"[{index}:a]{loudnorm_filter(MUSIC_LOUDNESS)},afade=t=in:d=1[a{index}]")
+        parts.append(f"[{index}:a]{loudnorm_filter(MUSIC_LOUDNESS + music_level)},afade=t=in:d=1[a{index}]")
         mix.append(f"[a{index}]"); index += 1
     if chime:
         for notes, at in ((CHIME_FOCUS_END, 10_000), (CHIME_BREAK_END, 20_000)):

@@ -76,3 +76,6 @@ button.big:hover{background:#f0b862}
 .group-tile:focus-visible{outline:2px solid #e3a54a;outline-offset:2px}
 .theme-panel{margin-top:10px;padding:12px;border:1px solid #e3a54a;border-radius:12px;background:#120f0a}
 .theme-panel .theme-group{margin:0 0 8px}
+.group-tile.direct{position:relative}
+.group-tile.direct input{position:absolute;opacity:0;pointer-events:none}
+.group-tile.direct:has(input:checked){border-color:#e3a54a;background:#2a1f10;color:#fff3df;box-shadow:0 0 0 1px #e3a54a inset}

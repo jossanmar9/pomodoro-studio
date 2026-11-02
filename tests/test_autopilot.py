@@ -314,7 +314,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto.settings, "audio_catalog", tmp_path / "missing-catalog.json")
     monkeypatch.setattr(auto, "probe_duration", lambda path: 300.0, raising=False)
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
-    monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
+    monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder, level=0: touch(folder / "music-mix.m4a"))
     monkeypatch.setattr(auto, "ensure_overlay", lambda style, **kw: touch(tmp_path / "overlays" / f"{style}.mp4"))
     monkeypatch.setattr(auto, "ensure_breath_clip", lambda pattern, **kw: touch(tmp_path / "overlays" / f"respiracio-{pattern}.mp4"))
     monkeypatch.setattr(auto, "ensure_breath_intro", lambda **kw: touch(tmp_path / "overlays" / "respiracio-intro.mp4"))
@@ -538,8 +538,8 @@ def test_music_style_follows_format_and_environment(tmp_path):
     assert music_style("pomodoro", "taverna") == "medieval" and music_style("rol", "bosc") == "medieval"
     assert music_style("rol", "masmorra") == "fosca" and music_style("rol", "tempesta") == "fosca"
     assert music_style("dormir", "taverna") == "calma"
-    assert music_style("pomodoro", "llar", "Cabana de Nadal") == "nadal" and music_style("dormir", "hivern", "Poble nevat") == "nadal"
-    assert music_style("rol", "taverna", "Mercat de Nadal") == "medieval"
+    assert music_style("pomodoro", "llar", "Nadal") == "nadal" and music_style("dormir", "hivern", "Nadal") == "nadal"
+    assert music_style("rol", "taverna", "Nadal") == "medieval"
     for name in ("healing.mp3", "jazz-lobby-time.mp3", "medieval-folk-round.mp3", "fosca-moorland.mp3"):
         touch(tmp_path / name)
     assert [p.name for p in music_tracks(tmp_path, "jazz")] == ["jazz-lobby-time.mp3"]
@@ -625,7 +625,7 @@ def test_ambient_runs_have_no_music_and_the_plane_uses_generated_noise(env):
 def test_new_ambient_themes_are_ready():
     from app.services.fonts import THEME_FONTS
     from app.services.overlays import overlay_style
-    for theme in ("Avió", "Tren", "Platja", "Riu", "Hivernacle", "Port", "Cabana a la neu"):
+    for theme in ("Avió", "Tren", "Platja", "Riu", "Hivernacle", "Port", "Hivern"):
         assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS
     for key in ("bosc-tempesta", "platja-tempesta", "riu", "llar-tempesta", "biblioteca", "port", "avio"):
         assert key in ENVIRONMENTS
@@ -703,9 +703,9 @@ def test_short_command_renders_a_vertical_clip(tmp_path):
 def test_christmas_themes_are_ready():
     from app.services.fonts import THEME_FONTS
     from app.services.overlays import overlay_style
-    for theme in ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"):
-        assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS and "Christmas" in THEMES[theme]
-    assert overlay_style("Poble nevat", "nit") == "neu" and overlay_style("Cabana de Nadal", "llar") == "pols"
+    assert "Nadal" in AUTO_THEMES and "Nadal" in THEMES and "Nadal" in THEME_FONTS and "Christmas" in THEMES["Nadal"]
+    assert overlay_style("Nadal", "nit", Path("poble-nevat-nit-temporada.png")) == "neu"
+    assert overlay_style("Nadal", "llar", Path("cabana-de-nadal-llar-temporada.png")) == "pols"
 
 
 def test_channel_short_is_made_alone_and_links_to_the_channel(env, monkeypatch):
@@ -841,23 +841,25 @@ def test_seasonal_themes_have_their_effects_music_and_sounds():
     from app.services.autopilot_plan import music_advice, music_style
     from app.services.fonts import THEME_FONTS
     from app.services.overlays import overlay_mode, overlay_style
-    new = ("Cabana de Halloween", "Biblioteca de Halloween", "Matí de Pasqua", "Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor",
-           "Jardí de primavera", "Racó de primavera", "Porxo d'estiu", "Nit d'estiu", "Casa de la platja")
-    for theme in new:
+    for theme in ("Estiu", "Tardor", "Primavera", "Hivern", "Nadal", "Halloween", "Pasqua"):
         assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS, theme
-    assert "Nau espacial" not in AUTO_THEMES
-    assert overlay_style("Bosc de tardor", "tardor") == "fulles" and overlay_mode("fulles") == "key"
-    assert overlay_style("Jardí de primavera", "jardi") == "petals" and overlay_style("Jardí de primavera", "pluja") == "pluja"
-    assert overlay_style("Nit d'estiu", "nit-estiu") == "cuques" and overlay_mode("cuques") == "screen"
-    assert overlay_style("Cabana de Halloween", "nit-halloween") == "boira"
-    assert music_style("pomodoro", "nit-halloween", "Cabana de Halloween") == "fosca"
-    assert music_style("llegir", "nit-estiu", "Porxo d'estiu") == "jazz" and music_style("dormir", "nit-estiu", "Porxo d'estiu") == "calma"
+    for removed in ("Nau espacial", "Cabana de Nadal", "Porxo d'estiu", "Bosc de tardor"):
+        assert removed not in AUTO_THEMES
+    assert overlay_style("Tardor", "tardor", Path("bosc-de-tardor-tardor-temporada.png")) == "fulles" and overlay_mode("fulles") == "key"
+    assert overlay_style("Primavera", "jardi", Path("jardi-de-primavera-jardi-temporada.png")) == "petals"
+    assert overlay_style("Primavera", "pluja", Path("jardi-de-primavera-pluja-temporada.png")) == "pluja"
+    assert overlay_style("Primavera", "pluja", Path("cafeteria-de-primavera-cafeteria-temporada.png")) == "pols"  # dins no plou
+    assert overlay_style("Estiu", "nit-estiu", Path("nit-d-estiu-nit-estiu-temporada.png")) == "cuques" and overlay_mode("cuques") == "screen"
+    assert overlay_style("Halloween", "nit-halloween", Path("cabana-de-halloween-nit-halloween-temporada.png")) == "boira"
+    assert overlay_style("Halloween", "nit-halloween") == "boira" and overlay_style("Estiu", "mar") == "pols"
+    assert music_style("pomodoro", "nit-halloween", "Halloween") == "fosca"
+    assert music_style("llegir", "nit-estiu", "Estiu") == "jazz" and music_style("dormir", "nit-estiu", "Estiu") == "calma"
     for key in ("nit-halloween", "nit-estiu", "jardi", "tardor"):
         assert ENVIRONMENTS[key].layers
     assert music_advice("dormir", "pluja", "Bosc")["recommended"] is False
     assert music_advice("pomodoro", "cafeteria", "Cafeteria moderna")["recommended"] is False
     assert music_advice("pomodoro", "pluja", "Biblioteca medieval")["recommended"] is True
-    assert music_advice("llegir", "llar", "Cabana de Nadal") == {"recommended": True, "reason": "La música nadalenca encaixa amb el tema.", "style": "Nadal"}
+    assert music_advice("llegir", "llar", "Nadal") == {"recommended": True, "reason": "La música nadalenca encaixa amb el tema.", "style": "Nadal"}
     assert music_advice("ambient", "pluja", "Bosc")["recommended"] is None
 
 
@@ -886,24 +888,53 @@ def test_themes_are_grouped_in_tiles(env, monkeypatch):
     listed = [t for _, _, themes in grouped_themes() for t in themes]
     assert sorted(listed) == sorted(AUTO_THEMES) and len(listed) == len(set(listed))
     assert list(THEME_GROUPS)[-7:] == ["Estiu", "Tardor", "Primavera", "Hivern", "Nadal", "Halloween", "Pasqua"]
-    assert group_themes("grup:Hivern") == ["Cabana a la neu", "Cafeteria d'hivern", "Bosc nevat"] and group_themes("Bosc") is None
+    assert group_themes("grup:Hivern") == ["Hivern"] and group_themes("Bosc") is None
+    assert all(THEME_GROUPS[g][1] == (g,) for g in ("Estiu", "Tardor", "Primavera", "Hivern", "Nadal", "Halloween", "Pasqua"))
     for removed in ("Sant Valentí", "Cap d'Any", "Pluja de tardor a la ciutat", "Nau espacial"):
         assert removed not in AUTO_THEMES
     monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
     with TestClient(main.app) as client:
         page = client.get("/").text
-        assert page.count('class="group-tile"') == len(THEME_GROUPS) and 'value="grup:Hivern"' in page
+        assert page.count('class="group-tile"') + page.count('class="group-tile direct"') == len(THEME_GROUPS)
+        assert page.count('class="group-tile direct"') == 7 and 'name="theme" value="Hivern"' in page
         assert client.post("/auto", data={"theme": "grup:Inventat", "environment": "bosc", "duration_minutes": "60"}).status_code == 400
-        assert client.post("/auto", data={"theme": "grup:Hivern", "environment": "hivern", "duration_minutes": "60"}, follow_redirects=False).status_code == 303
+        assert client.post("/auto", data={"theme": "grup:Natura", "environment": "bosc", "duration_minutes": "60"}, follow_redirects=False).status_code == 303
         assert client.get("/api/auto/music-advice", params={"format": "llegir", "environment": "llar", "theme": "grup:Nadal"}).json()["style"] == "Nadal"
     with env.session() as db:
         saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
-    assert saved.theme in THEME_GROUPS["Hivern"][1] and saved.background is None
+    assert saved.theme in THEME_GROUPS["Natura"][1] and saved.background is None
 
 
 def test_background_belongs_to_the_most_specific_theme(tmp_path):
-    for name in ("bosc-bosc-pomodoro.png", "bosc-nevat-hivern-temporada.png", "bosc-de-tardor-tardor-temporada.png"):
+    for name in ("bosc-bosc-pomodoro.png", "bosc-nevat-hivern-temporada.png", "bosc-de-tardor-tardor-temporada.png",
+                 "cafeteria-d-hivern-hivern-temporada.png", "cafeteria-cafeteria-pomodoro.png", "tren-d-hivern-tren-temporada.png",
+                 "tren-tren-ambient.png", "hivern-llar-temporada.png"):
         touch(tmp_path / name)
     assert [p.name for p in find_backgrounds(tmp_path, "Bosc")] == ["bosc-bosc-pomodoro.png"]
-    assert [p.name for p in find_backgrounds(tmp_path, "Bosc nevat")] == ["bosc-nevat-hivern-temporada.png"]
-    assert [p.name for p in find_backgrounds(tmp_path, "Bosc de tardor")] == ["bosc-de-tardor-tardor-temporada.png"]
+    assert [p.name for p in find_backgrounds(tmp_path, "Tren")] == ["tren-tren-ambient.png"]
+    assert sorted(p.name for p in find_backgrounds(tmp_path, "Hivern")) == [
+        "bosc-nevat-hivern-temporada.png", "cafeteria-d-hivern-hivern-temporada.png", "hivern-llar-temporada.png", "tren-d-hivern-tren-temporada.png"]
+    assert [p.name for p in find_backgrounds(tmp_path, "Tardor")] == ["bosc-de-tardor-tardor-temporada.png"]
+
+
+def test_scenes_belong_to_one_season():
+    from app.services.scenes import SCENES, SEASONS, scene_for, season_slugs
+    assert all(season in SEASONS for season, _, _ in SCENES.values())
+    assert scene_for("bosc-de-primavera-riu-temporada") == "Bosc de primavera" and scene_for("bosc-bosc-pomodoro") is None
+    assert scene_for("cafeteria-de-halloween-cafeteria-temporada") == "Cafeteria de Halloween"
+    assert "poble-nevat" in season_slugs("Nadal") and season_slugs("Bosc") == []
+
+
+def test_music_level_is_saved_and_changes_the_mix(env, monkeypatch):
+    from app.services.autopilot_plan import MUSIC_LEVELS, build_music_mix_command
+    low = " ".join(build_music_mix_command([Path("a.mp3")], Path("out.m4a"), level=-8))
+    assert "I=-30" in low and set(MUSIC_LEVELS) == {-8, -4, 0, 3}
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+        assert 'name="music_level"' in page and "Escoltar mostra" in page
+        assert client.post("/auto", data={"theme": "Bosc", "environment": "bosc", "duration_minutes": "60", "music": "1", "music_level": "7"}).status_code == 400
+        assert client.post("/auto", data={"theme": "Nadal", "environment": "llar", "duration_minutes": "60", "music": "1", "music_level": "-4"}, follow_redirects=False).status_code == 303
+    with env.session() as db:
+        saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+    assert saved.theme == "Nadal" and saved.music_level == -4

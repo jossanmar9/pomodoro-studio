@@ -62,13 +62,21 @@
       <legend>1 · Tema</legend>
       <div class="groups" id="theme-groups">
         {% for group in theme_groups %}
+        {% if group.direct %}
+        <label class="group-tile direct">
+          <input type="radio" name="theme" value="{{ group.name }}" required>
+          <b>{{ group.icon }} {{ group.name }}</b>
+          <small class="{{ 'muted' if group.backgrounds else 'missing' }}">{{ group.backgrounds }} fons</small>
+        </label>
+        {% else %}
         <button type="button" class="group-tile" data-group="{{ group.name }}" aria-expanded="false">
           <b>{{ group.icon }} {{ group.name }}</b>
           <small class="{{ 'muted' if group.backgrounds else 'missing' }}">{{ group.themes|length }} {{ 'tema' if group.themes|length == 1 else 'temes' }} · {{ group.backgrounds }} fons</small>
         </button>
+        {% endif %}
         {% endfor %}
       </div>
-      {% for group in theme_groups %}
+      {% for group in theme_groups if not group.direct %}
       {% set first_group = loop.first %}
       <div class="theme-panel" data-group="{{ group.name }}" hidden>
         <p class="theme-group">{{ group.icon }} {{ group.name }}</p>
@@ -117,7 +125,7 @@
             {% for value, label in levels.items() %}<option value="{{ value }}" {% if value == 0 %}selected{% endif %}>{{ label }}</option>{% endfor %}
           </select>
         </label>
-        <button type="button" class="secondary" id="preview">🔊 Escoltar mostra (30 s)</button>
+        <button type="button" class="secondary" id="preview">🔊 Escoltar mostra de sons i música (30 s)</button>
         <button type="button" class="secondary" id="reshuffle" hidden>🔁 Altres sons</button>
         <audio id="preview-audio" controls hidden></audio>
         <small id="preview-info" class="muted" aria-live="polite"></small>
@@ -167,6 +175,11 @@
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
         <label class="check" data-hide-for="respiracio"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
         <label class="check" data-hide-for="soroll ambient"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música <small class="muted" id="music-advice" aria-live="polite"></small></label>
+        <label data-hide-for="soroll ambient">Volum de la música
+          <select name="music_level" id="music-level">
+            {% for value, label in music_levels.items() %}<option value="{{ value }}" {% if value == 0 %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
         <label data-hide-for="soroll ambient">Estil de música
           <select name="music_style" id="music-style">
             <option value="">Automàtic (segons l'entorn)</option>

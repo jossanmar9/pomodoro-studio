@@ -129,7 +129,7 @@
 
   async function preview(keep) {
     const data = new FormData();
-    for (const name of ["theme", "format", "environment", "noise", "ambience_level", "music", "music_style", "chime"]) {
+    for (const name of ["theme", "format", "environment", "noise", "ambience_level", "music", "music_style", "music_level", "chime"]) {
       const field = form.querySelector(`[name="${name}"]:checked, select[name="${name}"]`);
       if (field && !(field.type === "checkbox" && !field.checked)) data.set(name, field.value);
     }
@@ -174,7 +174,7 @@
   form?.querySelectorAll('input[name="environment"]').forEach((el) => el.addEventListener("change", forgetSounds));
 
   // Temes: quadres per tipus, estació i festa; en prémer-ne un s'obrin davall els seus temes.
-  const groupTiles = [...document.querySelectorAll(".group-tile")];
+  const groupTiles = [...document.querySelectorAll("button.group-tile")];
   const panels = [...document.querySelectorAll(".theme-panel")];
   function showGroup(name, pickFirst) {
     groupTiles.forEach((tile) => { const on = tile.dataset.group === name; tile.classList.toggle("active", on); tile.setAttribute("aria-expanded", String(on)); });
@@ -188,8 +188,10 @@
   function syncGroup() {
     const checked = form?.querySelector('input[name="theme"]:checked');
     const panel = checked?.closest(".theme-panel");
-    if (panel) showGroup(panel.dataset.group, false);
+    // Els temes de temporada es trien directament: es tanca el requadre obert.
+    showGroup(panel ? panel.dataset.group : null, false);
   }
+  form?.querySelectorAll(".group-tile.direct input").forEach((el) => el.addEventListener("change", syncGroup));
   groupTiles.forEach((tile) => tile.addEventListener("click", () => showGroup(tile.dataset.group, true)));
   syncGroup();
 

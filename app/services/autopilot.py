@@ -19,7 +19,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import AUTO_ACTIVE_STEPS, AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
-    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
+    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_LEVELS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     CHANNEL_URL, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
 )
 from app.services.encoding import EncodingOptions
@@ -128,9 +128,9 @@ def recent_backgrounds(theme: str, limit: int = 5) -> set[str]:
 
 # --- Pas 2: àudio ------------------------------------------------------------
 
-def prepare_music(playlist: list[Path], folder: Path) -> Path:
+def prepare_music(playlist: list[Path], folder: Path, level: int = 0) -> Path:
     output = folder / "music-mix.m4a"
-    result = subprocess.run(build_music_mix_command(playlist, output), capture_output=True, text=True, check=False)
+    result = subprocess.run(build_music_mix_command(playlist, output, level=level), capture_output=True, text=True, check=False)
     if result.returncode != 0 or not output.is_file():
         raise AutopilotError("No s'ha pogut preparar la llista musical: " + (result.stderr or "")[-500:])
     return output
@@ -162,6 +162,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         focus, pause, privacy, publish = run.focus_minutes, run.break_minutes, run.privacy, bool(run.publish)
         with_music, with_chime = bool(run.music), bool(run.chime)
         level = run.ambience_level if run.ambience_level is not None else 0
+        music_level = run.music_level if run.music_level in MUSIC_LEVELS else 0
         preferred = [name for name in (run.ambience_files or "").split(",") if name]
         fmt = run.format if run.format in FORMATS else "pomodoro"
         run_noise = run.noise
@@ -189,7 +190,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         _update(run_id, background=background.name)
         notes.append(note)
         if fmt == "short":
-            _execute_channel_short(run_id, project_id, theme, environment, rng, background, level=level, preferred=preferred,
+            _execute_channel_short(run_id, project_id, theme, environment, rng, background, level=level, music_level=music_level, preferred=preferred,
                                    with_music=with_music, style=style, with_motion=with_motion, privacy=privacy, publish=publish, notes=notes)
             return
 
@@ -228,7 +229,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         folder = create_output_dir(project_id, theme)
         music_track = None
         if playlist:
-            music_track = AudioTrack(prepare_music(playlist, folder), 1.0)
+            music_track = AudioTrack(prepare_music(playlist, folder, music_level), 1.0)
         ambience_tracks = [AudioTrack(layer.path, 1.0, layer.loudness) for layer in ambience]
 
         public_theme = publication_theme(theme)
@@ -258,7 +259,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             db.commit()
 
         overlay, opacity, darken, overlay_intro = None, 0.0, 0.0, None
-        layer_style = overlay_style(theme, environment) if with_motion and fmt != "respiracio" else None
+        layer_style = overlay_style(theme, environment, background) if with_motion and fmt != "respiracio" else None
         if fmt == "respiracio":
             overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=int(RESOLUTION.split("x")[0]),
                                          height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps, font=fonts.label)
@@ -370,7 +371,7 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
 
 
 def _execute_channel_short(run_id: int, project_id: int, theme: str, environment: str, rng: random.Random, background: Path, *,
-                           level: int, preferred: list[str], with_music: bool, style: str, with_motion: bool, privacy: str, publish: bool, notes: list[str]) -> None:
+                           level: int, music_level: int = 0, preferred: list[str], with_music: bool, style: str, with_motion: bool, privacy: str, publish: bool, notes: list[str]) -> None:
     """Short independent de 45 s que porta al canal: sense vídeo llarg."""
     _update(run_id, step="AUDIO", message="Preparant els sons del Short…")
     env = ENVIRONMENTS[environment]
@@ -384,7 +385,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
         raise AutopilotError("No hi ha cap so disponible per a este Short")
     folder = create_output_dir(project_id, theme)
     audio = folder / "short-audio.mp3"
-    result = subprocess.run(build_preview_command(ambience, track, False, audio, seconds=SHORT_SECONDS + 2, noise=env.noise,
+    result = subprocess.run(build_preview_command(ambience, track, False, audio, seconds=SHORT_SECONDS + 2, noise=env.noise, music_level=music_level,
                                                   noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level), capture_output=True, text=True, check=False)
     if result.returncode != 0 or not audio.is_file():
         raise AutopilotError(f"No s'ha pogut preparar l'àudio del Short: {(result.stderr or '')[-300:]}")
@@ -392,7 +393,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
     _update(run_id, step="RENDERING", message="Fent el Short…")
     fonts = fonts_for_theme(theme)
     overlay, opacity = None, 0.0
-    layer_style = overlay_style(theme, environment) if with_motion else None
+    layer_style = overlay_style(theme, environment, background) if with_motion else None
     if layer_style:
         try:
             overlay = ensure_overlay(layer_style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays", width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS)
@@ -462,7 +463,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS, font=fonts.label)
         opacity, darken = BREATH_OPACITY, BREATH_DARKEN
     else:
-        style = overlay_style(theme, environment) if with_motion else None
+        style = overlay_style(theme, environment, background) if with_motion else None
         if style:
             overlay = ensure_overlay(style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays", width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS)
             opacity, mode = overlay_opacity(style), overlay_mode(style)
