@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.services import background_library as lib
-from app.services.autopilot_plan import AUTO_THEMES, ENVIRONMENTS, FORMATS
+from app.services.autopilot_plan import AUTO_THEMES, FORMATS, environments_by_label
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -23,7 +23,7 @@ def library_page(request: Request, error: str = "", ok: str = ""):
     return templates.TemplateResponse(request, "fons.html", {
         "themes": AUTO_THEMES,
         "licenses": lib.IMPORT_LICENSES,
-        "environments": {key: env.label for key, env in ENVIRONMENTS.items()},
+        "environments": {key: env.label for key, env in environments_by_label()},
         "formats": FORMATS,
         "library": lib.library(),
         "error": error[:300],

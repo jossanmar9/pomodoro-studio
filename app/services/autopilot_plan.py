@@ -350,6 +350,16 @@ def music_tracks(folder: Path, style: str | None = None, catalog: dict[str, dict
     return [t for t in tracks if track_style(t, catalog) == style] if style else tracks
 
 
+def sort_key(text: str) -> str:
+    """Ordre alfabètic sense tindre en compte accents ni majúscules (à = a, ç = c…)."""
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii").casefold()
+
+
+def environments_by_label() -> list[tuple[str, Environment]]:
+    """Entorns ordenats alfabèticament pel nom en valencià."""
+    return sorted(ENVIRONMENTS.items(), key=lambda item: sort_key(item[1].label))
+
+
 DURATION_CHOICES = (60, 120, 180, 240, 480, 600)
 POMODORO_CHOICES = {"25/5": (25, 5), "50/10": (50, 10), "52/17": (52, 17), "90/15": (90, 15)}
 # Ritmes llargs: es publiquen com a «Deep Work» en compte de «Pomodoro».

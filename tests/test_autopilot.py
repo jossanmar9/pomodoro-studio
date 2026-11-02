@@ -771,3 +771,10 @@ def test_deep_work_rhythms_and_ten_hours():
     assert sleep.title.startswith("10 Hours") and "Hour 10" in sleep.description
     classic = build_texts(public_theme="Rainy Library", environment="pluja", duration=120, focus=25, pause=5, chapters="", credits="")
     assert "Pomodoro 25/5" in classic.title and "deep work" not in classic.tags
+
+
+def test_environments_are_listed_alphabetically():
+    from app.services.autopilot_plan import environments_by_label, sort_key
+    labels = [env.label for _, env in environments_by_label()]
+    assert labels == sorted(labels, key=sort_key) and len(labels) == len(ENVIRONMENTS)
+    assert labels.index("Cabina d'avió") < labels.index("Cafeteria plena") < labels.index("Cova amb goteig")
