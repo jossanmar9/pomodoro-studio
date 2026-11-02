@@ -132,7 +132,8 @@ def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
             "categoryId": spec.category_id,
             "defaultLanguage": spec.language,
         },
-        "status": {"privacyStatus": spec.privacy},
+        # No fet per a nens (COPPA). Sense restricció d'edat: és l'opció per defecte de YouTube.
+        "status": {"privacyStatus": spec.privacy, "selfDeclaredMadeForKids": False},
     }
     media = MediaFileUpload(str(spec.video), mimetype="video/mp4", resumable=True, chunksize=8 * 1024 * 1024)
     request = service.videos().insert(part="snippet,status", body=body, media_body=media)
