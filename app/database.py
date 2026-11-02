@@ -77,6 +77,8 @@ ADDED_COLUMNS = {
         "shutdown": "INTEGER NOT NULL DEFAULT 0",
         "music_style": "VARCHAR(20)",
         "music_level": "INTEGER NOT NULL DEFAULT 0",
+        "noise_screen": "VARCHAR(10)",
+        "noise_pulse": "INTEGER NOT NULL DEFAULT 0",
         "breath": "VARCHAR(20)",
         "shorts": "INTEGER NOT NULL DEFAULT 0",
         "short_video_id": "VARCHAR(32)",

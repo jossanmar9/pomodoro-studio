@@ -311,6 +311,7 @@ def env(tmp_path, monkeypatch):
     touch(assets / "music" / "calm.mp3")
     monkeypatch.setattr(auto.settings, "assets_dir", assets)
     monkeypatch.setattr(auto.settings, "output_dir", tmp_path / "output")
+    monkeypatch.setattr(auto.settings, "overlays_dir", tmp_path / "overlays")
     monkeypatch.setattr(auto.settings, "audio_catalog", tmp_path / "missing-catalog.json")
     monkeypatch.setattr(auto, "probe_duration", lambda path: 300.0, raising=False)
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
@@ -380,11 +381,42 @@ def test_noise_run_has_no_timer_no_ambience_and_dims(env):
     spec = env.rendered["spec"]
     assert spec.noise == "brown" and spec.ambience == [] and spec.music is None
     assert spec.show_timer is False and spec.chime is False and spec.dim_after == 1800
-    assert spec.motion is False and spec.flicker is False and spec.overlay is not None
+    assert spec.motion is False and spec.flicker is False and spec.overlay is None
+    assert spec.background.name.startswith("soroll-marro-color") and spec.pulse is False and spec.intro_text is None
     assert spec.timeline.total_seconds == 7200 and project.break_minutes == 0
     upload = env.uploads[0]
     assert "Brown Noise" in upload.title and "Dark Screen" in upload.title
     assert upload.category_id == "22" and record.category_id == "22"
+
+
+def test_noise_screen_can_be_black_or_breathe(env):
+    run_id = make_run(env.session, theme="Soroll de color", format="soroll", environment="soroll", noise="rosa", noise_screen="negre", noise_pulse=1, duration_minutes=60)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        assert db.get(AutoRun, run_id).step == "DONE", db.get(AutoRun, run_id).error
+    spec = env.rendered["spec"]
+    assert spec.background.name.startswith("soroll-rosa-negre") and spec.pulse is False and spec.intro_text == "Pink Noise"
+    assert "Black Screen" in env.uploads[-1].title and "black screen" in env.uploads[-1].tags
+    run_id = make_run(env.session, theme="Soroll de color", format="soroll", environment="soroll", noise="blanc", noise_screen="color", noise_pulse=1, duration_minutes=60)
+    auto.execute(run_id, rng=random.Random(0))
+    assert env.rendered["spec"].pulse is True and env.rendered["spec"].intro_text is None
+
+
+def test_noise_backgrounds_and_pulse_render(tmp_path):
+    from PIL import Image
+    from app.services.noise_screen import make_noise_background
+    colour = make_noise_background("marro", "color", tmp_path / "c.png", width=64, height=36, text="Brown Noise")
+    black = make_noise_background("marro", "negre", tmp_path / "n.png", width=64, height=36)
+    assert Image.open(colour).getpixel((32, 4)) != (0, 0, 0) and Image.open(black).getextrema() == ((0, 0), (0, 0), (0, 0))
+    with pytest.raises(ValueError):
+        make_noise_background("verd", "color", tmp_path / "x.png", width=64, height=36)
+    output = tmp_path / "out.mp4"
+    spec = RenderSpec(colour, output, "64x36", build_timeline(1, 0, 1), fps=5, show_timer=False, noise="brown", pulse=True, intro_text="Brown Noise")
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    assert "eval=frame" in " ".join(command) and "Brown Noise" in " ".join(command)
+    command[command.index("-t") + 1] = "3"
+    subprocess.run(command, check=True, capture_output=True)
+    assert output.stat().st_size > 0
 
 
 def test_natural_overlay_replaces_camera_motion_and_can_be_turned_off(env):
@@ -464,6 +496,7 @@ def test_noise_form_and_preview(env, monkeypatch):
         response = client.post("/auto", data={"format": "soroll", "theme": "Bosc", "noise": "rosa", "duration_minutes": "480", "dim": "1", "chime": "1"}, follow_redirects=False)
         assert response.status_code == 303
         assert client.post("/auto", data={"format": "soroll", "theme": "Bosc", "noise": "verd", "duration_minutes": "60"}).status_code == 400
+        assert client.post("/auto", data={"format": "soroll", "noise": "rosa", "noise_screen": "groc", "duration_minutes": "60"}).status_code == 400
         assert client.post("/auto", data={"format": "tik-tok", "theme": "Bosc", "environment": "bosc", "duration_minutes": "60"}).status_code == 400
         monkeypatch.chdir(env.tmp)  # les mostres es guarden en data/ de la carpeta de proves
         preview = client.post("/api/auto/preview", data={"format": "soroll", "noise": "marro"})
@@ -473,6 +506,7 @@ def test_noise_form_and_preview(env, monkeypatch):
     with env.session() as db:
         run = db.get(AutoRun, status["runs"][0]["id"])
     assert run.format == "soroll" and run.noise == "rosa" and run.dim == 1 and run.chime == 0 and run.environment == "soroll"
+    assert run.theme == "Soroll de color" and run.background is None and run.noise_screen == "color" and run.noise_pulse == 0
     assert run.motion == 0  # la casella no s'ha enviat
     assert status["runs"][0]["environment_label"] == "Soroll rosa"
 

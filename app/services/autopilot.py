@@ -31,6 +31,7 @@ from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OP
 from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity, overlay_style
 from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts
 from app.services.renderer import AudioTrack, RenderSpec
+from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
 from app.services.timer import build_chapters, build_timeline
 from app.services.youtube import YouTubeUploadSpec, upload_video
@@ -81,6 +82,17 @@ def _update(run_id: int, **fields) -> None:
 
 
 # --- Pas 1: fons -----------------------------------------------------------
+
+def noise_background(noise: str, screen: str, *, with_name: bool = True) -> Path:
+    """Fons generat per al soroll de color (es guarda i es reutilitza)."""
+    width, height = (int(n) for n in RESOLUTION.split("x"))
+    name = f"soroll-{noise}-{screen}{'-nom' if with_name else ''}-v1-{width}x{height}.png"
+    path = settings.overlays_dir / name
+    if not path.is_file():
+        text = f"{NOISE_COLORS[noise][1]} Noise" if with_name and screen == "color" else None
+        make_noise_background(noise, screen, path, width=width, height=height, text=text)
+    return path
+
 
 def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro", *, chosen: str | None = None, recent: set[str] | None = None) -> tuple[Path, str]:
     """Usa el fons triat a mà o, si no se n'ha triat cap, un de la biblioteca a l'atzar."""
@@ -172,6 +184,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment, run.theme)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
+        noise_screen = run.noise_screen if run.noise_screen in NOISE_SCREENS else "color"
+        noise_pulse = bool(run.noise_pulse) and noise_screen == "color"
         if fmt != "pomodoro":
             # Sense comptador: una sola «sessió» de tota la duració.
             focus, pause, with_chime = duration, 0, False
@@ -186,9 +200,15 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
     folder: Path | None = None
     try:
         _update(run_id, step="BACKGROUND", message="Preparant el fons…")
-        background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background})
-        _update(run_id, background=background.name)
-        notes.append(note)
+        if fmt == "soroll":
+            if noise_color is None:
+                raise AutopilotError("Falta el color del soroll")
+            background = noise_background(run_noise, noise_screen)
+            notes.append(NOISE_SCREENS[noise_screen])
+        else:
+            background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background})
+            _update(run_id, background=background.name)
+            notes.append(note)
         if fmt == "short":
             _execute_channel_short(run_id, project_id, theme, environment, rng, background, level=level, music_level=music_level, preferred=preferred,
                                    with_music=with_music, style=style, with_motion=with_motion, privacy=privacy, publish=publish, notes=notes)
@@ -241,14 +261,15 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             credits=build_credits(playlist, ambience_paths, catalog),
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
             music=bool(playlist), chime=with_chime, style=style, breath=breath,
-            fmt=fmt, noise=run_noise, dim=dim_after is not None,
+            fmt=fmt, noise=run_noise, dim=dim_after is not None, screen=noise_screen,
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
         fonts = fonts_for_theme(theme)
         thumbnail_text = texts.thumbnail_text.replace(" · ", fonts.separator)
         thumbnail_font = fonts.label if fonts.uppercase_labels else fonts.digits
-        generate_thumbnail(background, folder / "thumbnail.jpg", thumbnail_text, fitting_fontsize(thumbnail_text), thumbnail_font)
+        thumbnail_background = noise_background(run_noise, "color", with_name=False) if fmt == "soroll" else background
+        generate_thumbnail(thumbnail_background, folder / "thumbnail.jpg", thumbnail_text, fitting_fontsize(thumbnail_text), thumbnail_font)
 
         with SessionLocal() as db:
             saved = db.get(Project, project_id)
@@ -259,7 +280,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             db.commit()
 
         overlay, opacity, darken, overlay_intro = None, 0.0, 0.0, None
-        layer_style = overlay_style(theme, environment, background) if with_motion and fmt != "respiracio" else None
+        layer_style = overlay_style(theme, environment, background) if with_motion and fmt not in {"respiracio", "soroll"} else None
         if fmt == "respiracio":
             overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=int(RESOLUTION.split("x")[0]),
                                          height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps, font=fonts.label)
@@ -283,6 +304,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
             overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_intro=overlay_intro,
             overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None and fmt != "respiracio" else "screen",
+            pulse=fmt == "soroll" and noise_pulse,
+            intro_text=f"{NOISE_COLORS[run_noise][1]} Noise" if fmt == "soroll" and noise_screen == "negre" else None,
         ))
         _wait_for_render(project_id)
         if music_track:
@@ -439,7 +462,7 @@ def _short_subtitle(run: AutoRun) -> str:
         return f"{BREATH_PATTERNS[run.breath].public} · {run.duration_minutes} min"
     label = duration_label(run.duration_minutes)
     if run.format == "soroll" and run.noise in NOISE_COLORS:
-        return f"{label} · {NOISE_COLORS[run.noise][1]} Noise"
+        return f"{label} · Sleep & Focus"
     env = ENVIRONMENTS.get(run.environment)
     return f"{label} · {env.public_label}" if env else label
 
@@ -454,9 +477,14 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         theme, environment, fmt, breath, background_name = run.theme, run.environment, run.format, run.breath, run.background
         subtitle, with_motion = _short_subtitle(run), bool(run.motion)
         total = run.duration_minutes * 60
-    background = settings.assets_dir / "backgrounds" / (background_name or "")
-    if not background_name or not background.is_file():
-        return "Short no fet: no es troba el fons"
+        noise = run.noise if run.format == "soroll" and run.noise in NOISE_COLORS else None
+    if noise:
+        # El Short del soroll sempre va amb el fons de color (en negre no es veuria res).
+        background, with_motion = noise_background(noise, "color", with_name=False), False
+    else:
+        background = settings.assets_dir / "backgrounds" / (background_name or "")
+        if not background_name or not background.is_file():
+            return "Short no fet: no es troba el fons"
     fonts = fonts_for_theme(theme)
     overlay, opacity, darken, mode = None, 0.0, 0.0, "screen"
     if fmt == "respiracio" and breath in BREATH_PATTERNS:
@@ -468,7 +496,8 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
             overlay = ensure_overlay(style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays", width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS)
             opacity, mode = overlay_opacity(style), overlay_mode(style)
     output = folder / "short.mp4"
-    command = build_short_command(background, main.video, output, title=publication_theme(theme), subtitle=subtitle,
+    title = f"{NOISE_COLORS[noise][1]} Noise" if noise else publication_theme(theme)
+    command = build_short_command(background, main.video, output, title=title, subtitle=subtitle,
                                   start=short_start(total), label_font=fonts.label, text_font=fonts.digits,
                                   overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)
     result = subprocess.run(command, capture_output=True, text=True, check=False)
