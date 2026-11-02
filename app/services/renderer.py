@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.services.encoding import EncodingOptions, EncodingPlan, select_encoding
+from app.services.noise_screen import pulse_filter
 from app.services.fonts import ResolvedFonts
 from app.services.timer import TimelineSummary
 
@@ -56,6 +57,11 @@ class RenderSpec:
     overlay_intro: Path | None = None
     # Enfosquix el fons (0-1) perquè la capa (p. ex. la respiració guiada) es llija bé.
     darken: float = 0.0
+    # La llum del fons «respira»: baixa i puja molt a poc a poc (soroll de color).
+    pulse: bool = False
+    # Text que es veu al començament i s'esvaïx (p. ex. el nom del soroll amb pantalla negra).
+    intro_text: str | None = None
+    intro_seconds: int = 12
 
 
 # Marge d'ampliació perquè la càmera puga moure's sense mostrar vores.
@@ -234,6 +240,8 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
         video.append(FLICKER_FILTER)
     if spec.darken > 0:
         video.append(f"eq=brightness={-min(0.5, spec.darken):g}:saturation=0.85")
+    if spec.pulse:
+        video.append(pulse_filter())
     parts: list[str] = []
     if overlay_input is not None:
         opacity = min(1.0, max(0.0, spec.overlay_opacity))
@@ -251,6 +259,13 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
         timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts)
         if timer:
             video.append(timer)
+    if spec.intro_text:
+        end = spec.intro_seconds
+        alpha = f"if(lt(t,2),t/2,if(lt(t,{end - 3}),1,max(0,({end}-t)/3)))"
+        video.append(
+            f"drawtext={font_option(spec.fonts.label if spec.fonts else None)}:text='{_escape_drawtext(spec.intro_text)}'"
+            f":fontsize=h/18:fontcolor=white@0.55:x=(w-text_w)/2:y=(h-text_h)/2:alpha='{alpha}':enable='lt(t,{end})'"
+        )
     if spec.dim_after is not None and spec.dim_after < spec.timeline.total_seconds:
         fade = min(DIM_FADE_SECONDS, spec.timeline.total_seconds - spec.dim_after)
         video.append(f"fade=t=out:st={spec.dim_after}:d={fade}:color=black")

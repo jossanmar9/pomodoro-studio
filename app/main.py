@@ -29,7 +29,8 @@ from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, short_missing, youtube_connected
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
-from app.services.autopilot_plan import MUSIC_LEVELS, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
+from app.services.noise_screen import NOISE_SCREENS
+from app.services.autopilot_plan import MUSIC_LEVELS, NOISE_THEME, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -230,20 +231,26 @@ def auto_home(request:Request,error:str=Query("")):
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
-        "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},
+        "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form("")):
+def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
+    if format=="soroll":
+        # El soroll de color no usa cap tema ni foto: el fons es genera del color del soroll.
+        if noise_screen not in NOISE_SCREENS: raise HTTPException(400,"Pantalla no vàlida")
+        theme,background,motion=NOISE_THEME,"",""
+        if noise_screen=="negre": noise_pulse=""
+    else: noise_screen,noise_pulse="",""
     choices=group_themes(theme)
     if choices is not None:
         # «Qualsevol» d'un quadre: un tema a l'atzar, millor si ja té fons.
         if not choices: raise HTTPException(400,"Ambientació no vàlida")
         ready=[t for t in choices if find_backgrounds(settings.assets_dir/"backgrounds",t)]
         theme,background=random.choice(ready or choices),""
-    if theme not in AUTO_THEMES: raise HTTPException(400,"Ambientació no vàlida")
+    if theme not in AUTO_THEMES and theme!=NOISE_THEME: raise HTTPException(400,"Ambientació no vàlida")
     if format=="soroll":
         if noise not in NOISE_COLORS: raise HTTPException(400,"Color de soroll no vàlid")
         environment,music,ambience_files=NOISE_ENVIRONMENT,"",""
@@ -272,7 +279,7 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=1 if shorts and publish else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=1 if shorts and publish else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)

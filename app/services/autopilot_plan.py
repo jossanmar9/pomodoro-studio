@@ -341,6 +341,8 @@ NOISE_COLORS = {
     "blanc": ("white", "White", "Blanc"),
 }
 NOISE_ENVIRONMENT = "soroll"
+# Tema dels vídeos de soroll de color: no usen cap foto ni ambientació.
+NOISE_THEME = "Soroll de color"
 # La pantalla es fon a negre després de 30 minuts (vídeos per a dormir i soroll).
 DIM_AFTER_SECONDS = 30 * 60
 # Categoria de YouTube per format: 27 Education, 22 People & Blogs, 20 Gaming.
@@ -687,7 +689,7 @@ def _hashtags(*words: str) -> str:
     return " ".join(dict.fromkeys(_hashtag(w) for w in words if w))
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None) -> AutoTexts:
+def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None, screen: str = "color") -> AutoTexts:
     music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1]
     if fmt == "pomodoro":
         return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime, music_text=music_text)
@@ -702,22 +704,27 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
         if noise not in NOISE_COLORS:
             raise ValueError("Color de soroll no vàlid")
         color = NOISE_COLORS[noise][1]
+        black = screen == "negre"
+        screen_title = " · Black Screen" if black else dark_title
         title = _fit_title([
-            f"{color} Noise for Sleep, Focus & Relaxation | {label}{dark_title} | {public_theme}",
-            f"{color} Noise for Sleep, Focus & Relaxation | {label}{dark_title}",
-            f"{label} {color} Noise{dark_title}",
+            f"{color} Noise for Sleep, Focus & Relaxation | {label}{screen_title}",
+            f"{label} {color} Noise{screen_title}",
         ])
+        if black:
+            screen_line = "The screen stays black the whole time, so it won't light up your room."
+        else:
+            screen_line = f"Just continuous {color.lower()} noise over a calm {color.lower()} screen. {dark_line}"
         uses = {"Brown": "Deep and soft, like a distant waterfall.", "Pink": "Balanced and gentle, like steady rain.", "White": "Even and bright, great for masking noises."}[color]
         compose = lambda credit_text: _join_blocks(
             f"{label} of smooth {color.lower()} noise for sleeping, studying, focusing, relaxing or calming a baby. {uses}",
-            f"No music, no voices, no ads in the middle from us: just continuous {color.lower()} noise over a {public_theme.lower()}. {dark_line}",
+            f"No music, no voices, no ads in the middle from us. {screen_line}",
             f"Chapters:\n{chapters}",
             "The noise is generated for this video; no third-party audio is used.",
             credit_text,
             outro,
             _hashtags(f"{color} noise", "sleep sounds", "focus"),
         )
-        tags = [f"{color.lower()} noise", f"{color.lower()} noise for sleep", f"{color.lower()} noise {label.lower()}", "sleep sounds", "noise for sleeping", "focus noise", "study noise", "baby sleep", "relaxing noise", "black screen" if dim else "", public_theme.lower()]
+        tags = [f"{color.lower()} noise", f"{color.lower()} noise for sleep", f"{color.lower()} noise {label.lower()}", "sleep sounds", "noise for sleeping", "focus noise", "study noise", "baby sleep", "relaxing noise", "black screen" if dim or black else "", f"{color.lower()} screen" if not black else ""]
         thumbnail = f"{color.upper()} NOISE · {label.upper()}"
     else:
         env = ENVIRONMENTS[environment]

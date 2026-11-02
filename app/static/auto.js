@@ -167,6 +167,15 @@
     }
   }
   form?.querySelectorAll('input[name="format"], input[name="noise"]').forEach((el) => el.addEventListener("change", () => { applyFormat(); forgetSounds(); }));
+  // Amb pantalla negra no hi ha color que puga «respirar».
+  const pulse = document.getElementById("noise-pulse");
+  const syncPulse = () => {
+    const black = form.querySelector('input[name="noise_screen"]:checked')?.value === "negre";
+    pulse.hidden = black;
+    if (black) pulse.querySelector("input").checked = false;
+  };
+  form?.querySelectorAll('input[name="noise_screen"]').forEach((el) => el.addEventListener("change", syncPulse));
+  if (pulse) syncPulse();
   if (form) applyFormat();
 
   previewBtn?.addEventListener("click", () => preview(true));

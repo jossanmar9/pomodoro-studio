@@ -37,6 +37,9 @@ class AutoRun(Base):
     music_style: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # Volum de la música (dB respecte del normal): -8, -4, 0 o 3.
     music_level: Mapped[int] = mapped_column(Integer, default=0)
+    # Soroll de color: «color» (fons del color del soroll) o «negre»; i si el color «respira».
+    noise_screen: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    noise_pulse: Mapped[int] = mapped_column(Integer, default=0)
     chime: Mapped[int] = mapped_column(Integer, default=1)
     ambience_level: Mapped[int] = mapped_column(Integer, default=0)
     # Fitxers d'ambient de la mostra escoltada (separats per comes), per a reutilitzar-los.

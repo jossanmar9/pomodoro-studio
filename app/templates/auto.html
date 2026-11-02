@@ -58,7 +58,7 @@
       </div>
     </fieldset>
 
-    <fieldset class="choice-block">
+    <fieldset class="choice-block" data-hide-for="soroll">
       <legend>1 · Tema</legend>
       <div class="groups" id="theme-groups">
         {% for group in theme_groups %}
@@ -96,7 +96,7 @@
       {% endfor %}
     </fieldset>
 
-    <fieldset class="choice-block">
+    <fieldset class="choice-block" data-hide-for="soroll">
       <legend>Fons</legend>
       <div class="bg-picker" id="bg-picker" aria-live="polite"></div>
     </fieldset>
@@ -110,6 +110,18 @@
           <span>{{ label }}</span>
         </label>
         {% endfor %}
+      </div>
+      <div class="noise-screen" data-show-for="soroll" hidden>
+        <p class="muted">Pantalla del vídeo (no usa cap foto):</p>
+        <div class="choices compact">
+          {% for key, label in noise_screens.items() %}
+          <label class="choice">
+            <input type="radio" name="noise_screen" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <label class="check" id="noise-pulse"><input type="checkbox" name="noise_pulse" value="1"> Que el color respire (la llum baixa i puja molt a poc a poc)</label>
       </div>
       <div class="choices" data-hide-for="soroll">
         {% for e in environments %}
@@ -173,7 +185,7 @@
       <div class="publish-options">
         <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
-        <label class="check" data-hide-for="respiracio"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
+        <label class="check" data-hide-for="respiracio soroll"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
         <label class="check" data-hide-for="soroll ambient"><input type="checkbox" name="music" value="1" {% if music_default %}checked{% endif %}> Afegir música <small class="muted" id="music-advice" aria-live="polite"></small></label>
         <label data-hide-for="soroll ambient">Volum de la música
           <select name="music_level" id="music-level">
