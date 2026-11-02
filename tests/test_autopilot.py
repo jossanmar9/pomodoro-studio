@@ -430,13 +430,13 @@ def test_run_without_youtube_finishes_locally(env, monkeypatch):
 
 
 def test_run_fails_clearly_without_background(env):
-    run_id = make_run(env.session, theme="Nau espacial")
+    run_id = make_run(env.session, theme="Observatori")
     auto.execute(run_id, rng=random.Random(0))
     with env.session() as db:
         run = db.get(AutoRun, run_id)
         project = db.get(Project, run.project_id)
     assert run.step == "FAILED"
-    assert "nau-espacial" in run.error and "Biblioteca de fons" in run.error
+    assert "observatori" in run.error and "Biblioteca de fons" in run.error
     assert project.status == "FAILED"
 
 
@@ -583,7 +583,7 @@ def test_overlay_style_depends_on_theme_and_environment():
     assert overlay_style("Campament d'aventurers", "campament") == "guspires"
     assert overlay_style("Bosc", "hivern") == "neu"
     assert overlay_style("Biblioteca medieval", "pluja") == "pols"  # dins no plou
-    assert overlay_style("Nau espacial", "nit") is None
+    assert overlay_style("Avió", "nit") is None
 
 
 def test_overlay_loops_seamlessly_and_renders(tmp_path):

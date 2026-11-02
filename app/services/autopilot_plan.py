@@ -239,7 +239,6 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Roma antiga": ("ancient roman scholar's villa study", "marble columns, scrolls, oil lamps, mosaic floor and an atrium view", "ancient rome"),
     "Grècia antiga": ("ancient greek philosopher's study overlooking the sea", "white marble, scrolls, olive trees, clay amphorae and oil lamps", "ancient greece"),
     "Japó feudal": ("traditional japanese study room", "tatami floor, shoji screens, low writing desk, paper lanterns and a zen garden view", "feudal japan"),
-    "Nau espacial": ("deep-space research station observation room", "large viewport with distant planets, clean workstations and soft ambient panels", "far future"),
     "Búnquer postapocalíptic": ("cozy underground survival bunker workspace", "salvaged furniture, warm work lamps, shelves of supplies, maps and old books", "post-apocalyptic"),
     "Bosc": ("small study nook in an ancient tranquil forest", "moss, giant tree roots, a wooden desk, lanterns and layered vegetation", "timeless"),
     "Observatori": ("old astronomy observatory", "large brass telescope, star charts, open dome showing the night sky and a desk", "timeless"),
