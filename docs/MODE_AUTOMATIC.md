@@ -13,7 +13,7 @@ La pàgina principal (`http://localhost:8000`) és ara el mode automàtic. Nomé
 1. **Tema**: biblioteca medieval, cabana, nau espacial, masmorra, campament d'aventurers, cova del drac…
 2. **Entorn**: pluja, tempesta, llar de foc, pluja i llar de foc, nit, bosc, rierol, mar, vent, cafeteria plena, taverna plena, cafeteria i carrer, trànsit de ciutat, pluja a la ciutat, ciutat de nit, parc i plaça, carrers del Japó, pluja al bosc, pluja a la finestra, cova amb goteig, vent d'hivern i llar, vent fort entre arbres, tren de nit, rellotge i llar de foc o només música.
    - Tria el **volum de l'ambient** (molt baix, baix o normal) i prem **🔊 Escoltar mostra** per sentir 30 segons tal com sonarà el vídeo, campaneta inclosa. El vídeo usarà exactament els sons de la mostra; **🔁 Altres sons** en tria uns altres.
-3. **Duració**: 1, 2, 3, 4 o 8 hores, amb Pomodoro 25/5 o 50/10.
+3. **Duració**: 1, 2, 3, 4, 8 o 10 hores, amb Pomodoro 25/5 o 50/10, o treball profund 52/17 o 90/15 (es publica com a «Deep Work»).
 
 I prémer **Generar i publicar**. L'estudi complet de sempre continua en **Mode avançat** (`/estudi`).
 

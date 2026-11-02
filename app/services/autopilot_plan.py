@@ -350,8 +350,10 @@ def music_tracks(folder: Path, style: str | None = None, catalog: dict[str, dict
     return [t for t in tracks if track_style(t, catalog) == style] if style else tracks
 
 
-DURATION_CHOICES = (60, 120, 180, 240, 480)
-POMODORO_CHOICES = {"25/5": (25, 5), "50/10": (50, 10)}
+DURATION_CHOICES = (60, 120, 180, 240, 480, 600)
+POMODORO_CHOICES = {"25/5": (25, 5), "50/10": (50, 10), "52/17": (52, 17), "90/15": (90, 15)}
+# Ritmes llargs: es publiquen com a «Deep Work» en compte de «Pomodoro».
+DEEP_WORK_MIN_FOCUS = 52
 PRIVACY_CHOICES = {"public": "Públic", "unlisted": "Ocult (amb enllaç)", "private": "Privat"}
 
 
@@ -692,10 +694,12 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
 def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, music_text: str = "calm instrumental music") -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
+    deep = focus >= DEEP_WORK_MIN_FOCUS
+    method = f"Deep Work {focus}/{pause}" if deep else f"Pomodoro {focus}/{pause}"
     options = [
-        f"{label} {public_theme} Pomodoro {focus}/{pause} | {env.public_label}{'' if music or not env.layers else ' Sounds'} Study Ambience",
-        f"{label} {public_theme} Pomodoro {focus}/{pause} | {env.public_label}",
-        f"{label} {public_theme} Pomodoro {focus}/{pause}",
+        f"{label} {public_theme} {method} | {env.public_label}{'' if music or not env.layers else ' Sounds'} {'Focus' if deep else 'Study'} Ambience",
+        f"{label} {public_theme} {method} | {env.public_label}",
+        f"{label} {public_theme} {method}",
     ]
     title = next((t for t in options if len(t) <= 100), options[-1][:100])
     if not env.layers:
@@ -710,7 +714,7 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
     def compose(credit_text: str) -> str:
         return (
             f"Focus for {label.lower()} in a {public_theme.lower()} with {sound}.\n"
-            f"Pomodoro timer: {focus} minutes of focus, {pause} minutes of break. "
+            f"{'Deep work timer' if deep else 'Pomodoro timer'}: {focus} minutes of focus, {pause} minutes of break. "
             f"{timer_line}\n\n"
             f"Chapters:\n{chapters}\n\n"
             f"{credit_text}\n\n"
@@ -723,6 +727,7 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
     if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
         raise ValueError("La descripció supera el límit de YouTube fins i tot amb els crèdits compactes")
     tags = ", ".join(dict.fromkeys([
+        *(["deep work", "deep focus", f"{focus}/{pause} method", "work with me"] if deep else []),
         "pomodoro", "study with me", "focus music" if music or not env.layers else "ambient sounds", "study ambience", "pomodoro timer",
         f"{focus}/{pause} pomodoro", public_theme.lower(), env.public_label.lower(), f"{label.lower()} study",
     ]))
