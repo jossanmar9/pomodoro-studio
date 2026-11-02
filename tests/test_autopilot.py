@@ -757,3 +757,17 @@ def test_cancel_endpoint(env, monkeypatch):
         assert client.post(f"/auto/{done}/cancel").status_code == 409
         assert client.post(f"/auto/{waiting}/cancel").json() == {"cancelled": True}
         assert client.get("/api/auto").json()["runs"][0]["step_label"] == "Cancel·lat"
+
+
+def test_deep_work_rhythms_and_ten_hours():
+    from app.services.autopilot_plan import DURATION_CHOICES, POMODORO_CHOICES
+    assert 600 in DURATION_CHOICES and POMODORO_CHOICES["52/17"] == (52, 17) and POMODORO_CHOICES["90/15"] == (90, 15)
+    chapters = build_chapters(build_timeline(90, 15, 600), language="en")
+    texts = build_texts(public_theme="Rainy Library", environment="pluja", duration=600, focus=90, pause=15, chapters=chapters, credits="")
+    assert texts.title.startswith("10 Hours Rainy Library Deep Work 90/15") and "deep work" in texts.tags
+    assert len(texts.description.encode("utf-8")) <= MAX_DESCRIPTION_BYTES
+    sleep = build_texts(public_theme="Rainy Cabin", environment="pluja", duration=600, focus=600, pause=0,
+                        chapters=__import__("app.services.autopilot_plan", fromlist=["x"]).plain_chapters(36000, 1800), credits="", fmt="dormir", dim=True)
+    assert sleep.title.startswith("10 Hours") and "Hour 10" in sleep.description
+    classic = build_texts(public_theme="Rainy Library", environment="pluja", duration=120, focus=25, pause=5, chapters="", credits="")
+    assert "Pomodoro 25/5" in classic.title and "deep work" not in classic.tags
