@@ -173,6 +173,27 @@
   reshuffle?.addEventListener("click", () => { files.value = ""; preview(false); });
   form?.querySelectorAll('input[name="environment"]').forEach((el) => el.addEventListener("change", forgetSounds));
 
+  // Música: recomanació segons el format, l'entorn i el tema (es marca la casella, però la pots canviar).
+  const advice = document.querySelector("#music-advice");
+  async function adviseMusic() {
+    if (!advice || !form) return;
+    const params = new URLSearchParams({
+      format: currentFormat(),
+      environment: form.querySelector('input[name="environment"]:checked')?.value || "",
+      theme: form.querySelector('input[name="theme"]:checked')?.value || "",
+    });
+    try {
+      const response = await fetch(`/api/auto/music-advice?${params}`, {cache: "no-store"});
+      if (!response.ok) return;
+      const result = await response.json();
+      if (result.recommended === null) { advice.textContent = ""; return; }
+      if (form.music) form.music.checked = result.recommended;
+      advice.textContent = `· Recomanat: ${result.recommended ? `amb música (${result.style.toLowerCase()})` : "sense música"}. ${result.reason}`;
+    } catch { /* sense recomanació */ }
+  }
+  form?.querySelectorAll('input[name="theme"], input[name="format"], input[name="environment"]').forEach((el) => el.addEventListener("change", adviseMusic));
+  adviseMusic();
+
   // Fons: miniatures del tema triat. Primer els fets per al format i l'entorn triats.
   const picker = document.querySelector("#bg-picker");
   const BACKGROUNDS = window.__BACKGROUNDS__ || {};
@@ -206,5 +227,6 @@
     }
     forgetSounds();
     renderBackgrounds();
+    adviseMusic();
   });
 })();

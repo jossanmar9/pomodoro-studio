@@ -2487,5 +2487,53 @@
     "license": "CC BY 4.0",
     "license_url": "https://creativecommons.org/licenses/by/4.0/",
     "changes": "Original MP3 from incompetech.com; filename changed only; not edited."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/mussols.mp3",
+    "id": "429",
+    "title": "Tawny Owls",
+    "author": "BigSoundBank",
+    "source_url": "https://bigsoundbank.com/owls-s0429.html",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0429.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Original MP3; filename changed only."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/mussol-banyut.mp3",
+    "id": "936",
+    "title": "Long-Eared Owl #1",
+    "author": "BigSoundBank",
+    "source_url": "https://bigsoundbank.com/long-eared-owl-1-s0936.html",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/0936.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Original MP3; filename changed only."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/vent-grinyol.mp3",
+    "id": "1051",
+    "title": "Wind and tree squeaks",
+    "author": "BigSoundBank",
+    "source_url": "https://bigsoundbank.com/wind-and-tree-squeaks-s1051.html",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1051.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Original MP3; filename changed only."
+  },
+  {
+    "kind": "ambience",
+    "file": "assets/ambience/nit-camp-03.mp3",
+    "id": "1469",
+    "title": "Campaign at night #3",
+    "author": "BigSoundBank",
+    "source_url": "https://bigsoundbank.com/campaign-at-night-3-s1469.html",
+    "download_url": "https://bigsoundbank.com/UPLOAD/mp3/1469.mp3",
+    "license": "CC0 1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Original MP3; filename changed only."
   }
 ]

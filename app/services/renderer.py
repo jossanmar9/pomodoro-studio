@@ -50,6 +50,8 @@ class RenderSpec:
     # Capa de moviment natural (vídeo de partícules sobre negre) que es barreja amb el fons.
     overlay: Path | None = None
     overlay_opacity: float = 0.6
+    # «screen»: la capa se suma com a llum; «key»: es retalla el negre i es posa damunt (fulles, pètals).
+    overlay_mode: str = "screen"
     # Clip que sona una sola vegada abans del bucle de la capa (p. ex. la preparació de la respiració).
     overlay_intro: Path | None = None
     # Enfosquix el fons (0-1) perquè la capa (p. ex. la respiració guiada) es llija bé.
@@ -175,6 +177,21 @@ def _validate_audio(track: AudioTrack) -> None:
     if not 0 <= track.volume <= 1: raise ValueError("El volum ha d'estar entre 0 i 1")
 
 
+def overlay_parts(base: str, layer: str, width: int, height: int, fps: int, opacity: float, mode: str, out: str) -> list[str]:
+    """Filtres per a barrejar una capa de moviment amb el fons (base i capa ja escalats a la mateixa mida)."""
+    if mode == "key":
+        return [
+            f"{base},format=yuv420p[base]",
+            f"{layer}scale={width}:{height},setsar=1,fps={fps},colorkey=0x000000:0.12:0.06,format=yuva420p,colorchannelmixer=aa={opacity:g}[layer]",
+            f"[base][layer]overlay=shortest=0:format=auto,format=yuv420p[{out}]",
+        ]
+    return [
+        f"{base},format=gbrp[base]",
+        f"{layer}scale={width}:{height},setsar=1,fps={fps},format=gbrp[layer]",
+        f"[base][layer]blend=all_mode=screen:all_opacity={opacity:g}:shortest=0,format=yuv420p[{out}]",
+    ]
+
+
 def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) -> list[str]:
     suffix = spec.background.suffix.lower()
     if suffix not in SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_VIDEO_SUFFIXES: raise ValueError(f"Format de fons no compatible: {suffix}")
@@ -220,15 +237,13 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     parts: list[str] = []
     if overlay_input is not None:
         opacity = min(1.0, max(0.0, spec.overlay_opacity))
-        parts.append(f"[0:v]{','.join(video)},format=gbrp[base]")
         layer_source = f"[{overlay_input}:v]"
         if intro_input is not None:
             parts.append(f"[{intro_input}:v]setsar=1,fps={spec.fps},format=yuv420p[intro]")
             parts.append(f"[{overlay_input}:v]setsar=1,fps={spec.fps},format=yuv420p[loop]")
             parts.append("[intro][loop]concat=n=2:v=1:a=0[layerraw]")
             layer_source = "[layerraw]"
-        parts.append(f"{layer_source}scale={width}:{height},setsar=1,fps={spec.fps},format=gbrp[layer]")
-        parts.append(f"[base][layer]blend=all_mode=screen:all_opacity={opacity:g}:shortest=0,format=yuv420p[mixed]")
+        parts.extend(overlay_parts(f"[0:v]{','.join(video)}", layer_source, width, height, spec.fps, opacity, spec.overlay_mode, "mixed"))
         source, video = "[mixed]", []
     else:
         source = "[0:v]"

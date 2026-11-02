@@ -29,7 +29,7 @@ from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, short_missing, youtube_connected
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
-from app.services.autopilot_plan import environments_by_label, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
+from app.services.autopilot_plan import environments_by_label, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -273,6 +273,12 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
 @app.get("/api/auto")
 def auto_status():
     return {"runs":_recent_runs(),"youtube_connected":youtube_connected(),"shutdown":power.status()}
+
+
+@app.get("/api/auto/music-advice")
+def auto_music_advice(format:str=Query("pomodoro"),environment:str=Query(""),theme:str=Query("")):
+    if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
+    return music_advice(format,environment,theme)
 
 
 @app.post("/auto/{run_id}/short")
