@@ -51,12 +51,12 @@ VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv"}
 
 # Temes on la foto és a l'aire lliure: només ací cau pluja o neu per tota la imatge.
 OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port",
-                  "Bosc de tardor", "Pluja de tardor a la ciutat", "Jardí de primavera", "Porxo d'estiu", "Nit d'estiu"}
+                  "Bosc de tardor", "Jardí de primavera", "Porxo d'estiu", "Nit d'estiu"}
 # Temes de Nadal a l'aire lliure: sempre neva.
 SNOW_THEMES = {"Poble nevat", "Mercat de Nadal"}
 # Temes de temporada: la capa va amb el tema (si no plou o fa tempesta a l'aire lliure).
 SEASON_THEMES = {
-    "Bosc de tardor": "fulles", "Pluja de tardor a la ciutat": "fulles",
+    "Bosc de tardor": "fulles",
     "Jardí de primavera": "petals",
     "Porxo d'estiu": "cuques", "Nit d'estiu": "cuques",
     "Cabana de Halloween": "boira", "Biblioteca de Halloween": "boira",

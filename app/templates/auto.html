@@ -60,14 +60,18 @@
 
     <fieldset class="choice-block">
       <legend>1 · Tema</legend>
+      {% for group in theme_groups %}
+      {% set first_group = loop.first %}
+      <p class="theme-group">{{ group.name }}</p>
       <div class="choices themes">
-        {% for t in themes %}
+        {% for t in group.themes %}
         <label class="choice">
-          <input type="radio" name="theme" value="{{ t.name }}" {% if loop.first %}checked{% endif %} required>
+          <input type="radio" name="theme" value="{{ t.name }}" {% if loop.first and first_group %}checked{% endif %} required>
           <span>{{ t.name }}<small class="{{ 'muted' if t.backgrounds else 'missing' }}">{{ t.backgrounds }} fons</small></span>
         </label>
         {% endfor %}
       </div>
+      {% endfor %}
     </fieldset>
 
     <fieldset class="choice-block">
