@@ -61,19 +61,11 @@
     <fieldset class="choice-block" data-hide-for="soroll">
       <legend>1 · Tema</legend>
       <div class="groups" id="theme-groups">
-        {% for group in theme_groups %}
-        {% if group.direct %}
-        <label class="group-tile direct">
-          <input type="radio" name="theme" value="{{ group.name }}" required>
-          <b>{{ group.icon }} {{ group.name }}</b>
-          <small class="{{ 'muted' if group.backgrounds else 'missing' }}">{{ group.backgrounds }} fons</small>
-        </label>
-        {% else %}
+        {% for group in theme_groups if not group.direct %}
         <button type="button" class="group-tile" data-group="{{ group.name }}" aria-expanded="false">
           <b>{{ group.icon }} {{ group.name }}</b>
           <small class="{{ 'muted' if group.backgrounds else 'missing' }}">{{ group.themes|length }} {{ 'tema' if group.themes|length == 1 else 'temes' }} · {{ group.backgrounds }} fons</small>
         </button>
-        {% endif %}
         {% endfor %}
       </div>
       {% for group in theme_groups if not group.direct %}
@@ -94,6 +86,16 @@
         </div>
       </div>
       {% endfor %}
+      <p class="theme-group">Estacions i festes</p>
+      <div class="groups seasons">
+        {% for group in theme_groups if group.direct %}
+        <label class="group-tile direct">
+          <input type="radio" name="theme" value="{{ group.name }}" required>
+          <b>{{ group.icon }} {{ group.name }}</b>
+          <small class="{{ 'muted' if group.backgrounds else 'missing' }}">{{ group.backgrounds }} fons</small>
+        </label>
+        {% endfor %}
+      </div>
     </fieldset>
 
     <fieldset class="choice-block" data-hide-for="soroll">
