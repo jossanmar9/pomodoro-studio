@@ -213,7 +213,7 @@ def test_texts_for_every_format_fit_youtube():
         assert "\n\n\n" not in texts.description
     assert "Brown Noise" in build_texts(public_theme="Rainy Cabin", environment="soroll", duration=480, focus=480, pause=0, chapters=chapters, credits="", fmt="soroll", noise="marro", dim=True).title
     assert "Dark Screen" in build_texts(public_theme="Rainy Cabin", environment="pluja", duration=480, focus=480, pause=0, chapters=chapters, credits="", fmt="dormir", dim=True).title
-    assert "Reading Ambience" in build_texts(public_theme="Cozy Reading Nook", environment="pluja", duration=120, focus=120, pause=0, chapters=chapters, credits="", fmt="llegir").title
+    assert "Reading" in build_texts(public_theme="Cozy Reading Nook", environment="pluja", duration=120, focus=120, pause=0, chapters=chapters, credits="", fmt="llegir").title
     assert "Tabletop RPG" in build_texts(public_theme="Ancient Dungeon", environment="masmorra", duration=180, focus=180, pause=0, chapters=chapters, credits="", fmt="rol").title
     with pytest.raises(ValueError):
         build_texts(public_theme="x", environment="soroll", duration=60, focus=60, pause=0, chapters=chapters, credits="", fmt="soroll", noise="verd")
@@ -830,3 +830,8 @@ def test_titles_lead_with_cozy_ambience_for_search():
         assert texts.title.startswith("Cozy Christmas Library"), texts.title
         assert texts.description.startswith("Cozy Christmas Library"), texts.description[:80]
         assert "cozy ambience" in texts.tags and "#cozyambience" in texts.description
+
+
+def test_reading_title_does_not_repeat_reading():
+    texts = build_texts(public_theme="Cozy Reading Nook", environment="pluja", duration=120, focus=120, pause=0, chapters="", credits="", fmt="llegir")
+    assert texts.title.startswith("Cozy Reading Nook Ambience |") and "Reading Ambience" not in texts.title.split("|")[0].replace("Nook Ambience", "")
