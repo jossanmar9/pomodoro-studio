@@ -7,7 +7,7 @@ La pàgina principal (`http://localhost:8000`) és ara el mode automàtic. Nomé
    - **Per a dormir**: només l'ambient, sense comptador ni campaneta. La pantalla es pot enfosquir a poc a poc als 30 minuts.
    - **Per a llegir**: ambient acollidor per a llegir (amb música si vols), sense comptador ni campaneta. Va molt bé amb el tema **Racó de lectura** o qualsevol biblioteca.
    - **So ambiental**: només els sons de l'entorn, sense música, sense comptador i amb la pantalla sempre encesa (cafeteria, avió, tren, bosc, tempesta al bosc, platja, tempesta a la platja, riu, biblioteca, llar de foc, llar de foc i tempesta, port…). La cabina d'avió és un brunzit generat per l'aplicació (soroll marró), sense sons de tercers.
-   - **Respiració guiada**: un cercle que creix (inspira), es para (aguanta) i es fa xicotet (espira), amb el text i els segons que queden. Patrons: quadrada 4-4-4-4, relaxant 4-7-8 i coherent 5-5. Duracions de 5, 10, 15, 20 o 30 minuts, amb els sons de l'entorn i música opcional.
+   - **Respiració guiada**: comença amb 15 segons de preparació («Get comfortable» i compte enrere de 5 a 1) i després un cercle que creix (inspira), es para (aguanta) i es fa xicotet (espira), amb el text i els segons que queden. Patrons: quadrada 4-4-4-4, relaxant 4-7-8 i coherent 5-5. Duracions de 5, 10, 15, 20 o 30 minuts, amb els sons de l'entorn i música opcional.
    - **Partida de rol**: ambient de fons per a partides (taverna, masmorra, campament, tempesta al mar…), sense comptador.
    - **Soroll de color**: soroll marró, rosa o blanc generat per l'aplicació mateixa (sense cap so de tercers), amb pantalla enfosquida opcional.
 1. **Tema**: biblioteca medieval, cabana, nau espacial, masmorra, campament d'aventurers, cova del drac…

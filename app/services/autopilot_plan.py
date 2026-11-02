@@ -644,7 +644,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
                 f"{minutes} {pattern.public}",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"Follow the circle: breathe in as it grows, hold when it stops, and breathe out as it shrinks. {pattern.how}",
+                f"Take 15 seconds to get comfortable, then follow the circle: breathe in as it grows, hold when it stops, and breathe out as it shrinks. {pattern.how}",
                 f"{duration} minutes to calm down, focus before studying or unwind before sleep, in a {public_theme.lower()} with {sound}. No talking.",
                 "Breathe gently and never force it. If you feel dizzy, stop and breathe normally.",
                 credit_text,
