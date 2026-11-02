@@ -66,3 +66,13 @@ button.big:hover{background:#f0b862}
 .bg-picker .missing{grid-column:1/-1;color:#d08a8a;margin:0}
 .run-step.CANCELLED{color:#aebbc9}
 .theme-group{margin:6px 0 -2px;font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#e3a54a}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.group-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;height:100%;gap:3px;text-align:left;padding:11px 12px;border:1px solid #344258;border-radius:10px;background:#0d131c;color:#dbe7f5;cursor:pointer;font:inherit}
+.group-tile b{font-weight:700}
+.group-tile small{font-size:.75rem}
+.group-tile small.missing{color:#d08a8a}
+.group-tile:hover{background:#182231}
+.group-tile.active{border-color:#e3a54a;background:#2a1f10;color:#fff3df;box-shadow:0 0 0 1px #e3a54a inset}
+.group-tile:focus-visible{outline:2px solid #e3a54a;outline-offset:2px}
+.theme-panel{margin-top:10px;padding:12px;border:1px solid #e3a54a;border-radius:12px;background:#120f0a}
+.theme-panel .theme-group{margin:0 0 8px}

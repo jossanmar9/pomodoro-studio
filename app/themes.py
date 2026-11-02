@@ -28,6 +28,8 @@ THEMES: dict[str, str] = {
     "Parc a la ciutat": "City Park",
     "Apartament a la ciutat": "Cozy City Apartment",
     "Racó de lectura": "Cozy Reading Nook",
+    "Cafeteria d'hivern": "Winter Coffee Shop",
+    "Bosc nevat": "Snowy Forest",
     "Cabana de Halloween": "Halloween Cottage",
     "Biblioteca de Halloween": "Halloween Library",
     "Matí de Pasqua": "Easter Morning Cottage",
