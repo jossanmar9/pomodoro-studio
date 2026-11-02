@@ -314,7 +314,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto.settings, "audio_catalog", tmp_path / "missing-catalog.json")
     monkeypatch.setattr(auto, "probe_duration", lambda path: 300.0, raising=False)
     monkeypatch.setattr("app.services.autopilot_plan.probe_duration", lambda path: 300.0)
-    monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
+    monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder, level=0: touch(folder / "music-mix.m4a"))
     monkeypatch.setattr(auto, "ensure_overlay", lambda style, **kw: touch(tmp_path / "overlays" / f"{style}.mp4"))
     monkeypatch.setattr(auto, "ensure_breath_clip", lambda pattern, **kw: touch(tmp_path / "overlays" / f"respiracio-{pattern}.mp4"))
     monkeypatch.setattr(auto, "ensure_breath_intro", lambda **kw: touch(tmp_path / "overlays" / "respiracio-intro.mp4"))
