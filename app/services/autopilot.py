@@ -28,7 +28,7 @@ from app.services.jobs import render_queue
 from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip, ensure_breath_intro
-from app.services.overlays import ensure_overlay, overlay_opacity, overlay_style
+from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity, overlay_style
 from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
@@ -281,6 +281,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
             noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
             overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_intro=overlay_intro,
+            overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None and fmt != "respiracio" else "screen",
         ))
         _wait_for_render(project_id)
         if music_track:
@@ -402,7 +403,8 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
     output = folder / "short.mp4"
     command = build_short_command(background, audio, output, title=public_theme, subtitle=env.public_label, start=0,
                                   label_font=fonts.label, text_font=fonts.digits, overlay=overlay, overlay_opacity=opacity,
-                                  footer="More cozy ambience on the channel")
+                                  footer="More cozy ambience on the channel",
+                                  overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None else "screen")
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     audio.unlink(missing_ok=True)
     if result.returncode != 0 or not output.is_file():
@@ -455,7 +457,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     if not background_name or not background.is_file():
         return "Short no fet: no es troba el fons"
     fonts = fonts_for_theme(theme)
-    overlay, opacity, darken = None, 0.0, 0.0
+    overlay, opacity, darken, mode = None, 0.0, 0.0, "screen"
     if fmt == "respiracio" and breath in BREATH_PATTERNS:
         overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS, font=fonts.label)
         opacity, darken = BREATH_OPACITY, BREATH_DARKEN
@@ -463,11 +465,11 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         style = overlay_style(theme, environment) if with_motion else None
         if style:
             overlay = ensure_overlay(style, cache_dir=settings.overlays_dir, custom_dir=settings.assets_dir / "overlays", width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS)
-            opacity = overlay_opacity(style)
+            opacity, mode = overlay_opacity(style), overlay_mode(style)
     output = folder / "short.mp4"
     command = build_short_command(background, main.video, output, title=publication_theme(theme), subtitle=subtitle,
                                   start=short_start(total), label_font=fonts.label, text_font=fonts.digits,
-                                  overlay=overlay, overlay_opacity=opacity, darken=darken)
+                                  overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode != 0 or not output.is_file():
         return f"Short no fet: {(result.stderr or '')[-200:]}"

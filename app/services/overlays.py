@@ -29,20 +29,38 @@ STYLES: dict[str, tuple[int, float]] = {
     "neu": (20, 0.8),
     "pols": (30, 0.75),
     "guspires": (12, 1.0),
+    "fulles": (24, 1.0),
+    "petals": (24, 1.0),
+    "cuques": (20, 1.0),
+    "boira": (60, 0.6),
 }
+# Les fulles i els pètals tapen el fons (no són llum): es retallen del negre i es posen damunt.
+KEY_STYLES = {"fulles", "petals"}
 STYLE_LABELS = {
     "pluja": "Pluja",
     "pluja-forta": "Pluja forta",
     "neu": "Neu",
     "pols": "Pols en la llum",
     "guspires": "Guspires",
+    "fulles": "Fulles caient",
+    "petals": "Pètals",
+    "cuques": "Cuques de llum",
+    "boira": "Boirina",
 }
 VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv"}
 
 # Temes on la foto és a l'aire lliure: només ací cau pluja o neu per tota la imatge.
-OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port"}
+OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port",
+                  "Bosc de tardor", "Pluja de tardor a la ciutat", "Jardí de primavera", "Porxo d'estiu", "Nit d'estiu"}
 # Temes de Nadal a l'aire lliure: sempre neva.
 SNOW_THEMES = {"Poble nevat", "Mercat de Nadal"}
+# Temes de temporada: la capa va amb el tema (si no plou o fa tempesta a l'aire lliure).
+SEASON_THEMES = {
+    "Bosc de tardor": "fulles", "Pluja de tardor a la ciutat": "fulles",
+    "Jardí de primavera": "petals",
+    "Porxo d'estiu": "cuques", "Nit d'estiu": "cuques",
+    "Cabana de Halloween": "boira", "Biblioteca de Halloween": "boira",
+}
 # Temes on la pols flotant no té sentit.
 NO_DUST_THEMES = {"Avió"}
 _RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca"}
@@ -54,6 +72,12 @@ def overlay_style(theme: str, environment: str) -> str | None:
     """Estil de capa que encaixa amb el tema i l'entorn (None = cap)."""
     if theme in SNOW_THEMES:
         return "neu"
+    if theme in SEASON_THEMES:
+        if theme in OUTDOOR_THEMES and environment in _STORM:
+            return "pluja-forta"
+        if theme in OUTDOOR_THEMES and environment in _RAIN and SEASON_THEMES[theme] != "fulles":
+            return "pluja"
+        return SEASON_THEMES[theme]
     if theme in OUTDOOR_THEMES:
         if environment in _STORM:
             return "pluja-forta"
@@ -100,7 +124,36 @@ def _particles(style: str, width: int, height: int, rng: random.Random) -> list[
     if style == "guspires":
         return [_Particle(rng.uniform(0, width), rng.uniform(0, height), -rng.choice((1, 1, 2)), rng.uniform(1.3, 2.6) * scale,
                           rng.randint(200, 255), rng.uniform(6, 26) * scale, rng.choice((1, 2, 3)), rng.uniform(0, 2 * math.pi)) for _ in range(80)]
+    if style == "fulles":
+        return [_Particle(rng.uniform(0, width), rng.uniform(0, height), rng.choice((1, 1, 2)), rng.uniform(6, 11) * scale,
+                          rng.randrange(len(LEAF_COLORS)), rng.uniform(20, 60) * scale, rng.choice((1, 2)), rng.uniform(0, 2 * math.pi),
+                          bob_turns=rng.choice((1, 2, 3))) for _ in range(45)]
+    if style == "petals":
+        return [_Particle(rng.uniform(0, width), rng.uniform(0, height), rng.choice((1, 1, 2)), rng.uniform(2.5, 4.5) * scale,
+                          rng.randrange(len(PETAL_COLORS)), rng.uniform(30, 80) * scale, rng.choice((1, 2, 3)), rng.uniform(0, 2 * math.pi),
+                          bob_turns=rng.choice((2, 3, 4))) for _ in range(70)]
+    if style == "cuques":
+        return [_Particle(rng.uniform(0, width), rng.uniform(height * 0.25, height), 0, rng.uniform(2.2, 3.6) * scale,
+                          rng.randint(220, 255), rng.uniform(15, 60) * scale, rng.choice((1, 2)), rng.uniform(0, 2 * math.pi),
+                          rng.uniform(10, 40) * scale, rng.choice((2, 3, 4, 5))) for _ in range(55)]
+    if style == "boira":
+        return [_Particle(rng.uniform(0, width), rng.uniform(height * 0.5, height * 0.98), 0, rng.uniform(0.12, 0.28) * width,
+                          rng.randint(95, 150), 0, 1, rng.uniform(0, 2 * math.pi), rng.uniform(0.02, 0.06) * height, 1) for _ in range(16)]
     raise ValueError(f"Estil de capa desconegut: {style}")
+
+
+LEAF_COLORS = ((232, 122, 40), (205, 64, 42), (236, 182, 58), (178, 104, 52))
+PETAL_COLORS = ((250, 190, 212), (252, 226, 236), (246, 168, 196))
+
+
+def _rotated_ellipse(cx: float, cy: float, rx: float, ry: float, angle: float, steps: int = 12) -> list[tuple[float, float]]:
+    ca, sa = math.cos(angle), math.sin(angle)
+    points = []
+    for i in range(steps):
+        a = 2 * math.pi * i / steps
+        x, y = rx * math.cos(a), ry * math.sin(a)
+        points.append((cx + x * ca - y * sa, cy + x * sa + y * ca))
+    return points
 
 
 def render_frame(style: str, particles: list[_Particle], width: int, height: int, t: float) -> Image.Image:
@@ -123,19 +176,40 @@ def render_frame(style: str, particles: list[_Particle], width: int, height: int
             level = int(p.level * glow)
             c = (level, int(level * 0.9), int(level * 0.72))
             draw.ellipse([x - p.size, y - p.size, x + p.size, y + p.size], fill=c)
+        elif style in {"fulles", "petals"}:
+            colors = LEAF_COLORS if style == "fulles" else PETAL_COLORS
+            spin = p.phase + p.bob_turns * angle
+            # Les fulles giren mentre cauen: l'amplada canvia com si es voltejaren.
+            flip = 0.35 + 0.65 * abs(math.cos(spin))
+            draw.polygon(_rotated_ellipse(x, y, p.size * flip, p.size * (0.5 if style == "fulles" else 0.7), spin), fill=colors[p.level % len(colors)])
+        elif style == "cuques":
+            y = (p.y + p.bob * math.sin(p.bob_turns * angle + p.phase * 1.3)) % height
+            glow = max(0.0, math.sin(p.bob_turns * angle + p.phase)) ** 3
+            level = int(p.level * glow)
+            c = (int(level * 0.8), level, int(level * 0.35))
+            draw.ellipse([x - p.size, y - p.size, x + p.size, y + p.size], fill=c)
+        elif style == "boira":
+            # Bancs de boira que passen lentament d'esquerra a dreta (es dibuixen també a l'altre costat per a no tallar-los).
+            x = (p.x + width * t) % width
+            y = p.y + p.bob * math.sin(angle + p.phase)
+            c = (p.level, p.level, min(255, p.level + 8))
+            for dx in (-width, 0, width):
+                draw.ellipse([x + dx - p.size, y - p.size * 0.35, x + dx + p.size, y + p.size * 0.35], fill=c)
         else:  # guspires: pugen i s'apaguen en arribar a dalt
             fade = min(1.0, 1.6 * y / height)
             level = int(p.level * fade)
             c = (level, int(level * 0.55), int(level * 0.18))
             draw.ellipse([x - p.size, y - p.size, x + p.size, y + p.size], fill=c)
-    blur = {"pluja": 0.6, "pluja-forta": 0.7, "neu": 1.1, "pols": 1.4, "guspires": 0.9}[style]
+    blur = {"pluja": 0.6, "pluja-forta": 0.7, "neu": 1.1, "pols": 1.4, "guspires": 0.9, "fulles": 0.5, "petals": 0.5,
+            "cuques": 1.8, "boira": width * 0.04}[style]
     return image.filter(ImageFilter.GaussianBlur(blur))
 
 
 def _generate(style: str, output: Path, width: int, height: int, fps: int, *, seed: int = 7) -> Path:
     seconds = STYLES[style][0]
     frames = seconds * fps
-    work_w, work_h = max(2, width // 2 // 2 * 2), max(2, height // 2 // 2 * 2)  # es dibuixa a mitja mida i s'amplia
+    shrink = 4 if style == "boira" else 2  # es dibuixa més xicotet i s'amplia (la boira és tota borrosa)
+    work_w, work_h = max(2, width // shrink // 2 * 2), max(2, height // shrink // 2 * 2)
     particles = _particles(style, work_w, work_h, random.Random(seed))
     output.parent.mkdir(parents=True, exist_ok=True)
     partial = output.with_suffix(".part.mp4")
@@ -185,3 +259,8 @@ def ensure_overlay(style: str, *, cache_dir: Path, custom_dir: Path, width: int,
 
 def overlay_opacity(style: str) -> float:
     return STYLES[style][1]
+
+
+def overlay_mode(style: str) -> str:
+    """«key» (es retalla el negre i es posa damunt) o «screen» (se suma com a llum)."""
+    return "key" if style in KEY_STYLES else "screen"

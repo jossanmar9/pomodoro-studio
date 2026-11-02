@@ -217,6 +217,26 @@ ENVIRONMENTS: dict[str, Environment] = {
         "dim warm cabin lights, moonlit clouds outside the window",
         (), music=False, noise="brown",
     ),
+    "nit-halloween": Environment(
+        "Nit de Halloween", "Halloween Night", "night", "wind howling outside, owls in the dark woods",
+        "flickering candlelight and carved pumpkins, misty moonlight",
+        (("vent-des-de-dins", "vent-des-de-dins-01", "vent-des-de-dins-03", "vent-grinyol"), ("mussols", "mussol-banyut")),
+    ),
+    "nit-estiu": Environment(
+        "Nit d'estiu", "Summer Night", "summer night", "warm still air, crickets and frogs",
+        "starlight, a warm lantern and glowing fireflies",
+        (("nit-grills-granotes", "camp-nit", "nit-camp-03"), ("vent-herba", "vent-arbre")),
+    ),
+    "jardi": Environment(
+        "Jardí amb ocells", "Spring Birdsong", "spring morning", "fresh breeze, birds singing",
+        "soft bright morning sunlight",
+        (("bosc-ocells", "vora-bosc", "bosc-02", "bosc-04"), ("vent-herba",)),
+    ),
+    "tardor": Environment(
+        "Vent de tardor", "Autumn Wind", "autumn afternoon", "wind in the trees, leaves falling",
+        "warm golden autumn light",
+        (("vent-arbres", "vent-arbre", "vent-fort-arbres-03"), ("vent-herba", "vent-grinyol")),
+    ),
     "musica": Environment(
         "Només música", "Calm Music", "evening", "calm",
         "soft cinematic practical lighting",
@@ -265,6 +285,20 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Biblioteca de Nadal": ("old library decorated for Christmas", "tall bookshelves with garlands and red ribbons, a Christmas tree with warm lights, a fireplace, snow falling outside tall arched windows", "victorian"),
     "Poble nevat": ("snowy village at night at Christmas time", "small houses with warm lit windows, Christmas lights, snow-covered roofs and pine trees, a quiet cobblestone street with lanterns", "cozy"),
     "Mercat de Nadal": ("quiet Christmas market at dusk", "wooden stalls with warm lights, garlands and ornaments, a big Christmas tree in the square, light snow falling", "cozy"),
+    "Cabana de Halloween": ("cozy wooden cottage on Halloween night", "carved pumpkins with candlelight on the windowsill, a crackling fireplace, autumn leaves, a big window over a misty moonlit forest", "cozy"),
+    "Biblioteca de Halloween": ("old library on Halloween night", "tall shelves with ancient books, flickering candles, jack-o'-lanterns, cobwebs, a full moon through a gothic window", "gothic"),
+    "Matí de Pasqua": ("bright cozy cottage kitchen on an Easter morning", "pastel painted eggs in a basket, spring flowers in jars, a fresh cake, an open window over a blooming garden", "cozy"),
+    "Cabana de tardor": ("cozy cabin in autumn", "a window seat with a knitted blanket and tea, a big window over red and golden trees in soft rain, warm lamp light", "cozy"),
+    "Cafeteria de tardor": ("cozy caf\u00e9 in autumn", "pumpkin spice latte and cinnamon rolls on a wooden table, golden leaves outside the rainy window, warm string lights", "cozy"),
+    "Bosc de tardor": ("peaceful forest path in autumn", "red, orange and golden trees, fallen leaves, soft morning light and light mist, a small wooden bench", "natural"),
+    "Jardí de primavera": ("blooming spring garden", "cherry blossom trees, tulips and daffodils, a stone path and a small wooden gazebo, soft sunlight", "natural"),
+    "Racó de primavera": ("cozy reading nook by an open window in spring", "white curtains in the breeze, cherry blossoms outside, books, fresh flowers and a cup of tea", "cozy"),
+    "Porxo d'estiu": ("wooden porch of a countryside house on a summer evening", "a hammock and string lights, golden sunset over wheat fields, fireflies starting to glow", "natural"),
+    "Nit d'estiu": ("quiet lake on a summer night", "a wooden dock with a lantern, starry sky reflected in still water, pine trees and fireflies", "natural"),
+    "Casa de la platja": ("cozy beach house living room in summer", "white wooden walls, an open door to the sea, linen curtains in the breeze, seashells and books", "coastal"),
+    "Sant Valentí": ("cozy caf\u00e9 on Valentine's evening", "small tables with candles and red roses, heart-shaped cookies, warm pink and golden lights, rain on the window", "cozy"),
+    "Cap d'Any": ("cozy apartment on New Year's Eve", "a big window with fireworks over the city skyline at midnight, candles, a blanket on the sofa", "contemporary"),
+    "Pluja de tardor a la ciutat": ("quiet european street in autumn rain at dusk", "wet cobblestones reflecting warm shop lights, golden trees and fallen leaves, a cozy caf\u00e9 on the corner", "timeless"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
@@ -311,10 +345,15 @@ MUSIC_STYLES = {
     "jazz": ("Jazz de cafeteria", "soft jazz"),
     "nadal": ("Nadal", "calm Christmas music"),
 }
+# Música de temporada per tema (com Nadal): Halloween fosca; estiu i celebracions, jazz suau.
+SEASON_MUSIC = {
+    "Cabana de Halloween": "fosca", "Biblioteca de Halloween": "fosca",
+    "Porxo d'estiu": "jazz", "Nit d'estiu": "jazz", "Casa de la platja": "jazz", "Sant Valentí": "jazz", "Cap d'Any": "jazz",
+}
 CHRISTMAS_THEMES = {"Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"}
 _JAZZ_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "pluja-ciutat", "ciutat-nit", "japo-carrer", "transit"}
 _MEDIEVAL_ENVIRONMENTS = {"taverna", "campament"}
-_DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar", "cova"}
+_DARK_ENVIRONMENTS = {"masmorra", "tempesta-mar", "cova", "nit-halloween"}
 _DARK_RPG_ENVIRONMENTS = _DARK_ENVIRONMENTS | {"tempesta", "vent", "nit", "temporal"}
 
 
@@ -322,6 +361,8 @@ def music_style(fmt: str, environment: str, theme: str | None = None) -> str:
     """Estil de música que encaixa amb el format, l'entorn i (per a Nadal) el tema."""
     if theme in CHRISTMAS_THEMES and fmt != "rol":
         return "nadal"
+    if theme in SEASON_MUSIC and fmt != "rol" and not (fmt == "dormir" and SEASON_MUSIC[theme] == "jazz"):
+        return SEASON_MUSIC[theme]
     if fmt == "dormir":
         return "calma"
     if fmt == "rol":
@@ -333,6 +374,35 @@ def music_style(fmt: str, environment: str, theme: str | None = None) -> str:
     if environment in _JAZZ_ENVIRONMENTS:
         return "jazz"
     return "calma"
+
+
+_CROWD_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "taverna", "transit", "japo-carrer", "ciutat-nit", "pluja-ciutat", "parc"}
+
+
+def music_advice(fmt: str, environment: str, theme: str) -> dict:
+    """Recomana si posar música segons el format, l'entorn i el tema (l'usuari pot canviar-ho)."""
+    style = MUSIC_STYLES[music_style(fmt, environment, theme)][0]
+    env = ENVIRONMENTS.get(environment)
+    if fmt in {"ambient", "soroll"}:
+        return {"recommended": None, "reason": "Este format no porta música.", "style": None}
+    if env is not None and not env.layers and not env.noise:
+        return {"recommended": True, "reason": "Este entorn només té música.", "style": style}
+    seasonal = theme in CHRISTMAS_THEMES or theme in SEASON_MUSIC
+    if fmt == "dormir":
+        return {"recommended": False, "reason": "Per a dormir funciona millor el so sol: no hi ha canvis de cançó que desperten.", "style": style}
+    if seasonal:
+        kind = {"Nadal": "nadalenca", "Fantasia fosca": "fosca", "Jazz de cafeteria": "de jazz suau"}.get(style, style.lower())
+        return {"recommended": True, "reason": f"La música {kind} encaixa amb el tema.", "style": style}
+    if fmt == "pomodoro" and environment in _CROWD_ENVIRONMENTS:
+        return {"recommended": False, "reason": "El murmuri ja fa de fons; la música el taparia.", "style": style}
+    reasons = {
+        "pomodoro": "Una música tranquil·la ajuda a concentrar-se en sessions llargues.",
+        "llegir": "Una música tranquil·la fa companyia mentre llegeixes.",
+        "respiracio": "Una música suau acompanya la respiració.",
+        "rol": "La música dona ambient a la partida.",
+        "short": "Els Shorts amb música enganxen més.",
+    }
+    return {"recommended": True, "reason": reasons.get(fmt, "La música hi encaixa."), "style": style}
 
 
 def track_style(path: Path, catalog: dict[str, dict] | None = None) -> str:

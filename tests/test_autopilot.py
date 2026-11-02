@@ -835,3 +835,48 @@ def test_titles_lead_with_cozy_ambience_for_search():
 def test_reading_title_does_not_repeat_reading():
     texts = build_texts(public_theme="Cozy Reading Nook", environment="pluja", duration=120, focus=120, pause=0, chapters="", credits="", fmt="llegir")
     assert texts.title.startswith("Cozy Reading Nook Ambience |") and "Reading Ambience" not in texts.title.split("|")[0].replace("Nook Ambience", "")
+
+
+def test_seasonal_themes_have_their_effects_music_and_sounds():
+    from app.services.autopilot_plan import music_advice, music_style
+    from app.services.fonts import THEME_FONTS
+    from app.services.overlays import overlay_mode, overlay_style
+    new = ("Cabana de Halloween", "Biblioteca de Halloween", "Matí de Pasqua", "Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor",
+           "Jardí de primavera", "Racó de primavera", "Porxo d'estiu", "Nit d'estiu", "Casa de la platja", "Sant Valentí", "Cap d'Any",
+           "Pluja de tardor a la ciutat")
+    for theme in new:
+        assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS, theme
+    assert "Nau espacial" not in AUTO_THEMES
+    assert overlay_style("Bosc de tardor", "tardor") == "fulles" and overlay_mode("fulles") == "key"
+    assert overlay_style("Jardí de primavera", "jardi") == "petals" and overlay_style("Jardí de primavera", "pluja") == "pluja"
+    assert overlay_style("Nit d'estiu", "nit-estiu") == "cuques" and overlay_mode("cuques") == "screen"
+    assert overlay_style("Cabana de Halloween", "nit-halloween") == "boira"
+    assert music_style("pomodoro", "nit-halloween", "Cabana de Halloween") == "fosca"
+    assert music_style("llegir", "nit-estiu", "Porxo d'estiu") == "jazz" and music_style("dormir", "nit-estiu", "Porxo d'estiu") == "calma"
+    for key in ("nit-halloween", "nit-estiu", "jardi", "tardor"):
+        assert ENVIRONMENTS[key].layers
+    assert music_advice("dormir", "pluja", "Bosc")["recommended"] is False
+    assert music_advice("pomodoro", "cafeteria", "Cafeteria moderna")["recommended"] is False
+    assert music_advice("pomodoro", "pluja", "Biblioteca medieval")["recommended"] is True
+    assert music_advice("llegir", "llar", "Cabana de Nadal") == {"recommended": True, "reason": "La música nadalenca encaixa amb el tema.", "style": "Nadal"}
+    assert music_advice("ambient", "pluja", "Bosc")["recommended"] is None
+
+
+def test_key_overlay_renders(tmp_path):
+    from app.services import overlays
+    path = overlays.ensure_overlay("fulles", cache_dir=tmp_path / "cache", custom_dir=tmp_path / "none", width=64, height=36, fps=5)
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x445566:s=64x36", "-frames:v", "1", str(background)], check=True)
+    output = tmp_path / "out.mp4"
+    spec = RenderSpec(background, output, "64x36", build_timeline(1, 0, 1), fps=5, show_timer=False, overlay=path, overlay_opacity=1.0, overlay_mode="key")
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    assert "colorkey" in " ".join(command)
+    command[command.index("-t") + 1] = "2"
+    subprocess.run(command, check=True, capture_output=True)
+    assert output.stat().st_size > 0
+
+
+def test_music_advice_endpoint(env):
+    with TestClient(main.app) as client:
+        result = client.get("/api/auto/music-advice", params={"format": "dormir", "environment": "pluja", "theme": "Bosc"}).json()
+    assert result["recommended"] is False and "dormir" in result["reason"]

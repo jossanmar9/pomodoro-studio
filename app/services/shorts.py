@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.services.renderer import _escape_drawtext, font_option
+from app.services.renderer import _escape_drawtext, font_option, overlay_parts
 
 WIDTH, HEIGHT, FPS = 1080, 1920, 30
 SECONDS = 45
@@ -22,7 +22,7 @@ def short_start(total_seconds: int, seconds: int = SECONDS) -> int:
 def build_short_command(background: Path, video: Path, output: Path, *, title: str, subtitle: str, start: int,
                         seconds: int = SECONDS, label_font: Path | None = None, text_font: Path | None = None,
                         overlay: Path | None = None, overlay_opacity: float = 0.6, darken: float = 0.0,
-                        footer: str = "Full video on the channel") -> list[str]:
+                        footer: str = "Full video on the channel", overlay_mode: str = "screen") -> list[str]:
     command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error",
                "-loop", "1", "-framerate", str(FPS), "-i", str(background),
                "-ss", str(start), "-t", str(seconds), "-i", str(video)]
@@ -33,9 +33,7 @@ def build_short_command(background: Path, video: Path, output: Path, *, title: s
         base.append(f"eq=brightness={-min(0.5, darken):g}:saturation=0.85")
     parts = []
     if overlay is not None:
-        parts.append(f"[0:v]{','.join(base)},format=gbrp[base]")
-        parts.append(f"[2:v]scale={WIDTH}:{HEIGHT},setsar=1,fps={FPS},format=gbrp[layer]")
-        parts.append(f"[base][layer]blend=all_mode=screen:all_opacity={min(1.0, max(0.0, overlay_opacity)):g}:shortest=0,format=yuv420p[pic]")
+        parts.extend(overlay_parts(f"[0:v]{','.join(base)}", "[2:v]", WIDTH, HEIGHT, FPS, min(1.0, max(0.0, overlay_opacity)), overlay_mode, "pic"))
         source = "[pic]"
     else:
         parts.append(f"[0:v]{','.join(base)},format=yuv420p[pic]")
