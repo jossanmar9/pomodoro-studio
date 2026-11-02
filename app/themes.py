@@ -17,7 +17,6 @@ THEMES: dict[str, str] = {
     "Roma antiga": "Ancient Rome",
     "Grècia antiga": "Ancient Greece",
     "Japó feudal": "Feudal Japan",
-    "Nau espacial": "Deep Space Station",
     "Búnquer postapocalíptic": "Post-Apocalyptic Bunker",
     "Bosc": "Enchanted Forest",
     "Observatori": "Night Observatory",

@@ -51,7 +51,6 @@ THEME_FONTS: dict[str, FontStyle] = {
     "Roma antiga": FontStyle("Romana", CINZEL, CINZEL),
     "Grècia antiga": FontStyle("Clàssica", CINZEL, CINZEL),
     "Japó feudal": FontStyle("Estampa antiga", ZEN_ANTIQUE, ZEN_ANTIQUE),
-    "Nau espacial": FontStyle("Futurista", ORBITRON, ORBITRON, separator=" / "),
     "Búnquer postapocalíptic": FontStyle("Màquina d'escriure", SPECIAL_ELITE, SPECIAL_ELITE),
     "Bosc": FontStyle("Natural", CORMORANT, CORMORANT),
     "Observatori": FontStyle("Astronòmica", CORMORANT, CINZEL),

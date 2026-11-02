@@ -14,7 +14,7 @@ Tipografies lliures usades en el comptador i en la miniatura de cada ambientaci�
 | `playfair-display` | Playfair Display | SIL OFL 1.1 | Biblioteca victoriana, Racó de lectura (títol), Cafeteria a París | Només s'ha canviat el nom del fitxer |
 | `pirata-one` | Pirata One | SIL OFL 1.1 | Vaixell pirata | Cap |
 | `zen-antique` | Zen Antique | SIL OFL 1.1 | Japó feudal, Cafeteria a Tòquio | Subconjunt només amb caràcters llatins |
-| `orbitron` | Orbitron | SIL OFL 1.1 | Nau espacial | Només s'ha canviat el nom del fitxer |
+| `orbitron` | Orbitron | SIL OFL 1.1 | (cap tema ara mateix) | Només s'ha canviat el nom del fitxer |
 | `special-elite` | Special Elite | Apache 2.0 | Búnquer postapocalíptic | Cap |
 | `cormorant-garamond` | Cormorant Garamond | SIL OFL 1.1 | Bosc, observatori, Parc a la ciutat | Instància fixa de pes 600 de la versió variable |
 | `comfortaa` | Comfortaa | SIL OFL 1.1 | Cafeteria acollidora | Només s'ha canviat el nom del fitxer |

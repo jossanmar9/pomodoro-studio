@@ -44,7 +44,7 @@ OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja"
 # Temes de Nadal a l'aire lliure: sempre neva.
 SNOW_THEMES = {"Poble nevat", "Mercat de Nadal"}
 # Temes on la pols flotant no té sentit.
-NO_DUST_THEMES = {"Nau espacial", "Avió"}
+NO_DUST_THEMES = {"Avió"}
 _RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca"}
 _STORM = {"tempesta", "tempesta-mar", "bosc-tempesta", "platja-tempesta", "llar-tempesta"}
 _FIRE_OUTSIDE = {"campament"}
