@@ -580,6 +580,20 @@ def _join_blocks(*blocks: str) -> str:
     return "\n\n".join(block.strip() for block in blocks if block and block.strip())
 
 
+def cozy_name(public_theme: str) -> str:
+    """«Cozy …» al davant (és el que busca la gent), sense repetir-lo si el nom ja el porta."""
+    return public_theme if public_theme.casefold().startswith("cozy") else f"Cozy {public_theme}"
+
+
+def _hashtag(text: str) -> str:
+    return "#" + re.sub(r"[^a-z0-9]", "", text.casefold())
+
+
+def _hashtags(*words: str) -> str:
+    """Les tres primeres etiquetes ixen damunt del títol en YouTube."""
+    return " ".join(dict.fromkeys(_hashtag(w) for w in words if w))
+
+
 def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None) -> AutoTexts:
     music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1]
     if fmt == "pomodoro":
@@ -587,50 +601,56 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     if fmt not in FORMATS:
         raise ValueError("Format no vàlid")
     label = duration_label(duration)
+    cozy = cozy_name(public_theme)
     dark_title = " · Dark Screen" if dim else ""
     dark_line = f"The screen slowly fades to black after {DIM_AFTER_SECONDS // 60} minutes, so it won't light up your room." if dim else ""
-    outro = f"Original ambience created for {CHANNEL_NAME}. Subscribe for more."
+    outro = f"Original ambience created for {CHANNEL_NAME}. New cozy videos every week: subscribe and leave the light on."
     if fmt == "soroll":
         if noise not in NOISE_COLORS:
             raise ValueError("Color de soroll no vàlid")
         color = NOISE_COLORS[noise][1]
         title = _fit_title([
-            f"{label} {color} Noise for Sleep, Focus & Relaxation | {public_theme}{dark_title}",
-            f"{label} {color} Noise | {public_theme}{dark_title}",
+            f"{color} Noise for Sleep, Focus & Relaxation | {label}{dark_title} | {public_theme}",
+            f"{color} Noise for Sleep, Focus & Relaxation | {label}{dark_title}",
             f"{label} {color} Noise{dark_title}",
         ])
         uses = {"Brown": "Deep and soft, like a distant waterfall.", "Pink": "Balanced and gentle, like steady rain.", "White": "Even and bright, great for masking noises."}[color]
         compose = lambda credit_text: _join_blocks(
-            f"{label} of smooth {color.lower()} noise for sleeping, studying, relaxing or calming a baby. {uses}",
-            f"No music, no voices: just continuous {color.lower()} noise over a {public_theme.lower()}. {dark_line}",
+            f"{label} of smooth {color.lower()} noise for sleeping, studying, focusing, relaxing or calming a baby. {uses}",
+            f"No music, no voices, no ads in the middle from us: just continuous {color.lower()} noise over a {public_theme.lower()}. {dark_line}",
             f"Chapters:\n{chapters}",
             "The noise is generated for this video; no third-party audio is used.",
             credit_text,
             outro,
+            _hashtags(f"{color} noise", "sleep sounds", "focus"),
         )
-        tags = [f"{color.lower()} noise", f"{color.lower()} noise for sleep", f"{color.lower()} noise {label.lower()}", "sleep sounds", "noise for sleeping", "focus noise", "baby sleep", "relaxing noise", public_theme.lower()]
+        tags = [f"{color.lower()} noise", f"{color.lower()} noise for sleep", f"{color.lower()} noise {label.lower()}", "sleep sounds", "noise for sleeping", "focus noise", "study noise", "baby sleep", "relaxing noise", "black screen" if dim else "", public_theme.lower()]
         thumbnail = f"{color.upper()} NOISE · {label.upper()}"
     else:
         env = ENVIRONMENTS[environment]
-        if not env.layers:
+        sounds = f"{env.public_label} Sounds"
+        if not env.layers and not env.noise:
             sound = music_text
-        elif music:
+        elif music and env.music:
             sound = f"{env.public_label.lower()} sounds and {music_text}"
         else:
             sound = f"{env.public_label.lower()} sounds"
+        sound_tags = [f"{env.public_label.lower()} sounds", f"{env.public_label.lower()} ambience"]
         if fmt == "dormir":
             title = _fit_title([
-                f"{label} {public_theme} Ambience | {env.public_label} for Sleep & Relaxation{dark_title}",
-                f"{label} {env.public_label} for Sleep | {public_theme}{dark_title}",
-                f"{label} {env.public_label} for Sleep{dark_title}",
+                f"{cozy} Ambience | {sounds} for Sleep & Relaxation | {label}{dark_title}",
+                f"{cozy} Ambience | {sounds} for Sleep | {label}{dark_title}",
+                f"{label} {sounds} for Sleep{dark_title}",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"Relax and fall asleep in a {public_theme.lower()} with {sound}. No timer, no alarms, no interruptions from us. {dark_line}",
+                f"{cozy} ambience with {sound} to fall asleep, rest and relax. {label.lower().capitalize()} with no timer, no alarms and no interruptions from us.",
+                f"Close your eyes and let the cozy ambience carry you to sleep. Also lovely as calm background sound for reading or a quiet evening. {dark_line}",
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
+                _hashtags("cozy ambience", "sleep sounds", env.public_label),
             )
-            tags = ["sleep sounds", "sleep ambience", "relaxing sounds", f"{env.public_label.lower()} for sleep", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} sleep sounds", "fall asleep fast"] + (["dark screen", "black screen sleep sounds"] if dim else [])
+            tags = ["cozy ambience", "sleep sounds", "sleep ambience", "relaxing sounds", f"{env.public_label.lower()} for sleep", *sound_tags, f"{public_theme.lower()} ambience", f"{label.lower()} sleep sounds", "fall asleep fast"] + (["dark screen", "black screen sleep sounds"] if dim else [])
             thumbnail = f"{label.upper()} · {env.public_label.upper()}"
         elif fmt == "respiracio":
             from app.services.breathing import PATTERNS
@@ -639,82 +659,89 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             pattern = PATTERNS[breath]
             minutes = f"{duration} Minute"
             title = _fit_title([
+                f"{minutes} {pattern.public} | Guided Breathing Exercise to Calm Down | {cozy}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise | {public_theme}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise",
-                f"{minutes} {pattern.public}",
             ])
             compose = lambda credit_text: _join_blocks(
+                f"A {duration} minute guided breathing exercise ({pattern.public.lower()}) to calm down, ease stress and anxiety, focus before studying or unwind before sleep.",
                 f"Take 15 seconds to get comfortable, then follow the circle: breathe in as it grows, hold when it stops, and breathe out as it shrinks. {pattern.how}",
-                f"{duration} minutes to calm down, focus before studying or unwind before sleep, in a {public_theme.lower()} with {sound}. No talking.",
+                f"Scene: {cozy.lower()} with {sound}. No talking.",
                 "Breathe gently and never force it. If you feel dizzy, stop and breathe normally.",
                 credit_text,
                 outro,
+                _hashtags("breathing exercise", pattern.public, "relax"),
             )
-            tags = [pattern.public.lower(), "breathing exercise", "guided breathing", "breathwork", "calm breathing", "breathing for anxiety", "relaxation", "meditation", f"{duration} minute breathing", public_theme.lower()]
+            tags = [pattern.public.lower(), "breathing exercise", "guided breathing", "breathwork", "calm breathing", "breathing for anxiety", "breathing for stress", "relaxation", "meditation", f"{duration} minute breathing", public_theme.lower()]
             thumbnail = f"{pattern.public.upper()} · {duration} MIN"
         elif fmt == "ambient":
             title = _fit_title([
-                f"{label} {env.public_label} Ambience | {public_theme} | No Music",
-                f"{label} {env.public_label} Sounds | {public_theme}",
-                f"{label} {env.public_label} Sounds",
+                f"{cozy} Ambience | {sounds}, No Music | {label}",
+                f"{cozy} Ambience | {sounds} | {label}",
+                f"{label} {sounds}, No Music",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"Settle in with {label.lower()} of pure {env.public_label.lower()} sounds. Scene: {public_theme}.",
-                "No music, no talking, no timer: just the ambience, for studying, working, reading, relaxing or sleeping.",
+                f"{cozy} ambience with pure {env.public_label.lower()} sounds: {label.lower()} with no music, no talking and no timer.",
+                "Cozy background ambience for studying, working, reading, relaxing or sleeping. Turn it up, turn it down, and let the place do the rest.",
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
+                _hashtags("cozy ambience", env.public_label, "ambience"),
             )
-            tags = [f"{env.public_label.lower()} ambience", f"{env.public_label.lower()} sounds", "ambient sounds", "ambience no music", "relaxing sounds", "background sounds", "sounds for sleep", "study ambience", public_theme.lower(), f"{label.lower()} ambience"]
+            tags = ["cozy ambience", *sound_tags, "ambient sounds", "ambience no music", "relaxing sounds", "background sounds", "sounds for sleep", "study ambience", f"{public_theme.lower()} ambience", f"{label.lower()} ambience"]
             thumbnail = f"{env.public_label.upper()} · {label.upper()}"
         elif fmt == "llegir":
             title = _fit_title([
-                f"{label} Reading Ambience | {public_theme} with {env.public_label} Sounds",
+                f"{cozy} Reading Ambience | {sounds} for Reading & Relaxing | {label}",
+                f"{cozy} Reading Ambience | {sounds} | {label}",
                 f"{label} Reading Ambience | {public_theme}",
-                f"{label} Reading Ambience",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"Grab a book and get comfortable: {label.lower()} in a {public_theme.lower()} with {sound}.",
-                "No timer, no alarms, no talking. Just a quiet place to read, write in your journal or simply unwind.",
+                f"{cozy} reading ambience with {sound}. Grab a book and get comfortable for {label.lower()}.",
+                "No timer, no alarms, no talking: just a cozy, quiet place to read, write in your journal or simply unwind.",
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
+                _hashtags("cozy ambience", "reading ambience", "booktube"),
             )
-            tags = ["reading ambience", "read with me", "cozy reading", "book ambience", "reading sounds", "relaxing ambience", f"{env.public_label.lower()} sounds", public_theme.lower(), f"{label.lower()} reading"]
+            tags = ["cozy ambience", "reading ambience", "cozy reading", "read with me", "book ambience", "reading sounds", "relaxing ambience", *sound_tags, f"{public_theme.lower()} ambience", f"{label.lower()} reading"]
             thumbnail = f"READING · {label.upper()}"
         else:  # rol
             title = _fit_title([
-                f"{public_theme} Ambience | {env.public_label} | Tabletop RPG Background · {label}",
-                f"{public_theme} | {env.public_label} | Tabletop RPG Ambience",
+                f"{public_theme} Ambience | {sounds} | Tabletop RPG & Fantasy Background · {label}",
+                f"{public_theme} Ambience | {sounds} | Tabletop RPG Ambience",
                 f"{public_theme} | Tabletop RPG Ambience",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"Background ambience for your tabletop RPG sessions: a {public_theme.lower()} with {sound}. {label} without interruptions, so you can leave it playing while your party explores.",
-                "Made for game masters and players of fantasy roleplaying games. No timer, no narration.",
+                f"{public_theme} ambience for your tabletop RPG and fantasy sessions, with {sound}. {label.lower().capitalize()} without interruptions, so you can leave it playing while your party explores.",
+                "Made for game masters and players of fantasy roleplaying games, and for fantasy reading or writing. No timer, no narration.",
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
+                _hashtags("rpg ambience", "fantasy ambience", "ttrpg"),
             )
-            tags = ["tabletop rpg ambience", "dnd ambience", "rpg ambience", "fantasy ambience", "dungeon master", "game master ambience", public_theme.lower(), env.public_label.lower(), "ttrpg"]
+            tags = ["tabletop rpg ambience", "dnd ambience", "rpg ambience", "fantasy ambience", "dungeon master", "game master ambience", "fantasy music" if music else "fantasy sounds", f"{public_theme.lower()} ambience", env.public_label.lower(), "ttrpg"]
             thumbnail = f"{public_theme.upper()} · {label.upper()}"
     description = _finish_description(compose, credits, compact_credits)
-    return AutoTexts(title, description, ", ".join(dict.fromkeys(tags)), thumbnail)
+    return AutoTexts(title, description, ", ".join(t for t in dict.fromkeys(tags) if t), thumbnail)
 
 
 def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, music_text: str = "calm instrumental music") -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
+    cozy = cozy_name(public_theme)
     deep = focus >= DEEP_WORK_MIN_FOCUS
     method = f"Deep Work {focus}/{pause}" if deep else f"Pomodoro {focus}/{pause}"
-    options = [
-        f"{label} {public_theme} {method} | {env.public_label}{'' if music or not env.layers else ' Sounds'} {'Focus' if deep else 'Study'} Ambience",
-        f"{label} {public_theme} {method} | {env.public_label}",
-        f"{label} {public_theme} {method}",
-    ]
-    title = next((t for t in options if len(t) <= 100), options[-1][:100])
-    if not env.layers:
+    sounds = f"{env.public_label} Sounds" if env.layers or env.noise else "Calm Music"
+    title = _fit_title([
+        f"{cozy} Ambience | {label} {method} Study With Me | {sounds}",
+        f"{cozy} Ambience | {label} {method} | {sounds}",
+        f"{cozy} Ambience | {label} {method}",
+        f"{label} {method} | {public_theme}",
+    ])
+    if not env.layers and not env.noise:
         sound = music_text
-    elif music:
+    elif music and env.music:
         sound = f"{env.public_label.lower()} sounds and {music_text}"
     else:
         sound = f"soft {env.public_label.lower()} sounds (no music)"
@@ -722,24 +749,22 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
     if chime:
         timer_line += " A soft chime marks the end of every focus session and every break."
     def compose(credit_text: str) -> str:
-        return (
-            f"Focus for {label.lower()} in a {public_theme.lower()} with {sound}.\n"
-            f"{'Deep work timer' if deep else 'Pomodoro timer'}: {focus} minutes of focus, {pause} minutes of break. "
-            f"{timer_line}\n\n"
-            f"Chapters:\n{chapters}\n\n"
-            f"{credit_text}\n\n"
-            f"Original ambience created for {CHANNEL_NAME}. Subscribe for new study and focus sessions."
-        ).strip()
+        return _join_blocks(
+            f"{cozy} ambience to study and focus with me for {label.lower()}, with {sound}.\n"
+            f"{'Deep work timer' if deep else 'Pomodoro timer'}: {focus} minutes of focus, {pause} minutes of break. {timer_line}",
+            "Cozy study ambience for exams, homework, reading, writing or deep work. Put your phone away, make yourself something warm and start the first session.",
+            f"Chapters:\n{chapters}",
+            credit_text,
+            f"Original ambience created for {CHANNEL_NAME}. New study and focus sessions every week: subscribe and leave the light on.",
+            _hashtags("study with me", "pomodoro" if not deep else "deep work", "cozy ambience"),
+        )
 
-    description = compose(credits)
-    if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES and compact_credits:
-        description = compose(compact_credits)
-    if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
-        raise ValueError("La descripció supera el límit de YouTube fins i tot amb els crèdits compactes")
+    description = _finish_description(compose, credits, compact_credits)
     tags = ", ".join(dict.fromkeys([
         *(["deep work", "deep focus", f"{focus}/{pause} method", "work with me"] if deep else []),
-        "pomodoro", "study with me", "focus music" if music or not env.layers else "ambient sounds", "study ambience", "pomodoro timer",
-        f"{focus}/{pause} pomodoro", public_theme.lower(), env.public_label.lower(), f"{label.lower()} study",
+        "cozy ambience", "study with me", "pomodoro", "pomodoro timer", f"{focus}/{pause} pomodoro", "study ambience", "cozy study",
+        "focus music" if music and env.music else "ambient sounds", f"{env.public_label.lower()} sounds",
+        f"{public_theme.lower()} ambience", f"{label.lower()} study with me",
     ]))
     thumbnail = f"{label.upper()} · {public_theme.upper()}"
     return AutoTexts(title, description, tags, thumbnail)

@@ -766,11 +766,11 @@ def test_deep_work_rhythms_and_ten_hours():
     assert 600 in DURATION_CHOICES and POMODORO_CHOICES["52/17"] == (52, 17) and POMODORO_CHOICES["90/15"] == (90, 15)
     chapters = build_chapters(build_timeline(90, 15, 600), language="en")
     texts = build_texts(public_theme="Rainy Library", environment="pluja", duration=600, focus=90, pause=15, chapters=chapters, credits="")
-    assert texts.title.startswith("10 Hours Rainy Library Deep Work 90/15") and "deep work" in texts.tags
+    assert "10 Hours Deep Work 90/15" in texts.title and texts.title.startswith("Cozy Rainy Library Ambience") and "deep work" in texts.tags
     assert len(texts.description.encode("utf-8")) <= MAX_DESCRIPTION_BYTES
     sleep = build_texts(public_theme="Rainy Cabin", environment="pluja", duration=600, focus=600, pause=0,
                         chapters=__import__("app.services.autopilot_plan", fromlist=["x"]).plain_chapters(36000, 1800), credits="", fmt="dormir", dim=True)
-    assert sleep.title.startswith("10 Hours") and "Hour 10" in sleep.description
+    assert "10 Hours" in sleep.title and "Hour 10" in sleep.description
     classic = build_texts(public_theme="Rainy Library", environment="pluja", duration=120, focus=25, pause=5, chapters="", credits="")
     assert "Pomodoro 25/5" in classic.title and "deep work" not in classic.tags
 
@@ -819,3 +819,14 @@ def test_breathing_starts_with_a_preparation_and_countdown(tmp_path):
     subprocess.run(command, check=True, capture_output=True)
     probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(output)], capture_output=True, text=True, check=True)
     assert float(probe.stdout) >= 29
+
+
+def test_titles_lead_with_cozy_ambience_for_search():
+    from app.services.autopilot_plan import cozy_name
+    assert cozy_name("Rainy Library") == "Cozy Rainy Library" and cozy_name("Cozy Reading Nook") == "Cozy Reading Nook"
+    chapters = "00:00:00 Hour 1"
+    for fmt in ("pomodoro", "dormir", "llegir", "ambient"):
+        texts = build_texts(public_theme="Christmas Library", environment="llar", duration=120, focus=25, pause=5, chapters=chapters, credits="", fmt=fmt)
+        assert texts.title.startswith("Cozy Christmas Library"), texts.title
+        assert texts.description.startswith("Cozy Christmas Library"), texts.description[:80]
+        assert "cozy ambience" in texts.tags and "#cozyambience" in texts.description
