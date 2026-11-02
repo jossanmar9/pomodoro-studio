@@ -691,13 +691,14 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             tags = ["cozy ambience", *sound_tags, "ambient sounds", "ambience no music", "relaxing sounds", "background sounds", "sounds for sleep", "study ambience", f"{public_theme.lower()} ambience", f"{label.lower()} ambience"]
             thumbnail = f"{env.public_label.upper()} · {label.upper()}"
         elif fmt == "llegir":
+            reading = cozy if "reading" in cozy.casefold() else f"{cozy} Reading"
             title = _fit_title([
-                f"{cozy} Reading Ambience | {sounds} for Reading & Relaxing | {label}",
-                f"{cozy} Reading Ambience | {sounds} | {label}",
+                f"{reading} Ambience | {sounds} for Reading & Relaxing | {label}",
+                f"{reading} Ambience | {sounds} | {label}",
                 f"{label} Reading Ambience | {public_theme}",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"{cozy} reading ambience with {sound}. Grab a book and get comfortable for {label.lower()}.",
+                f"{reading} ambience with {sound}. Grab a book and get comfortable for {label.lower()}.",
                 "No timer, no alarms, no talking: just a cozy, quiet place to read, write in your journal or simply unwind.",
                 f"Chapters:\n{chapters}",
                 credit_text,

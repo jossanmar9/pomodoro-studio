@@ -830,3 +830,8 @@ def test_titles_lead_with_cozy_ambience_for_search():
         assert texts.title.startswith("Cozy Christmas Library"), texts.title
         assert texts.description.startswith("Cozy Christmas Library"), texts.description[:80]
         assert "cozy ambience" in texts.tags and "#cozyambience" in texts.description
+
+
+def test_reading_title_does_not_repeat_reading():
+    texts = build_texts(public_theme="Cozy Reading Nook", environment="pluja", duration=120, focus=120, pause=0, chapters="", credits="", fmt="llegir")
+    assert texts.title.startswith("Cozy Reading Nook Ambience |") and "Reading Ambience" not in texts.title.split("|")[0].replace("Nook Ambience", "")
