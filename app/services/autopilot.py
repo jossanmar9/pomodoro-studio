@@ -443,7 +443,8 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     """Fa i puja el Short vertical que enllaça amb el vídeo. Torna una nota per a l'usuari, o None."""
     with SessionLocal() as db:
         run = db.get(AutoRun, run_id)
-        if not run or not run.shorts or run.short_video_id:
+        # Abans, el Short podia quedar-se amb l'ID del vídeo llarg (no s'arribava a pujar): es torna a fer.
+        if not run or not run.shorts or (run.short_video_id and run.short_video_id != run.video_id):
             return None
         theme, environment, fmt, breath, background_name = run.theme, run.environment, run.format, run.breath, run.background
         subtitle, with_motion = _short_subtitle(run), bool(run.motion)
@@ -511,6 +512,9 @@ class AutopilotRunner:
     def submit_publish(self, run_id: int) -> None:
         self._push(("publish", run_id))
 
+    def submit_short(self, run_id: int) -> None:
+        self._push(("short", run_id))
+
     def _push(self, item: tuple[str, int]) -> None:
         # Si hi havia una apagada pendent i es demana més faena, ja no toca apagar.
         power.cancel()
@@ -530,6 +534,8 @@ class AutopilotRunner:
             try:
                 if kind == "run":
                     execute(run_id)
+                elif kind == "short":
+                    _make_missing_short(run_id)
                 else:
                     _publish_existing(run_id)
             except RunCancelled:
@@ -576,6 +582,37 @@ def _publish_existing(run_id: int) -> None:
         publish_project(run_id, project_id, privacy)
     except Exception as exc:
         _update(run_id, step="FAILED", error=str(exc)[:2000])
+
+
+def short_missing(run: AutoRun) -> bool:
+    """El vídeo està publicat, es va demanar Short i no n'hi ha (o es va quedar amb l'ID del vídeo llarg)."""
+    return bool(run.format != "short" and run.step == "DONE" and run.video_id and run.shorts
+                and (not run.short_video_id or run.short_video_id == run.video_id))
+
+
+def _make_missing_short(run_id: int) -> None:
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not run or not short_missing(run):
+            return
+        project = db.get(Project, run.project_id)
+        meta = db.query(PublicationMetadata).filter(PublicationMetadata.project_id == run.project_id).first()
+        if not project or not project.output_path or not meta:
+            _update(run_id, message="Short no fet: no es troba el vídeo")
+            return
+        root = Path(project.output_path)
+        spec = YouTubeUploadSpec(root / "video.mp4", meta.title, meta.description, [t.strip() for t in meta.tags.split(",") if t.strip()],
+                                 YOUTUBE_CATEGORIES.get(run.format or "pomodoro", "27"), meta.language, run.privacy, None)
+        video_id, previous = run.video_id, run.message
+    if not spec.video.is_file():
+        _update(run_id, message="Short no fet: el vídeo ja s'ha esborrat de l'ordinador")
+        return
+    try:
+        note = publish_short(run_id, root, spec, video_id)
+    except Exception as exc:
+        logger.exception("No s'ha pogut fer el Short")
+        note = f"El Short ha fallat: {exc}"[:300]
+    _update(run_id, message=note or ((previous + "; " if previous else "") + "Short publicat"))
 
 
 def _video_path(project_id: int | None) -> Path | None:
@@ -651,6 +688,7 @@ def run_summary(run: AutoRun) -> dict:
         "message": run.message, "error": run.error, "project_id": run.project_id, "video_id": run.video_id,
         "video_url": f"https://youtu.be/{run.video_id}" if run.video_id else None,
         "video_available": _video_available(run),
+        "short_missing": short_missing(run),
         "delete_on": _delete_on(run),
         "created_at": run.created_at.isoformat() if run.created_at else None,
         "progress": None, "eta": None,

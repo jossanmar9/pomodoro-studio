@@ -83,8 +83,13 @@ def credentials():
     return creds
 
 
+def marker_path(video: Path) -> Path:
+    """Marca de «ja pujat» d'un fitxer concret: video.mp4 i short.mp4 de la mateixa carpeta en tenen una cadascun."""
+    return video.parent / (UPLOAD_MARKER if video.name == "video.mp4" else f"{UPLOAD_MARKER}.{video.stem}")
+
+
 def _marker_for(spec: YouTubeUploadSpec) -> Path:
-    return spec.video.parent / UPLOAD_MARKER
+    return marker_path(spec.video)
 
 
 def _existing_upload(spec: YouTubeUploadSpec) -> str | None:
@@ -97,7 +102,7 @@ def _existing_upload(spec: YouTubeUploadSpec) -> str | None:
 
 def forget_upload(video: Path) -> None:
     """Permet tornar a pujar un vídeo que YouTube ha eliminat (per exemple, per massa llarg)."""
-    (video.parent / UPLOAD_MARKER).unlink(missing_ok=True)
+    marker_path(video).unlink(missing_ok=True)
 
 
 def _remember_upload(spec: YouTubeUploadSpec, video_id: str) -> None:

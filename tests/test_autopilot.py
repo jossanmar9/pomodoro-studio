@@ -778,3 +778,22 @@ def test_environments_are_listed_alphabetically():
     labels = [env.label for _, env in environments_by_label()]
     assert labels == sorted(labels, key=sort_key) and len(labels) == len(ENVIRONMENTS)
     assert labels.index("Cabina d'avió") < labels.index("Cafeteria plena") < labels.index("Cova amb goteig")
+
+
+def test_missing_short_can_be_made_afterwards(env, monkeypatch):
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    run_id = make_run(env.session, shorts=0)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        run.shorts, run.short_video_id = 1, run.video_id  # com quedava abans de la correcció
+        db.commit()
+        assert auto.short_missing(run)
+    ids = iter(["short999"])
+    monkeypatch.setattr(auto, "upload_video", lambda spec: env.uploads.append(spec) or next(ids))
+    auto._make_missing_short(run_id)
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        assert run.short_video_id == "short999" and not auto.short_missing(run) and "Short publicat" in run.message
+    assert env.uploads[-1].video.name == "short.mp4"

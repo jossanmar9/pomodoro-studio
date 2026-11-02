@@ -84,3 +84,11 @@ def test_marker_is_written_and_thumbnail_failure_does_not_duplicate(tmp_path, mo
     assert youtube.upload_video(spec) == "video42"
     assert (tmp_path / youtube.UPLOAD_MARKER).read_text(encoding="utf-8").strip() == "video42"
     assert youtube.upload_video(spec) == "video42"
+
+
+def test_each_file_in_a_folder_has_its_own_upload_marker(tmp_path, monkeypatch):
+    (tmp_path / youtube.UPLOAD_MARKER).write_text("long123\n", encoding="utf-8")
+    short = tmp_path / "short.mp4"
+    short.write_bytes(b"x")
+    assert youtube.marker_path(short).name == ".youtube-video-id.short"
+    assert youtube._existing_upload(youtube.YouTubeUploadSpec(short, "Short #shorts", "", [])) is None
