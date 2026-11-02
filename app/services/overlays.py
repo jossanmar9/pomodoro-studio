@@ -21,6 +21,8 @@ import subprocess
 
 from PIL import Image, ImageDraw, ImageFilter
 
+from app.services.scenes import SCENES, SEASONS, scene_for
+
 VERSION = 1
 # Estil → (durada del bucle en segons, opacitat en barrejar-lo amb el fons)
 STYLES: dict[str, tuple[int, float]] = {
@@ -50,17 +52,7 @@ STYLE_LABELS = {
 VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv"}
 
 # Temes on la foto és a l'aire lliure: només ací cau pluja o neu per tota la imatge.
-OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port",
-                  "Bosc de tardor", "Jardí de primavera", "Porxo d'estiu", "Nit d'estiu"}
-# Temes de Nadal a l'aire lliure: sempre neva.
-SNOW_THEMES = {"Poble nevat", "Mercat de Nadal", "Bosc nevat"}
-# Temes de temporada: la capa va amb el tema (si no plou o fa tempesta a l'aire lliure).
-SEASON_THEMES = {
-    "Bosc de tardor": "fulles",
-    "Jardí de primavera": "petals",
-    "Porxo d'estiu": "cuques", "Nit d'estiu": "cuques",
-    "Cabana de Halloween": "boira", "Biblioteca de Halloween": "boira",
-}
+OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port"}
 # Temes on la pols flotant no té sentit.
 NO_DUST_THEMES = {"Avió"}
 _RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca"}
@@ -68,16 +60,23 @@ _STORM = {"tempesta", "tempesta-mar", "bosc-tempesta", "platja-tempesta", "llar-
 _FIRE_OUTSIDE = {"campament"}
 
 
-def overlay_style(theme: str, environment: str) -> str | None:
-    """Estil de capa que encaixa amb el tema i l'entorn (None = cap)."""
-    if theme in SNOW_THEMES:
-        return "neu"
-    if theme in SEASON_THEMES:
-        if theme in OUTDOOR_THEMES and environment in _STORM:
-            return "pluja-forta"
-        if theme in OUTDOOR_THEMES and environment in _RAIN and SEASON_THEMES[theme] != "fulles":
-            return "pluja"
-        return SEASON_THEMES[theme]
+def _weather(effect: str, outdoor: bool, environment: str) -> str:
+    """A l'aire lliure, si l'entorn porta pluja o tempesta, mana la pluja (menys sobre les fulles de tardor)."""
+    if outdoor and environment in _STORM:
+        return "pluja-forta"
+    if outdoor and environment in _RAIN and effect not in {"fulles", "neu"}:
+        return "pluja"
+    return effect
+
+
+def overlay_style(theme: str, environment: str, background: Path | str | None = None) -> str | None:
+    """Estil de capa que encaixa amb el tema, l'entorn i (en temes de temporada) l'escena del fons."""
+    if theme in SEASONS:
+        scene = scene_for(Path(background).stem) if background else None
+        if scene:
+            _, effect, outdoor = SCENES[scene]
+            return _weather(effect, outdoor, environment)
+        return SEASONS[theme][2]
     if theme in OUTDOOR_THEMES:
         if environment in _STORM:
             return "pluja-forta"
