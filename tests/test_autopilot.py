@@ -317,6 +317,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto, "prepare_music", lambda playlist, folder: touch(folder / "music-mix.m4a"))
     monkeypatch.setattr(auto, "ensure_overlay", lambda style, **kw: touch(tmp_path / "overlays" / f"{style}.mp4"))
     monkeypatch.setattr(auto, "ensure_breath_clip", lambda pattern, **kw: touch(tmp_path / "overlays" / f"respiracio-{pattern}.mp4"))
+    monkeypatch.setattr(auto, "ensure_breath_intro", lambda **kw: touch(tmp_path / "overlays" / "respiracio-intro.mp4"))
     monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
@@ -648,7 +649,8 @@ def test_breathing_run_uses_the_circle_and_its_own_durations(env, monkeypatch):
     with env.session() as db:
         assert db.get(AutoRun, run_id).step == "DONE", db.get(AutoRun, run_id).error
     spec = env.rendered["spec"]
-    assert spec.overlay.name == "respiracio-478.mp4" and spec.darken > 0 and spec.show_timer is False
+    assert spec.overlay.name == "respiracio-478.mp4" and spec.overlay_intro.name == "respiracio-intro.mp4"
+    assert spec.darken > 0 and spec.show_timer is False
     assert spec.timeline.total_seconds == 600
     upload = env.uploads[-1]
     assert "10 Minute 4-7-8 Breathing" in upload.title and upload.category_id == "26"
@@ -797,3 +799,23 @@ def test_missing_short_can_be_made_afterwards(env, monkeypatch):
         run = db.get(AutoRun, run_id)
         assert run.short_video_id == "short999" and not auto.short_missing(run) and "Short publicat" in run.message
     assert env.uploads[-1].video.name == "short.mp4"
+
+
+def test_breathing_starts_with_a_preparation_and_countdown(tmp_path):
+    from app.services import breathing
+    assert breathing.INTRO_SECONDS == 15
+    settle = breathing.render_intro_frame(2, 96, 54).tobytes()
+    assert settle != breathing.render_intro_frame(12, 96, 54).tobytes()
+    assert breathing.render_intro_frame(11.2, 96, 54).tobytes() != breathing.render_intro_frame(12.2, 96, 54).tobytes()  # 4 → 3
+    intro = breathing.ensure_breath_intro(cache_dir=tmp_path, width=64, height=36, fps=5)
+    loop = breathing.ensure_breath_clip("coherent", cache_dir=tmp_path, width=64, height=36, fps=5)
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x445566:s=64x36", "-frames:v", "1", str(background)], check=True)
+    output = tmp_path / "out.mp4"
+    spec = RenderSpec(background, output, "64x36", build_timeline(1, 0, 1), fps=5, show_timer=False, overlay=loop, overlay_intro=intro, overlay_opacity=0.9, darken=0.2)
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    assert "concat=n=2:v=1:a=0" in " ".join(command)
+    command[command.index("-t") + 1] = "30"
+    subprocess.run(command, check=True, capture_output=True)
+    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(output)], capture_output=True, text=True, check=True)
+    assert float(probe.stdout) >= 29

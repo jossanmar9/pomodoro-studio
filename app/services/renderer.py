@@ -50,6 +50,8 @@ class RenderSpec:
     # Capa de moviment natural (vídeo de partícules sobre negre) que es barreja amb el fons.
     overlay: Path | None = None
     overlay_opacity: float = 0.6
+    # Clip que sona una sola vegada abans del bucle de la capa (p. ex. la preparació de la respiració).
+    overlay_intro: Path | None = None
     # Enfosquix el fons (0-1) perquè la capa (p. ex. la respiració guiada) es llija bé.
     darken: float = 0.0
 
@@ -192,7 +194,11 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
         command += ["-f", "lavfi", "-i", noise_source(spec.noise, spec.timeline.total_seconds)]
         noise_input, next_input = next_input, next_input + 1
     overlay_input: int | None = None
+    intro_input: int | None = None
     if spec.overlay is not None:
+        if spec.overlay_intro is not None:
+            command += ["-i", str(spec.overlay_intro)]
+            intro_input, next_input = next_input, next_input + 1
         command += ["-stream_loop", "-1", "-i", str(spec.overlay)]
         overlay_input, next_input = next_input, next_input + 1
     chimes: list[tuple[int, list[int]]] = []
@@ -215,7 +221,13 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     if overlay_input is not None:
         opacity = min(1.0, max(0.0, spec.overlay_opacity))
         parts.append(f"[0:v]{','.join(video)},format=gbrp[base]")
-        parts.append(f"[{overlay_input}:v]scale={width}:{height},setsar=1,fps={spec.fps},format=gbrp[layer]")
+        layer_source = f"[{overlay_input}:v]"
+        if intro_input is not None:
+            parts.append(f"[{intro_input}:v]setsar=1,fps={spec.fps},format=yuv420p[intro]")
+            parts.append(f"[{overlay_input}:v]setsar=1,fps={spec.fps},format=yuv420p[loop]")
+            parts.append("[intro][loop]concat=n=2:v=1:a=0[layerraw]")
+            layer_source = "[layerraw]"
+        parts.append(f"{layer_source}scale={width}:{height},setsar=1,fps={spec.fps},format=gbrp[layer]")
         parts.append(f"[base][layer]blend=all_mode=screen:all_opacity={opacity:g}:shortest=0,format=yuv420p[mixed]")
         source, video = "[mixed]", []
     else:

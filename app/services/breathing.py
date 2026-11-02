@@ -78,8 +78,13 @@ def _font(path: Path | None, size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def render_frame(pattern: str, t: float, width: int, height: int, font: Path | None = None) -> Image.Image:
-    phase, size, left = state(pattern, t)
+# Preparació abans del primer cicle: 10 s per a posar-se còmode i 5 s de compte enrere.
+SETTLE_SECONDS = 10
+COUNTDOWN_SECONDS = 5
+INTRO_SECONDS = SETTLE_SECONDS + COUNTDOWN_SECONDS
+
+
+def _circle(width: int, height: int, size: float) -> tuple[Image.Image, ImageDraw.ImageDraw, float]:
     image = Image.new("RGB", (width, height))
     unit = min(width, height)
     small, big = unit * 0.13, unit * 0.30
@@ -93,31 +98,45 @@ def render_frame(pattern: str, t: float, width: int, height: int, font: Path | N
     draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=(70, 56, 36), outline=(255, 226, 170), width=max(2, unit // 270))
     # Guia: on acaba el cercle quan està ple.
     draw.ellipse([cx - big, cy - big, cx + big, cy + big], outline=(90, 80, 64), width=max(1, unit // 540))
+    return image, draw, unit
+
+
+def render_frame(pattern: str, t: float, width: int, height: int, font: Path | None = None) -> Image.Image:
+    phase, size, left = state(pattern, t)
+    image, draw, unit = _circle(width, height, size)
+    cx, cy = width / 2, height / 2
     word_font, count_font = _font(font, int(unit * 0.055)), _font(font, int(unit * 0.04))
     draw.text((cx, cy - unit * 0.015), WORDS[phase], font=word_font, fill=(255, 240, 215), anchor="ms")
     draw.text((cx, cy + unit * 0.05), str(left), font=count_font, fill=(225, 205, 170), anchor="ms")
     return image
 
 
-def ensure_breath_clip(pattern: str, *, cache_dir: Path, width: int, height: int, fps: int, font: Path | None = None) -> Path:
-    """Clip d'un cicle exacte (es genera la primera vegada i es reutilitza)."""
-    if pattern not in PATTERNS:
-        raise ValueError("Respiració no vàlida")
-    tag = hashlib.sha1(str(font or "").encode()).hexdigest()[:8]
-    path = cache_dir / f"respiracio-{pattern}-v{VERSION}-{tag}-{width}x{height}-{fps}.mp4"
-    if path.is_file() and path.stat().st_size > 0:
-        return path
-    cache_dir.mkdir(parents=True, exist_ok=True)
+def render_intro_frame(t: float, width: int, height: int, font: Path | None = None) -> Image.Image:
+    """Preparació: el cercle quiet (com en començar a inspirar), indicacions i compte enrere."""
+    image, draw, unit = _circle(width, height, 0.0)
+    cx, cy = width / 2, height / 2
+    if t < SETTLE_SECONDS:
+        draw.text((cx, cy - unit * 0.015), "Get comfortable", font=_font(font, int(unit * 0.05)), fill=(255, 240, 215), anchor="ms")
+        draw.text((cx, cy + unit * 0.045), "Relax your shoulders", font=_font(font, int(unit * 0.03)), fill=(225, 205, 170), anchor="ms")
+        draw.text((cx, cy + unit * 0.085), "and breathe naturally", font=_font(font, int(unit * 0.03)), fill=(225, 205, 170), anchor="ms")
+    else:
+        left = max(1, math.ceil(INTRO_SECONDS - t))
+        draw.text((cx, cy - unit * 0.03), "Starting in", font=_font(font, int(unit * 0.04)), fill=(225, 205, 170), anchor="ms")
+        draw.text((cx, cy + unit * 0.06), str(left), font=_font(font, int(unit * 0.09)), fill=(255, 240, 215), anchor="ms")
+    return image
+
+
+def _encode(path: Path, frames, width: int, height: int, fps: int) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
     partial = path.with_suffix(".part.mp4")
-    frames = cycle_seconds(pattern) * fps
     command = [
         "ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}", "-r", str(fps), "-i", "-",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", str(partial),
     ]
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        for index in range(frames):
-            process.stdin.write(render_frame(pattern, index / fps, width, height, font).tobytes())
+        for frame in frames:
+            process.stdin.write(frame.tobytes())
         process.stdin.close()
         error = process.stderr.read().decode("utf-8", "replace")
         if process.wait() != 0:
@@ -128,3 +147,25 @@ def ensure_breath_clip(pattern: str, *, cache_dir: Path, width: int, height: int
         raise
     partial.replace(path)
     return path
+
+
+def ensure_breath_intro(*, cache_dir: Path, width: int, height: int, fps: int, font: Path | None = None) -> Path:
+    """Clip de preparació (15 s) que va abans del primer cicle."""
+    tag = hashlib.sha1(str(font or "").encode()).hexdigest()[:8]
+    path = cache_dir / f"respiracio-intro-v{VERSION}-{tag}-{width}x{height}-{fps}.mp4"
+    if path.is_file() and path.stat().st_size > 0:
+        return path
+    frames = (render_intro_frame(index / fps, width, height, font) for index in range(INTRO_SECONDS * fps))
+    return _encode(path, frames, width, height, fps)
+
+
+def ensure_breath_clip(pattern: str, *, cache_dir: Path, width: int, height: int, fps: int, font: Path | None = None) -> Path:
+    """Clip d'un cicle exacte (es genera la primera vegada i es reutilitza)."""
+    if pattern not in PATTERNS:
+        raise ValueError("Respiració no vàlida")
+    tag = hashlib.sha1(str(font or "").encode()).hexdigest()[:8]
+    path = cache_dir / f"respiracio-{pattern}-v{VERSION}-{tag}-{width}x{height}-{fps}.mp4"
+    if path.is_file() and path.stat().st_size > 0:
+        return path
+    frames = (render_frame(pattern, index / fps, width, height, font) for index in range(cycle_seconds(pattern) * fps))
+    return _encode(path, frames, width, height, fps)

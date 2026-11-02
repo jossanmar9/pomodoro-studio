@@ -27,7 +27,7 @@ from app.services.fonts import fonts_for_theme
 from app.services.jobs import render_queue
 from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
-from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip
+from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip, ensure_breath_intro
 from app.services.overlays import ensure_overlay, overlay_opacity, overlay_style
 from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts
 from app.services.renderer import AudioTrack, RenderSpec
@@ -257,11 +257,13 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             db.add(PublicationMetadata(project_id=project_id, title=draft.title, description=draft.description, chapters=draft.chapters, tags=draft.tags, language=draft.language))
             db.commit()
 
-        overlay, opacity, darken = None, 0.0, 0.0
+        overlay, opacity, darken, overlay_intro = None, 0.0, 0.0, None
         layer_style = overlay_style(theme, environment) if with_motion and fmt != "respiracio" else None
         if fmt == "respiracio":
             overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=int(RESOLUTION.split("x")[0]),
                                          height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps, font=fonts.label)
+            overlay_intro = ensure_breath_intro(cache_dir=settings.overlays_dir, width=int(RESOLUTION.split("x")[0]),
+                                                height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps, font=fonts.label)
             opacity, darken = BREATH_OPACITY, BREATH_DARKEN
         elif layer_style:
             try:
@@ -278,7 +280,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
             noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
-            overlay=overlay, overlay_opacity=opacity, darken=darken,
+            overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_intro=overlay_intro,
         ))
         _wait_for_render(project_id)
         if music_track:
