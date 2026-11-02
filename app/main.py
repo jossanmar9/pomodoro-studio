@@ -26,7 +26,7 @@ from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
 from app.services.power import power
-from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, youtube_connected
+from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, short_missing, youtube_connected
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.autopilot_plan import environments_by_label, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
@@ -273,6 +273,15 @@ def auto_create(theme:str=Form(...),environment:str=Form(""),duration_minutes:in
 @app.get("/api/auto")
 def auto_status():
     return {"runs":_recent_runs(),"youtube_connected":youtube_connected(),"shutdown":power.status()}
+
+
+@app.post("/auto/{run_id}/short")
+def auto_short(run_id:int):
+    with SessionLocal() as db:
+        run=db.get(AutoRun,run_id)
+        if not run or not short_missing(run): raise HTTPException(409,"Este vídeo ja té Short o no se'n pot fer")
+    autopilot.submit_short(run_id)
+    return RedirectResponse("/",303)
 
 
 @app.post("/auto/{run_id}/cancel")
