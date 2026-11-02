@@ -65,3 +65,4 @@ button.big:hover{background:#f0b862}
 .bg-option input:focus-visible+span{outline:2px solid #e3a54a;outline-offset:2px}
 .bg-picker .missing{grid-column:1/-1;color:#d08a8a;margin:0}
 .run-step.CANCELLED{color:#aebbc9}
+.theme-group{margin:6px 0 -2px;font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#e3a54a}

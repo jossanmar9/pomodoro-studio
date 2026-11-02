@@ -296,13 +296,27 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Porxo d'estiu": ("wooden porch of a countryside house on a summer evening", "a hammock and string lights, golden sunset over wheat fields, fireflies starting to glow", "natural"),
     "Nit d'estiu": ("quiet lake on a summer night", "a wooden dock with a lantern, starry sky reflected in still water, pine trees and fireflies", "natural"),
     "Casa de la platja": ("cozy beach house living room in summer", "white wooden walls, an open door to the sea, linen curtains in the breeze, seashells and books", "coastal"),
-    "Sant Valentí": ("cozy caf\u00e9 on Valentine's evening", "small tables with candles and red roses, heart-shaped cookies, warm pink and golden lights, rain on the window", "cozy"),
-    "Cap d'Any": ("cozy apartment on New Year's Eve", "a big window with fireworks over the city skyline at midnight, candles, a blanket on the sofa", "contemporary"),
-    "Pluja de tardor a la ciutat": ("quiet european street in autumn rain at dusk", "wet cobblestones reflecting warm shop lights, golden trees and fallen leaves, a cozy caf\u00e9 on the corner", "timeless"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
 AUTO_THEMES = tuple(THEME_VISUALS)
+# Grups de la pàgina: estacions i festes. La resta de temes van a «Tot l'any».
+THEME_GROUPS: dict[str, tuple[str, ...]] = {
+    "Estiu": ("Porxo d'estiu", "Nit d'estiu", "Casa de la platja"),
+    "Tardor": ("Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor"),
+    "Primavera": ("Jardí de primavera", "Racó de primavera"),
+    "Hivern": ("Cabana a la neu",),
+    "Nadal": ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"),
+    "Halloween": ("Cabana de Halloween", "Biblioteca de Halloween"),
+    "Pasqua": ("Matí de Pasqua",),
+}
+ALL_YEAR = "Tot l'any"
+
+
+def grouped_themes() -> list[tuple[str, list[str]]]:
+    """Temes per grups, en l'ordre de la pàgina: tot l'any, estacions i festes."""
+    grouped = {theme for themes in THEME_GROUPS.values() for theme in themes}
+    return [(ALL_YEAR, [t for t in AUTO_THEMES if t not in grouped])] + [(name, list(themes)) for name, themes in THEME_GROUPS.items()]
 
 # Formats del mode automàtic.
 FORMATS = {
@@ -345,10 +359,10 @@ MUSIC_STYLES = {
     "jazz": ("Jazz de cafeteria", "soft jazz"),
     "nadal": ("Nadal", "calm Christmas music"),
 }
-# Música de temporada per tema (com Nadal): Halloween fosca; estiu i celebracions, jazz suau.
+# Música de temporada per tema (com Nadal): Halloween fosca; estiu, jazz suau.
 SEASON_MUSIC = {
     "Cabana de Halloween": "fosca", "Biblioteca de Halloween": "fosca",
-    "Porxo d'estiu": "jazz", "Nit d'estiu": "jazz", "Casa de la platja": "jazz", "Sant Valentí": "jazz", "Cap d'Any": "jazz",
+    "Porxo d'estiu": "jazz", "Nit d'estiu": "jazz", "Casa de la platja": "jazz",
 }
 CHRISTMAS_THEMES = {"Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"}
 _JAZZ_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer", "pluja-ciutat", "ciutat-nit", "japo-carrer", "transit"}

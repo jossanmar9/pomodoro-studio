@@ -842,8 +842,7 @@ def test_seasonal_themes_have_their_effects_music_and_sounds():
     from app.services.fonts import THEME_FONTS
     from app.services.overlays import overlay_mode, overlay_style
     new = ("Cabana de Halloween", "Biblioteca de Halloween", "Matí de Pasqua", "Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor",
-           "Jardí de primavera", "Racó de primavera", "Porxo d'estiu", "Nit d'estiu", "Casa de la platja", "Sant Valentí", "Cap d'Any",
-           "Pluja de tardor a la ciutat")
+           "Jardí de primavera", "Racó de primavera", "Porxo d'estiu", "Nit d'estiu", "Casa de la platja")
     for theme in new:
         assert theme in AUTO_THEMES and theme in THEMES and theme in THEME_FONTS, theme
     assert "Nau espacial" not in AUTO_THEMES
@@ -880,3 +879,17 @@ def test_music_advice_endpoint(env):
     with TestClient(main.app) as client:
         result = client.get("/api/auto/music-advice", params={"format": "dormir", "environment": "pluja", "theme": "Bosc"}).json()
     assert result["recommended"] is False and "dormir" in result["reason"]
+
+
+def test_themes_are_grouped_by_season_and_holiday(env):
+    from app.services.autopilot_plan import THEME_GROUPS, grouped_themes
+    groups = grouped_themes()
+    assert [name for name, _ in groups] == ["Tot l'any", "Estiu", "Tardor", "Primavera", "Hivern", "Nadal", "Halloween", "Pasqua"]
+    listed = [t for _, themes in groups for t in themes]
+    assert sorted(listed) == sorted(AUTO_THEMES) and len(listed) == len(set(listed))
+    for removed in ("Sant Valentí", "Cap d'Any", "Pluja de tardor a la ciutat"):
+        assert removed not in AUTO_THEMES
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+    assert page.index(">Estiu<") < page.index(">Nadal<") < page.index(">Pasqua<") and page.count('name="theme"') == len(AUTO_THEMES)
+    assert page.count("checked required") >= 1

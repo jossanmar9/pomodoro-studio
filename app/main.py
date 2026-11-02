@@ -29,7 +29,7 @@ from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, short_missing, youtube_connected
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
-from app.services.autopilot_plan import environments_by_label, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
+from app.services.autopilot_plan import environments_by_label, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -222,10 +222,11 @@ def auto_home(request:Request,error:str=Query("")):
     except Exception: logging.getLogger(__name__).exception("Ha fallat la neteja de vídeos publicats")
     gallery={group["theme"]:[{k:item[k] for k in ("name","url","format","environment")} for item in group["items"]] for group in background_library()}
     themes=[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in AUTO_THEMES]
+    theme_groups=[{"name":g,"themes":[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in ts]} for g,ts in grouped_themes()]
     environments=[{"key":k,"label":e.label} for k,e in environments_by_label()]
     counts={"ambience":len(catalog().ambience),"music":len(catalog().music)}
     return templates.TemplateResponse(request,"auto.html",{
-        "themes":themes,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
+        "themes":themes,"theme_groups":theme_groups,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,
