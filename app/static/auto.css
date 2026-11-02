@@ -79,3 +79,7 @@ button.big:hover{background:#f0b862}
 .group-tile.direct{position:relative}
 .group-tile.direct input{position:absolute;opacity:0;pointer-events:none}
 .group-tile.direct:has(input:checked){border-color:#e3a54a;background:#2a1f10;color:#fff3df;box-shadow:0 0 0 1px #e3a54a inset}
+.groups.seasons{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.groups.seasons .group-tile{padding:8px 10px;gap:1px}
+.groups.seasons .group-tile b{font-size:.92rem;white-space:nowrap}
+@media(max-width:700px){.groups{grid-template-columns:repeat(2,1fr)}.groups.seasons{grid-template-columns:repeat(3,1fr)}.groups.seasons .group-tile b{font-size:.85rem}}
