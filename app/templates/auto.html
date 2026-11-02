@@ -60,16 +60,30 @@
 
     <fieldset class="choice-block">
       <legend>1 · Tema</legend>
+      <div class="groups" id="theme-groups">
+        {% for group in theme_groups %}
+        <button type="button" class="group-tile" data-group="{{ group.name }}" aria-expanded="false">
+          <b>{{ group.icon }} {{ group.name }}</b>
+          <small class="{{ 'muted' if group.backgrounds else 'missing' }}">{{ group.themes|length }} {{ 'tema' if group.themes|length == 1 else 'temes' }} · {{ group.backgrounds }} fons</small>
+        </button>
+        {% endfor %}
+      </div>
       {% for group in theme_groups %}
       {% set first_group = loop.first %}
-      <p class="theme-group">{{ group.name }}</p>
-      <div class="choices themes">
-        {% for t in group.themes %}
-        <label class="choice">
-          <input type="radio" name="theme" value="{{ t.name }}" {% if loop.first and first_group %}checked{% endif %} required>
-          <span>{{ t.name }}<small class="{{ 'muted' if t.backgrounds else 'missing' }}">{{ t.backgrounds }} fons</small></span>
-        </label>
-        {% endfor %}
+      <div class="theme-panel" data-group="{{ group.name }}" hidden>
+        <p class="theme-group">{{ group.icon }} {{ group.name }}</p>
+        <div class="choices themes">
+          <label class="choice">
+            <input type="radio" name="theme" value="grup:{{ group.name }}" required>
+            <span>🎲 Qualsevol<small class="muted">en tria un a l'atzar</small></span>
+          </label>
+          {% for t in group.themes %}
+          <label class="choice">
+            <input type="radio" name="theme" value="{{ t.name }}" {% if loop.first and first_group %}checked{% endif %} required>
+            <span>{{ t.name }}<small class="{{ 'muted' if t.backgrounds else 'missing' }}">{{ t.backgrounds }} fons</small></span>
+          </label>
+          {% endfor %}
+        </div>
       </div>
       {% endfor %}
     </fieldset>

@@ -173,6 +173,26 @@
   reshuffle?.addEventListener("click", () => { files.value = ""; preview(false); });
   form?.querySelectorAll('input[name="environment"]').forEach((el) => el.addEventListener("change", forgetSounds));
 
+  // Temes: quadres per tipus, estació i festa; en prémer-ne un s'obrin davall els seus temes.
+  const groupTiles = [...document.querySelectorAll(".group-tile")];
+  const panels = [...document.querySelectorAll(".theme-panel")];
+  function showGroup(name, pickFirst) {
+    groupTiles.forEach((tile) => { const on = tile.dataset.group === name; tile.classList.toggle("active", on); tile.setAttribute("aria-expanded", String(on)); });
+    panels.forEach((panel) => { panel.hidden = panel.dataset.group !== name; });
+    const panel = panels.find((p) => p.dataset.group === name);
+    if (pickFirst && panel && !panel.querySelector('input[name="theme"]:checked')) {
+      const first = panel.querySelectorAll('input[name="theme"]')[1] || panel.querySelector('input[name="theme"]');
+      if (first) { first.checked = true; first.dispatchEvent(new Event("change", {bubbles: true})); }
+    }
+  }
+  function syncGroup() {
+    const checked = form?.querySelector('input[name="theme"]:checked');
+    const panel = checked?.closest(".theme-panel");
+    if (panel) showGroup(panel.dataset.group, false);
+  }
+  groupTiles.forEach((tile) => tile.addEventListener("click", () => showGroup(tile.dataset.group, true)));
+  syncGroup();
+
   // Música: recomanació segons el format, l'entorn i el tema (es marca la casella, però la pots canviar).
   const advice = document.querySelector("#music-advice");
   async function adviseMusic() {
@@ -201,6 +221,10 @@
   function renderBackgrounds() {
     if (!picker) return;
     const theme = form.querySelector('input[name="theme"]:checked')?.value || "";
+    if (theme.startsWith("grup:")) {
+      picker.innerHTML = `<p class="muted">Es triarà a l'atzar un tema de «${esc(theme.slice(5))}» i un dels seus fons.</p>`;
+      return;
+    }
     const format = currentFormat();
     const environment = form.querySelector('input[name="environment"]:checked')?.value || "";
     const previous = form.querySelector('input[name="background"]:checked')?.value || "";
@@ -226,6 +250,7 @@
       options[Math.floor(Math.random() * options.length)].checked = true;
     }
     forgetSounds();
+    syncGroup();
     renderBackgrounds();
     adviseMusic();
   });

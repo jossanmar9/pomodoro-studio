@@ -62,6 +62,8 @@ THEME_FONTS: dict[str, FontStyle] = {
     "Parc a la ciutat": FontStyle("Parc", CORMORANT, CORMORANT),
     "Apartament a la ciutat": FontStyle("Apartament", LORA, LORA),
     "Racó de lectura": FontStyle("Llibre", PLAYFAIR, LORA),
+    "Cafeteria d'hivern": FontStyle("Hivern", COMFORTAA, COMFORTAA),
+    "Bosc nevat": FontStyle("Hivern", CORMORANT, CORMORANT),
     "Cabana de Halloween": FontStyle("Halloween", IM_FELL_SC, IM_FELL),
     "Biblioteca de Halloween": FontStyle("Halloween", CINZEL_DECO, CINZEL),
     "Matí de Pasqua": FontStyle("Pasqua", COMFORTAA, COMFORTAA),

@@ -296,27 +296,44 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Porxo d'estiu": ("wooden porch of a countryside house on a summer evening", "a hammock and string lights, golden sunset over wheat fields, fireflies starting to glow", "natural"),
     "Nit d'estiu": ("quiet lake on a summer night", "a wooden dock with a lantern, starry sky reflected in still water, pine trees and fireflies", "natural"),
     "Casa de la platja": ("cozy beach house living room in summer", "white wooden walls, an open door to the sea, linen curtains in the breeze, seashells and books", "coastal"),
+    "Cafeteria d'hivern": ("cozy coffee shop on a snowy winter afternoon", "steaming mugs of hot chocolate with whipped cream, warm lamps, a knitted scarf on a chair, a big window with heavy snow on a quiet street", "cozy"),
+    "Bosc nevat": ("peaceful snowy forest at dusk", "tall pine trees covered in fresh snow, a narrow path with footprints, a small cabin with a warm lit window in the distance, gentle snowfall", "natural"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
 AUTO_THEMES = tuple(THEME_VISUALS)
-# Grups de la pàgina: estacions i festes. La resta de temes van a «Tot l'any».
-THEME_GROUPS: dict[str, tuple[str, ...]] = {
-    "Estiu": ("Porxo d'estiu", "Nit d'estiu", "Casa de la platja"),
-    "Tardor": ("Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor"),
-    "Primavera": ("Jardí de primavera", "Racó de primavera"),
-    "Hivern": ("Cabana a la neu",),
-    "Nadal": ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal"),
-    "Halloween": ("Cabana de Halloween", "Biblioteca de Halloween"),
-    "Pasqua": ("Matí de Pasqua",),
+# Quadres de la pàgina: primer per tipus de lloc, després estacions i festes. Cada tema va en un sol quadre.
+THEME_GROUPS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "Biblioteques i lectura": ("📚", ("Biblioteca medieval", "Biblioteca màgica", "Biblioteca èlfica", "Biblioteca victoriana", "Racó de lectura", "Observatori")),
+    "Cafeteries i ciutat": ("☕", ("Cafeteria acollidora", "Cafeteria moderna", "Cafeteria a Nova York", "Cafeteria a Tòquio", "Cafeteria a París", "Apartament a la ciutat", "Parc a la ciutat")),
+    "Cases i refugis": ("🏡", ("Cabana amb pluja", "Hivernacle", "Búnquer postapocalíptic")),
+    "Natura": ("🌲", ("Bosc", "Platja", "Riu", "Port")),
+    "Viatges": ("🚆", ("Tren", "Avió", "Vaixell pirata")),
+    "Història": ("🏛️", ("Roma antiga", "Grècia antiga", "Japó feudal", "Castell gòtic")),
+    "Fantasia i rol": ("🐉", ("Taverna medieval", "Torre de l'alquimista", "Masmorra", "Campament d'aventurers", "Cova del drac")),
+    "Estiu": ("☀️", ("Porxo d'estiu", "Nit d'estiu", "Casa de la platja")),
+    "Tardor": ("🍂", ("Cabana de tardor", "Cafeteria de tardor", "Bosc de tardor")),
+    "Primavera": ("🌸", ("Jardí de primavera", "Racó de primavera")),
+    "Hivern": ("❄️", ("Cabana a la neu", "Cafeteria d'hivern", "Bosc nevat")),
+    "Nadal": ("🎄", ("Cabana de Nadal", "Sala de Nadal", "Cafeteria de Nadal", "Biblioteca de Nadal", "Poble nevat", "Mercat de Nadal")),
+    "Halloween": ("🎃", ("Cabana de Halloween", "Biblioteca de Halloween")),
+    "Pasqua": ("🐣", ("Matí de Pasqua",)),
 }
-ALL_YEAR = "Tot l'any"
+# Valor del formulari per a «qualsevol tema d'este quadre».
+GROUP_PREFIX = "grup:"
 
 
-def grouped_themes() -> list[tuple[str, list[str]]]:
-    """Temes per grups, en l'ordre de la pàgina: tot l'any, estacions i festes."""
-    grouped = {theme for themes in THEME_GROUPS.values() for theme in themes}
-    return [(ALL_YEAR, [t for t in AUTO_THEMES if t not in grouped])] + [(name, list(themes)) for name, themes in THEME_GROUPS.items()]
+def grouped_themes() -> list[tuple[str, str, list[str]]]:
+    """(nom, icona, temes) de cada quadre, en l'ordre de la pàgina."""
+    return [(name, icon, list(themes)) for name, (icon, themes) in THEME_GROUPS.items()]
+
+
+def group_themes(value: str) -> list[str] | None:
+    """Temes d'un valor «grup:Nom», o None si no és un grup."""
+    if not value.startswith(GROUP_PREFIX):
+        return None
+    group = THEME_GROUPS.get(value[len(GROUP_PREFIX):])
+    return list(group[1]) if group else []
 
 # Formats del mode automàtic.
 FORMATS = {
@@ -481,10 +498,15 @@ def find_backgrounds(folder: Path, theme: str) -> list[Path]:
         return []
     slug = slugify(theme)
     suffixes = SUPPORTED_IMAGE_SUFFIXES | SUPPORTED_VIDEO_SUFFIXES
-    return sorted(
-        p for p in folder.iterdir()
-        if p.is_file() and p.suffix.lower() in suffixes and (slugify(p.stem) == slug or slugify(p.stem).startswith(slug + "-"))
-    )
+    # Un fitxer és del tema amb el nom més llarg que hi encaixa: «bosc-nevat-…» és de «Bosc nevat», no de «Bosc».
+    longer = [s for s in (slugify(t) for t in THEME_VISUALS) if s != slug and s.startswith(slug + "-")]
+
+    def belongs(stem: str) -> bool:
+        if not (stem == slug or stem.startswith(slug + "-")):
+            return False
+        return not any(stem == other or stem.startswith(other + "-") for other in longer)
+
+    return sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in suffixes and belongs(slugify(p.stem)))
 
 
 def _audio_by_stem(folder: Path) -> dict[str, Path]:

@@ -881,15 +881,29 @@ def test_music_advice_endpoint(env):
     assert result["recommended"] is False and "dormir" in result["reason"]
 
 
-def test_themes_are_grouped_by_season_and_holiday(env):
-    from app.services.autopilot_plan import THEME_GROUPS, grouped_themes
-    groups = grouped_themes()
-    assert [name for name, _ in groups] == ["Tot l'any", "Estiu", "Tardor", "Primavera", "Hivern", "Nadal", "Halloween", "Pasqua"]
-    listed = [t for _, themes in groups for t in themes]
+def test_themes_are_grouped_in_tiles(env, monkeypatch):
+    from app.services.autopilot_plan import THEME_GROUPS, group_themes, grouped_themes
+    listed = [t for _, _, themes in grouped_themes() for t in themes]
     assert sorted(listed) == sorted(AUTO_THEMES) and len(listed) == len(set(listed))
-    for removed in ("Sant Valentí", "Cap d'Any", "Pluja de tardor a la ciutat"):
+    assert list(THEME_GROUPS)[-7:] == ["Estiu", "Tardor", "Primavera", "Hivern", "Nadal", "Halloween", "Pasqua"]
+    assert group_themes("grup:Hivern") == ["Cabana a la neu", "Cafeteria d'hivern", "Bosc nevat"] and group_themes("Bosc") is None
+    for removed in ("Sant Valentí", "Cap d'Any", "Pluja de tardor a la ciutat", "Nau espacial"):
         assert removed not in AUTO_THEMES
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
     with TestClient(main.app) as client:
         page = client.get("/").text
-    assert page.index(">Estiu<") < page.index(">Nadal<") < page.index(">Pasqua<") and page.count('name="theme"') == len(AUTO_THEMES)
-    assert page.count("checked required") >= 1
+        assert page.count('class="group-tile"') == len(THEME_GROUPS) and 'value="grup:Hivern"' in page
+        assert client.post("/auto", data={"theme": "grup:Inventat", "environment": "bosc", "duration_minutes": "60"}).status_code == 400
+        assert client.post("/auto", data={"theme": "grup:Hivern", "environment": "hivern", "duration_minutes": "60"}, follow_redirects=False).status_code == 303
+        assert client.get("/api/auto/music-advice", params={"format": "llegir", "environment": "llar", "theme": "grup:Nadal"}).json()["style"] == "Nadal"
+    with env.session() as db:
+        saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+    assert saved.theme in THEME_GROUPS["Hivern"][1] and saved.background is None
+
+
+def test_background_belongs_to_the_most_specific_theme(tmp_path):
+    for name in ("bosc-bosc-pomodoro.png", "bosc-nevat-hivern-temporada.png", "bosc-de-tardor-tardor-temporada.png"):
+        touch(tmp_path / name)
+    assert [p.name for p in find_backgrounds(tmp_path, "Bosc")] == ["bosc-bosc-pomodoro.png"]
+    assert [p.name for p in find_backgrounds(tmp_path, "Bosc nevat")] == ["bosc-nevat-hivern-temporada.png"]
+    assert [p.name for p in find_backgrounds(tmp_path, "Bosc de tardor")] == ["bosc-de-tardor-tardor-temporada.png"]
