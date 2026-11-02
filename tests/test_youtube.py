@@ -56,8 +56,11 @@ def test_marker_is_written_and_thumbnail_failure_does_not_duplicate(tmp_path, mo
         def next_chunk(self):
             return None, {"id": "video42"}
 
+    sent = {}
+
     class Videos:
-        def insert(self, **_kwargs):
+        def insert(self, **kwargs):
+            sent.update(kwargs)
             return UploadRequest()
 
     class ThumbnailRequest:
@@ -82,6 +85,7 @@ def test_marker_is_written_and_thumbnail_failure_does_not_duplicate(tmp_path, mo
     monkeypatch.setattr(youtube, "google_libraries", lambda: (None, None, None, lambda *_a, **_k: Service(), Media))
 
     assert youtube.upload_video(spec) == "video42"
+    assert sent["body"]["status"]["selfDeclaredMadeForKids"] is False
     assert (tmp_path / youtube.UPLOAD_MARKER).read_text(encoding="utf-8").strip() == "video42"
     assert youtube.upload_video(spec) == "video42"
 
