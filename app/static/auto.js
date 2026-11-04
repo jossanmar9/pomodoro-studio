@@ -125,7 +125,8 @@
   const audio = document.querySelector("#preview-audio");
   const info = document.querySelector("#preview-info");
   const files = document.querySelector("#ambience-files");
-  const forgetSounds = () => { files.value = ""; reshuffle.hidden = true; info.textContent = ""; audio.hidden = true; audio.removeAttribute("src"); };
+  const musicFile = document.querySelector("#music-file");
+  const forgetSounds = () => { files.value = ""; musicFile.value = ""; reshuffle.hidden = true; info.textContent = ""; audio.hidden = true; audio.removeAttribute("src"); };
 
   async function preview(keep) {
     const data = new FormData();
@@ -134,6 +135,7 @@
       if (field && !(field.type === "checkbox" && !field.checked)) data.set(name, field.value);
     }
     if (keep && files.value) data.set("ambience_files", files.value);
+    if (keep && musicFile.value) data.set("music_file", musicFile.value);
     previewBtn.disabled = reshuffle.disabled = true;
     info.textContent = "Preparant la mostra…";
     try {
@@ -141,6 +143,7 @@
       const result = await response.json();
       if (!response.ok) throw new Error(result.detail || "Error");
       files.value = result.files.join(",");
+      musicFile.value = result.music || "";
       audio.src = result.url;
       audio.hidden = false;
       reshuffle.hidden = !result.files.length;
@@ -167,6 +170,10 @@
     }
   }
   form?.querySelectorAll('input[name="format"], input[name="noise"]').forEach((el) => el.addEventListener("change", () => { applyFormat(); forgetSounds(); }));
+  // Si ja s'ha escoltat una mostra, en canviar un volum o la música es torna a fer amb els mateixos sons.
+  const replay = () => { if (audio.getAttribute("src")) preview(true); };
+  form?.querySelectorAll('#ambience-level, #music-level, input[name="music"]').forEach((el) => el.addEventListener("change", replay));
+  form?.querySelector("#music-style")?.addEventListener("change", () => { musicFile.value = ""; replay(); });
   // Amb pantalla negra no hi ha color que puga «respirar».
   const pulse = document.getElementById("noise-pulse");
   const syncPulse = () => {

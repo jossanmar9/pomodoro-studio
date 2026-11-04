@@ -893,7 +893,7 @@ class AutoPlan:
 PREVIEW_SECONDS = 30
 
 
-def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS, noise: str | None = None, noise_loudness: float = -30.0, music_level: int = 0) -> list[str]:
+def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chime: bool, output: Path, *, seconds: int = PREVIEW_SECONDS, noise: str | None = None, noise_loudness: float = -30.0, music_level: int = 0, music_start: int = 0) -> list[str]:
     """Mostra d'àudio amb els mateixos nivells que el vídeo final.
 
     La campaneta sona als 10 s (final de concentració) i als 20 s (final de descans).
@@ -914,7 +914,7 @@ def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chi
         parts.append(f"[{index}:a]loudnorm=I={layer.loudness:g}:TP=-2:LRA=11,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1[a{index}]")
         mix.append(f"[a{index}]"); index += 1
     if music is not None:
-        command += ["-stream_loop", "-1", "-i", str(music)]
+        command += ["-stream_loop", "-1"] + (["-ss", str(music_start)] if music_start > 0 else []) + ["-i", str(music)]
         parts.append(f"[{index}:a]{loudnorm_filter(MUSIC_LOUDNESS + music_level)},afade=t=in:d=1[a{index}]")
         mix.append(f"[a{index}]"); index += 1
     if chime:

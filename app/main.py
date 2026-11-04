@@ -357,7 +357,7 @@ def _preview_dir()->Path:
 
 
 @app.post("/api/auto/preview")
-def auto_preview(theme:str=Form(""),environment:str=Form(""),ambience_level:int=Form(0),music_level:int=Form(0),music:str=Form(""),music_style:str=Form(""),chime:str=Form(""),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form("")):
+def auto_preview(theme:str=Form(""),environment:str=Form(""),ambience_level:int=Form(0),music_level:int=Form(0),music:str=Form(""),music_style:str=Form(""),chime:str=Form(""),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),music_file:str=Form("")):
     """30 segons amb els sons i el volum que tindrà el vídeo."""
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
@@ -377,17 +377,28 @@ def auto_preview(theme:str=Form(""),environment:str=Form(""),ambience_level:int=
         names=load_catalog(settings.audio_catalog)
         style=music_style if music_style in MUSIC_STYLES else music_style_for(format,environment,_advice_theme(theme))
         tracks=music_tracks(settings.assets_dir/"music",style,names) or music_tracks(settings.assets_dir/"music","calma",names)
-        if tracks: track=rng.choice(tracks)
+        # En canviar només un volum es manté la mateixa peça, per a poder comparar.
+        same=[t for t in tracks if t.name==music_file]
+        if same or tracks: track=same[0] if same else rng.choice(tracks)
     folder=_preview_dir()
     for old in sorted(folder.glob("preview-*.mp3"),key=lambda p:p.stat().st_mtime)[:-5]: old.unlink(missing_ok=True)
     output=folder/f"preview-{uuid4().hex}.mp3"
-    try: command=build_preview_command(layers,track,bool(chime),output,noise=noise_color,noise_loudness=PRIMARY_AMBIENCE_LOUDNESS+ambience_level,music_level=music_level if music_level in MUSIC_LEVELS else 0)
+    try: command=build_preview_command(layers,track,bool(chime),output,noise=noise_color,noise_loudness=PRIMARY_AMBIENCE_LOUDNESS+ambience_level,music_level=music_level if music_level in MUSIC_LEVELS else 0,music_start=_music_start(track))
     except ValueError as exc: raise HTTPException(409,str(exc)) from exc
     result=subprocess.run(command,capture_output=True,text=True,timeout=120,check=False)
     if result.returncode!=0 or not output.is_file(): raise HTTPException(500,"No s'ha pogut preparar la mostra: "+(result.stderr or "")[-300:])
     names=load_catalog(settings.audio_catalog)
     sounds=([f"Soroll {NOISE_COLORS[noise][2].lower()}" if noise in NOISE_COLORS else "Brunzit de cabina"] if noise_color else [])+[(names.get(l.path.name) or {}).get("title") or l.path.stem for l in layers]+([f"Música: {(names.get(track.name) or {}).get('title') or track.stem}"] if track else [])
-    return {"url":f"/api/auto/preview/{output.name}","files":[l.path.name for l in layers],"sounds":sounds}
+    return {"url":f"/api/auto/preview/{output.name}","files":[l.path.name for l in layers],"sounds":sounds,"music":track.name if track else None}
+
+
+def _music_start(track:Path|None)->int:
+    """La mostra agafa la música de dins de la peça (no de l'entrada, que sol ser molt fluixa)."""
+    if track is None: return 0
+    try:
+        out=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=nw=1:nk=1",str(track)],capture_output=True,text=True,timeout=20,check=False).stdout
+        return int(min(90,max(0,float(out)*0.2)))
+    except (ValueError,OSError,subprocess.SubprocessError): return 0
 
 
 @app.get("/api/auto/preview/{name}")
