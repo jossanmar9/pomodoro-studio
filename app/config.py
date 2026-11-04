@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     audio_catalog: Path = Path("./assets/audio-catalog.json")
     # Capes de moviment generades (pluja, neu, pols, guspires); es fan una vegada.
     overlays_dir: Path = Path("./data/overlays")
+    # Reels: Instagram (identificador i clau de l'API) i pàgina de Facebook (identificador i clau de pàgina).
+    instagram_user_id: str = ""
+    instagram_access_token: str = ""
+    instagram_token_file: Path = Path("./data/instagram-token.json")
+    facebook_page_id: str = ""
+    facebook_page_token: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

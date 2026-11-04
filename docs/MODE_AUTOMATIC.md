@@ -39,6 +39,31 @@ Si **Publicar també un Short** està marcat (ho està per defecte), després de
 
 Amb el format **Només un Short** no es fa cap vídeo llarg: tries tema, entorn i fons, i es fa i es puja un Short de 45 segons amb els sons de l'entorn (i música si la marques) que convida a anar al canal. La descripció porta l'enllaç del canal.
 
+### Reels a Instagram i Facebook
+
+Si has configurat Instagram o la pàgina de Facebook, ixen les caselles **Publicar el Short també com a reel a Instagram** i **… a Facebook**. Quan el Short s'ha pujat a YouTube, el mateix `short.mp4` es publica com a reel amb un text en anglés (nom de l'escena, «link in bio» a Instagram o l'enllaç del canal a Facebook, i 5 etiquetes). Si una xarxa falla, la resta continua publicada i la pàgina ho avisa; amb el botó **Fer el reel** es torna a provar (també serveix per als Shorts d'abans).
+
+**Instagram** (compte de creador o d'empresa, públic):
+
+1. En [developers.facebook.com](https://developers.facebook.com) crea una aplicació: **Create App → Other → Business**.
+2. Afig el producte **Instagram → API setup with Instagram login** i, en **Generate access tokens**, afig el teu compte.
+3. Copia l'identificador i la clau en `.env`:
+
+   ```
+   INSTAGRAM_USER_ID=...
+   INSTAGRAM_ACCESS_TOKEN=...
+   ```
+
+La clau dura 60 dies, però l'aplicació la renova sola cada vegada que publica (es guarda en `data/instagram-token.json`).
+
+**Facebook** (només en pàgines, no en perfils personals):
+
+1. En la mateixa aplicació, afig el cas d'ús per a gestionar pàgines amb els permisos `pages_show_list`, `pages_read_engagement` i `pages_manage_posts`.
+2. En **Graph API Explorer**, genera una clau d'usuari amb eixos permisos i tria la pàgina.
+3. Executa `python3 scripts/clau-facebook.py`: et demana l'App ID, l'App Secret i la clau curta, i escriu les línies `FACEBOOK_PAGE_ID` i `FACEBOOK_PAGE_TOKEN` per al `.env` (esta clau no caduca).
+
+No compartisques mai estes claus: qui les tinga pot publicar en els teus comptes.
+
 ### On es guarden els vídeos
 
 Cada vídeo es guarda en `output/<data>-<tema>-<número>/` amb `video.mp4`, la miniatura i els textos publicats. Si la casella **Esborrar el vídeo de l'ordinador 3 dies després de publicar-lo** està marcada (ho està per defecte), passats eixos dies s'esborra `video.mp4` i es conserven la miniatura i els textos. Els 3 dies són perquè tingues temps de comprovar que YouTube l'ha acceptat; mentrestant encara el pots **Tornar a pujar**. Els dies es poden canviar en `.env` amb `KEEP_PUBLISHED_DAYS`.

@@ -26,7 +26,8 @@ from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
 from app.services.power import power
-from app.services.autopilot import cleanup_published_videos, autopilot, run_summary, short_missing, youtube_connected
+from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
+from app.services.meta import facebook_configured, instagram_configured
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.noise_screen import NOISE_SCREENS
@@ -232,11 +233,12 @@ def auto_home(request:Request,error:str=Query("")):
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
         "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
+        "instagram_ready":instagram_configured(),"facebook_ready":facebook_configured(),
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form("")):
+def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if format=="soroll":
         # El soroll de color no usa cap tema ni foto: el fons es genera del color del soroll.
@@ -279,7 +281,9 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=1 if shorts and publish else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=1 if shorts and publish else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,
+                 instagram=1 if instagram and publish and (shorts or format=="short") and instagram_configured() else 0,
+                 facebook=1 if facebook and publish and (shorts or format=="short") and facebook_configured() else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)
@@ -308,6 +312,15 @@ def auto_short(run_id:int):
         run=db.get(AutoRun,run_id)
         if not run or not short_missing(run): raise HTTPException(409,"Este vídeo ja té Short o no se'n pot fer")
     autopilot.submit_short(run_id)
+    return RedirectResponse("/",303)
+
+
+@app.post("/auto/{run_id}/reel")
+def auto_reel(run_id:int):
+    with SessionLocal() as db:
+        run=db.get(AutoRun,run_id)
+        if not run or not reel_missing(run): raise HTTPException(409,"Este vídeo ja té reel o no se'n pot fer")
+    autopilot.submit_reel(run_id)
     return RedirectResponse("/",303)
 
 

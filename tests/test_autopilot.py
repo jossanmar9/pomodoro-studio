@@ -987,3 +987,111 @@ def test_music_controls_sit_next_to_the_preview(env):
         page = client.get("/").text
     block = page[page.index('class="sound-check"'):page.index('id="preview"')]
     assert 'name="music"' in block and 'name="music_level"' in block and 'name="music_style"' in block
+
+
+def test_instagram_reel_is_uploaded_processed_and_published(tmp_path, monkeypatch):
+    from app.services import meta
+    monkeypatch.setattr(meta.settings, "instagram_user_id", "1784")
+    monkeypatch.setattr(meta.settings, "instagram_access_token", "clau-env")
+    monkeypatch.setattr(meta.settings, "instagram_token_file", tmp_path / "ig.json")
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"0123456789")
+    calls, states = [], iter(["IN_PROGRESS", "FINISHED"])
+
+    def fake(method, url, params, headers, body):
+        calls.append((method, url, params, headers, body))
+        if "refresh_access_token" in url:
+            return meta.HttpResponse(200, {"access_token": "clau-nova"})
+        if url.endswith("/1784/media"):
+            return meta.HttpResponse(200, {"id": "C1"})
+        if "rupload" in url:
+            return meta.HttpResponse(200, {"success": True})
+        if url.endswith("/C1"):
+            return meta.HttpResponse(200, {"status_code": next(states)})
+        return meta.HttpResponse(200, {"id": "M9"})
+
+    assert meta.instagram_configured()
+    assert meta.publish_instagram_reel(video, "hola", request=fake, sleep=lambda s: None) == "M9"
+    upload = next(c for c in calls if "rupload" in c[1])
+    assert upload[3]["Authorization"] == "OAuth clau-nova" and upload[3]["file_size"] == "10" and upload[4] == b"0123456789"
+    assert calls[1][2]["media_type"] == "REELS" and calls[1][2]["upload_type"] == "resumable"
+    assert meta._instagram_token() == "clau-nova"
+    meta.refresh_instagram_token(request=lambda *a: pytest.fail("no cal renovar dues vegades el mateix dia"))
+
+
+def test_instagram_errors_are_explained(tmp_path, monkeypatch):
+    from app.services import meta
+    monkeypatch.setattr(meta.settings, "instagram_user_id", "1784")
+    monkeypatch.setattr(meta.settings, "instagram_access_token", "x")
+    monkeypatch.setattr(meta.settings, "instagram_token_file", tmp_path / "ig.json")
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"1")
+    fake = lambda method, url, *a: meta.HttpResponse(400, {"error": {"message": "Invalid OAuth access token"}})
+    with pytest.raises(meta.MetaError, match="Invalid OAuth"):
+        meta.publish_instagram_reel(video, "hola", request=fake, sleep=lambda s: None)
+
+
+def test_facebook_reel_goes_through_start_upload_and_finish(tmp_path, monkeypatch):
+    from app.services import meta
+    monkeypatch.setattr(meta.settings, "facebook_page_id", "P1")
+    monkeypatch.setattr(meta.settings, "facebook_page_token", "pagina")
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"abc")
+    calls = []
+
+    def fake(method, url, params, headers, body):
+        calls.append((url, params, headers))
+        if params and params.get("upload_phase") == "start":
+            return meta.HttpResponse(200, {"video_id": "V7", "upload_url": "https://rupload.facebook.com/video-upload/v23.0/V7"})
+        return meta.HttpResponse(200, {"success": True})
+
+    assert meta.facebook_configured() and meta.publish_facebook_reel(video, "text", request=fake) == "V7"
+    assert calls[1][2]["file_size"] == "3" and calls[2][1]["upload_phase"] == "finish" and calls[2][1]["video_state"] == "PUBLISHED"
+
+
+def test_reel_caption_has_link_and_five_hashtags():
+    from app.services.meta import reel_caption
+    ig = reel_caption("Snowy Christmas Village", "4 Hours · Winter Wind & Fireplace", theme="Nadal", fmt="dormir")
+    fb = reel_caption("Snowy Christmas Village", "4 Hours · Winter Wind & Fireplace", theme="Nadal", channel_url="https://www.youtube.com/@TheAmberWindow", facebook=True)
+    assert ig.startswith("Cozy Snowy Christmas Village") and "link in bio" in ig and "#christmasambience" in ig
+    assert "https://www.youtube.com/@TheAmberWindow" in fb and "link in bio" not in fb
+    hashtags = ig.splitlines()[-1].split()
+    assert len(hashtags) == 5 and len(set(hashtags)) == 5 and "#fireplacesounds" in hashtags
+
+
+def test_short_is_also_shared_as_reels(env, monkeypatch):
+    from app.services import meta
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    monkeypatch.setattr(auto, "instagram_configured", lambda: True)
+    monkeypatch.setattr(auto, "facebook_configured", lambda: True)
+    shared = []
+    monkeypatch.setattr(auto, "publish_instagram_reel", lambda video, caption: shared.append(("ig", video.name, caption)) or "IG1")
+    monkeypatch.setattr(auto, "publish_facebook_reel", lambda video, caption: (_ for _ in ()).throw(meta.MetaError("pàgina sense permís")))
+    run_id = make_run(env.session, shorts=1, instagram=1, facebook=1)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and run.short_video_id == "abc123" and run.instagram_media_id == "IG1" and run.facebook_video_id is None
+    assert shared[0][1] == "short.mp4" and "link in bio" in shared[0][2]
+    assert "Reel publicat a Instagram" in run.message and "Facebook ha fallat" in run.message
+    # El que ha fallat es pot tornar a fer amb el botó «Fer el reel».
+    with env.session() as db:
+        assert auto.reel_missing(db.get(AutoRun, run_id))
+    monkeypatch.setattr(auto, "publish_facebook_reel", lambda video, caption: "FB1")
+    auto._make_missing_reel(run_id)
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.facebook_video_id == "FB1" and not auto.reel_missing(run) and len(shared) == 1
+
+
+def test_reel_checkboxes_only_when_configured(env, monkeypatch):
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        assert 'name="instagram"' not in client.get("/").text
+        monkeypatch.setattr(main, "instagram_configured", lambda: True)
+        assert 'name="instagram"' in client.get("/").text and 'name="facebook"' not in client.get("/").text
+        client.post("/auto", data={"theme": "Bosc", "environment": "bosc", "duration_minutes": "60", "publish": "1", "shorts": "1", "instagram": "1", "facebook": "1"}, follow_redirects=False)
+    with env.session() as db:
+        saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+    assert saved.instagram == 1 and saved.facebook == 0

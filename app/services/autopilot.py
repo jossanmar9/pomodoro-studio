@@ -32,6 +32,7 @@ from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity,
 from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
+from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail
 from app.services.timer import build_chapters, build_timeline
 from app.services.youtube import YouTubeUploadSpec, upload_video
@@ -455,6 +456,8 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
     except Exception as exc:
         raise AutopilotError(f"El Short està fet, però YouTube ha fallat: {exc}") from exc
     _update(run_id, step="DONE", video_id=short_id, short_video_id=short_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
+    reel_notes = share_reels(run_id, output)
+    _update(run_id, message="; ".join(notes + reel_notes) or None)
 
 
 def _short_subtitle(run: AutoRun) -> str:
@@ -506,7 +509,79 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     title, description, tags = short_texts(main.title, main.description, main.tags, video_id)
     short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None))
     _update(run_id, short_video_id=short_id)
-    return None
+    return "; ".join(share_reels(run_id, output)) or None
+
+
+def _reel_names(run: AutoRun) -> tuple[str, str]:
+    """Nom públic i subtítol del reel (els mateixos que porta el Short)."""
+    if run.format == "soroll" and run.noise in NOISE_COLORS:
+        return f"{NOISE_COLORS[run.noise][1]} Noise", _short_subtitle(run)
+    if run.format == "short":
+        env = ENVIRONMENTS.get(run.environment)
+        return publication_theme(run.theme), f"{env.public_label} Ambience" if env else "Ambience"
+    return publication_theme(run.theme), _short_subtitle(run)
+
+
+def share_reels(run_id: int, video: Path, *, every: bool = False) -> list[str]:
+    """Publica el Short com a reel a Instagram i a Facebook (si s'ha demanat i està configurat).
+
+    Torna notes per a l'usuari. Si falla, la resta continua publicada.
+    `every`: per als vídeos d'abans, a totes les xarxes configurades encara que no s'haguera marcat.
+    """
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not run:
+            return []
+        to_instagram = (run.instagram or every) and not run.instagram_media_id and instagram_configured()
+        to_facebook = (run.facebook or every) and not run.facebook_video_id and facebook_configured()
+        public, subtitle = _reel_names(run)
+        theme, fmt = run.theme, run.format or "pomodoro"
+    notes: list[str] = []
+    if to_instagram:
+        _update(run_id, message="Publicant el reel a Instagram…")
+        try:
+            media_id = publish_instagram_reel(video, reel_caption(public, subtitle, theme=theme, fmt=fmt))
+            _update(run_id, instagram_media_id=media_id)
+            notes.append("Reel publicat a Instagram")
+        except Exception as exc:  # el vídeo i el Short ja estan publicats
+            logger.exception("No s'ha pogut publicar el reel a Instagram")
+            notes.append(f"Instagram ha fallat: {exc}"[:300])
+    if to_facebook:
+        _update(run_id, message="Publicant el reel a Facebook…")
+        try:
+            facebook_id = publish_facebook_reel(video, reel_caption(public, subtitle, theme=theme, fmt=fmt, channel_url=CHANNEL_URL, facebook=True))
+            _update(run_id, facebook_video_id=facebook_id)
+            notes.append("Reel publicat a Facebook")
+        except Exception as exc:
+            logger.exception("No s'ha pogut publicar el reel a Facebook")
+            notes.append(f"Facebook ha fallat: {exc}"[:300])
+    return notes
+
+
+def _short_file(run: AutoRun) -> Path | None:
+    with SessionLocal() as db:
+        project = db.get(Project, run.project_id) if run.project_id else None
+        return Path(project.output_path) / "short.mp4" if project and project.output_path else None
+
+
+def reel_missing(run: AutoRun) -> bool:
+    """Hi ha un Short publicat que encara no s'ha passat a Instagram o Facebook (i estan configurats)."""
+    if run.step != "DONE" or not run.short_video_id or run.short_video_id == run.video_id and run.format != "short":
+        return False
+    pending = (instagram_configured() and not run.instagram_media_id) or (facebook_configured() and not run.facebook_video_id)
+    path = _short_file(run) if pending else None
+    return bool(path and path.is_file())
+
+
+def _make_missing_reel(run_id: int) -> None:
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not run or not reel_missing(run):
+            return
+        previous = run.message
+    path = _short_file(run)
+    notes = share_reels(run_id, path, every=True)
+    _update(run_id, message="; ".join(([previous] if previous else []) + notes) or None)
 
 
 class AutopilotRunner:
@@ -549,6 +624,9 @@ class AutopilotRunner:
     def submit_short(self, run_id: int) -> None:
         self._push(("short", run_id))
 
+    def submit_reel(self, run_id: int) -> None:
+        self._push(("reel", run_id))
+
     def _push(self, item: tuple[str, int]) -> None:
         # Si hi havia una apagada pendent i es demana més faena, ja no toca apagar.
         power.cancel()
@@ -570,6 +648,8 @@ class AutopilotRunner:
                     execute(run_id)
                 elif kind == "short":
                     _make_missing_short(run_id)
+                elif kind == "reel":
+                    _make_missing_reel(run_id)
                 else:
                     _publish_existing(run_id)
             except RunCancelled:
@@ -646,7 +726,10 @@ def _make_missing_short(run_id: int) -> None:
     except Exception as exc:
         logger.exception("No s'ha pogut fer el Short")
         note = f"El Short ha fallat: {exc}"[:300]
-    _update(run_id, message=note or ((previous + "; " if previous else "") + "Short publicat"))
+    if note and (note.startswith("Short no fet") or note.startswith("El Short ha fallat")):
+        _update(run_id, message=note)
+    else:
+        _update(run_id, message="; ".join(([previous] if previous else []) + ["Short publicat"] + ([note] if note else [])))
 
 
 def _video_path(project_id: int | None) -> Path | None:
@@ -723,6 +806,8 @@ def run_summary(run: AutoRun) -> dict:
         "video_url": f"https://youtu.be/{run.video_id}" if run.video_id else None,
         "video_available": _video_available(run),
         "short_missing": short_missing(run),
+        "reel_missing": reel_missing(run),
+        "instagram_media_id": run.instagram_media_id, "facebook_video_id": run.facebook_video_id,
         "delete_on": _delete_on(run),
         "created_at": run.created_at.isoformat() if run.created_at else None,
         "progress": None, "eta": None,
