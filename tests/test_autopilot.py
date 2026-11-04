@@ -1068,11 +1068,13 @@ def test_short_is_also_shared_as_reels(env, monkeypatch):
     shared = []
     monkeypatch.setattr(auto, "publish_instagram_reel", lambda video, caption: shared.append(("ig", video.name, caption)) or "IG1")
     monkeypatch.setattr(auto, "publish_facebook_reel", lambda video, caption: (_ for _ in ()).throw(meta.MetaError("pàgina sense permís")))
+    ids = iter(["video1", "short1"])
+    monkeypatch.setattr(auto, "upload_video", lambda spec: env.uploads.append(spec) or next(ids))
     run_id = make_run(env.session, shorts=1, instagram=1, facebook=1)
     auto.execute(run_id, rng=random.Random(0))
     with env.session() as db:
         run = db.get(AutoRun, run_id)
-    assert run.step == "DONE" and run.short_video_id == "abc123" and run.instagram_media_id == "IG1" and run.facebook_video_id is None
+    assert run.step == "DONE" and run.short_video_id == "short1" and run.instagram_media_id == "IG1" and run.facebook_video_id is None
     assert shared[0][1] == "short.mp4" and "link in bio" in shared[0][2]
     assert "Reel publicat a Instagram" in run.message and "Facebook ha fallat" in run.message
     # El que ha fallat es pot tornar a fer amb el botó «Fer el reel».
