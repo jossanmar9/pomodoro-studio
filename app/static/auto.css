@@ -83,3 +83,5 @@ button.big:hover{background:#f0b862}
 .groups.seasons .group-tile{padding:8px 10px;gap:1px}
 .groups.seasons .group-tile b{font-size:.92rem;white-space:nowrap}
 @media(max-width:700px){.groups{grid-template-columns:repeat(2,1fr)}.groups.seasons{grid-template-columns:repeat(3,1fr)}.groups.seasons .group-tile b{font-size:.85rem}}
+.sound-check .music-toggle{flex-basis:100%;margin:4px 0 0}
+.sound-check .music-toggle small{flex-basis:auto}

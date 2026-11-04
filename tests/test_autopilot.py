@@ -972,3 +972,18 @@ def test_music_level_is_saved_and_changes_the_mix(env, monkeypatch):
     with env.session() as db:
         saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
     assert saved.theme == "Nadal" and saved.music_level == -4
+
+
+def test_preview_takes_music_from_inside_the_track():
+    from app.services.autopilot_plan import build_preview_command
+    command = build_preview_command([], Path("m.mp3"), False, Path("o.mp3"), music_level=-4, music_start=40)
+    assert command[command.index("-i") - 2:command.index("-i")] == ["-ss", "40"] and "I=-26" in " ".join(command)
+    assert "-ss" not in build_preview_command([], Path("m.mp3"), False, Path("o.mp3"))
+    assert main._music_start(None) == 0
+
+
+def test_music_controls_sit_next_to_the_preview(env):
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+    block = page[page.index('class="sound-check"'):page.index('id="preview"')]
+    assert 'name="music"' in block and 'name="music_level"' in block and 'name="music_style"' in block
