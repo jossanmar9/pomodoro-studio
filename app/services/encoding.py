@@ -23,15 +23,18 @@ class EncodingPlan:
 
 @lru_cache(maxsize=1)
 def nvenc_available() -> bool:
-    """Comprova una sola vegada per procés que h264_nvenc pot inicialitzar-se."""
+    """Comprova una sola vegada per procés que h264_nvenc pot inicialitzar-se.
+
+    La imatge de prova ha de ser prou gran: NVENC rebutja mides menudes (64×64 fallava sempre).
+    """
     try:
         encoders = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=8, check=False)
         if encoders.returncode != 0 or "h264_nvenc" not in encoders.stdout:
             return False
         probe = subprocess.run([
             "ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i",
-            "color=c=black:s=64x64:d=0.05", "-frames:v", "1", "-c:v", "h264_nvenc", "-f", "null", "-",
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8, check=False)
+            "color=c=black:s=256x256:d=0.05", "-frames:v", "1", "-c:v", "h264_nvenc", "-f", "null", "-",
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30, check=False)
     except (OSError, subprocess.SubprocessError):
         return False
     return probe.returncode == 0
