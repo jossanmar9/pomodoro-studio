@@ -214,6 +214,19 @@
   groupTiles.forEach((tile) => tile.addEventListener("click", () => showGroup(tile.dataset.group, true)));
   syncGroup();
 
+  // Suggeriments: «Fer-ho» marca el tema i l'entorn suggerits i baixa al formulari.
+  document.querySelectorAll("[data-suggest-theme]").forEach((button) => button.addEventListener("click", () => {
+    const pick = (name, value) => {
+      const input = value && [...form.querySelectorAll(`input[name="${name}"]`)].find((el) => el.value === value);
+      if (input) { input.checked = true; input.dispatchEvent(new Event("change", {bubbles: true})); }
+    };
+    pick("format", form.querySelector('input[name="format"]:checked')?.value === "soroll" ? "pomodoro" : null);
+    pick("theme", button.dataset.suggestTheme);
+    pick("environment", button.dataset.suggestEnvironment);
+    syncGroup();
+    form.scrollIntoView({behavior: "smooth"});
+  }));
+
   // Música: recomanació segons el format, l'entorn i el tema (es marca la casella, però la pots canviar).
   const advice = document.querySelector("#music-advice");
   async function adviseMusic() {

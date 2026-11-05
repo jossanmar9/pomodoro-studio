@@ -14,9 +14,23 @@ SECONDS = 45
 SHADOW = "shadowcolor=black@0.6:shadowx=3:shadowy=3"
 
 
-def short_start(total_seconds: int, seconds: int = SECONDS) -> int:
-    """Tros d'àudio: a partir dels 2 minuts (o abans si el vídeo és curt)."""
-    return max(0, min(120, total_seconds - seconds - 5))
+def short_start(total_seconds: int, seconds: int = SECONDS, part: int = 1) -> int:
+    """Tros d'àudio: el primer a partir dels 2 minuts; el segon i el tercer, a un terç i a dos terços del vídeo."""
+    latest = max(0, total_seconds - seconds - 5)
+    wanted = 120 if part == 1 else int(total_seconds * (part - 1) / 3)
+    return max(0, min(wanted, latest))
+
+
+# Frase de dalt i títol de cada Short (el primer usa la duració i el so).
+SHORT_VARIANTS = {
+    2: ("Close your eyes and listen", "Close your eyes · {theme} with {sound} #shorts"),
+    3: ("Stay a while", "Stay a while · {theme} · {sound} #shorts"),
+}
+
+
+def variant_title(part: int, theme: str, sound: str) -> str:
+    title = SHORT_VARIANTS[part][1].format(theme=theme, sound=sound)
+    return title if len(title) <= 100 else f"{theme} #shorts"[:100]
 
 
 def build_short_command(background: Path, video: Path, output: Path, *, title: str, subtitle: str, start: int,

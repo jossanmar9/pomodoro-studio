@@ -39,6 +39,11 @@ Si **Publicar també un Short** està marcat (ho està per defecte), després de
 
 Amb el format **Només un Short** no es fa cap vídeo llarg: tries tema, entorn i fons, i es fa i es puja un Short de 45 segons amb els sons de l'entorn (i música si la marques) que convida a anar al canal. La descripció porta l'enllaç del canal.
 
+### Tres Shorts i suggeriments
+
+- **Shorts**: per defecte es fan **3 Shorts** de cada vídeo, de moments diferents (als 2 minuts, a un terç i a dos terços) i amb frases diferents a dalt. El primer es publica en acabar; el segon i el tercer es pugen ja programats per a l'endemà i l'altre dia a la mateixa hora (YouTube els fa públics sols, encara que l'ordinador estiga apagat). Si el vídeo no és públic, es pugen amb la mateixa visibilitat i sense programar. Es pot triar 1 Short o cap. Els reels d'Instagram i Facebook es fan només del primer.
+- **Suggeriments**: dalt de la pàgina ix què toca fer: la temporada o festa del moment (amb antelació, quan la gent ja ho busca), el tipus de so que fa més temps que no fas i el tema amb més visualitzacions de mitjana (es llegixen de YouTube com a molt cada 12 hores). **Fer-ho** marca el tema o l'entorn en el formulari.
+
 ### Traduccions, llistes i miniatures
 
 - **Traduccions**: cada vídeo es puja amb el títol i la descripció també en castellà, portugués, alemany i francés. YouTube els mostra a qui té el navegador en eixos idiomes i els fa servir en les cerques. La descripció traduïda porta una introducció en l'idioma i després la descripció anglesa sencera (capítols i crèdits). El Short també es tradueix.

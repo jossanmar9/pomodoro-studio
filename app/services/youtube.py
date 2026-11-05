@@ -34,6 +34,8 @@ class YouTubeUploadSpec:
     thumbnail: Path | None = None
     # Títol i descripció en altres idiomes: {"es": {"title": ..., "description": ...}, ...}
     localizations: dict[str, dict[str, str]] = field(default_factory=dict)
+    # Publicació programada (ISO 8601 en UTC). YouTube el deixa privat fins a eixa hora i llavors el fa públic.
+    publish_at: str | None = None
 
 
 def validate_upload(spec: YouTubeUploadSpec) -> None:
@@ -162,6 +164,8 @@ def upload_video(spec: YouTubeUploadSpec, *, max_retries: int = 3) -> str:
         # No fet per a nens (COPPA). Sense restricció d'edat: és l'opció per defecte de YouTube.
         "status": {"privacyStatus": spec.privacy, "selfDeclaredMadeForKids": False},
     }
+    if spec.publish_at:
+        body["status"].update(privacyStatus="private", publishAt=spec.publish_at)
     parts = "snippet,status"
     if spec.localizations:
         body["localizations"] = spec.localizations
@@ -252,3 +256,20 @@ def add_to_playlists(video_id: str, playlists: list[tuple[str, str]], service=No
         settings.youtube_playlists_file.parent.mkdir(parents=True, exist_ok=True)
         settings.youtube_playlists_file.write_text(json.dumps(cache, ensure_ascii=False, indent=1), encoding="utf-8")
     return added
+
+
+# ---------------------------------------------------------------- estadístiques
+
+def view_counts(video_ids: list[str], service=None) -> dict[str, int]:
+    """Visualitzacions de cada vídeo (de 50 en 50, com deixa YouTube)."""
+    if not video_ids:
+        return {}
+    if service is None:
+        _, _, _, build, _ = google_libraries()
+        service = build("youtube", "v3", credentials=credentials(), cache_discovery=False)
+    counts: dict[str, int] = {}
+    for start in range(0, len(video_ids), 50):
+        response = service.videos().list(part="statistics", id=",".join(video_ids[start:start + 50]), maxResults=50).execute()
+        for item in response.get("items", []):
+            counts[item["id"]] = int(item.get("statistics", {}).get("viewCount", 0))
+    return counts

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     youtube_client_secrets: Path = Path("./data/youtube-client-secret.json")
     youtube_token_file: Path = Path("./data/youtube-token.json")
     youtube_playlists_file: Path = Path("./data/youtube-playlists.json")
+    youtube_stats_file: Path = Path("./data/youtube-stats.json")
     # Privacitat per defecte en publicar des del mode automàtic.
     auto_default_privacy: str = "public"
     # Mode automàtic: si la casella «Afegir música» ix marcada (per defecte, només ambient).

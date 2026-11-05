@@ -80,6 +80,7 @@ ADDED_COLUMNS = {
         "noise_screen": "VARCHAR(10)",
         "noise_pulse": "INTEGER NOT NULL DEFAULT 0",
         "instagram": "INTEGER NOT NULL DEFAULT 0",
+        "extra_short_ids": "VARCHAR(80)",
         "facebook": "INTEGER NOT NULL DEFAULT 0",
         "instagram_media_id": "VARCHAR(40)",
         "facebook_video_id": "VARCHAR(40)",

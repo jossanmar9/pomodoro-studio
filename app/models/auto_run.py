@@ -67,6 +67,8 @@ class AutoRun(Base):
     # 1 = publicar també un Short vertical que enllaça amb el vídeo.
     shorts: Mapped[int] = mapped_column(Integer, default=0)
     short_video_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Shorts 2 i 3 (programats per als dies següents), separats per comes.
+    extra_short_ids: Mapped[str | None] = mapped_column(String(80), nullable=True)
     background: Mapped[str | None] = mapped_column(String(200), nullable=True)
     step: Mapped[str] = mapped_column(String(20), default="QUEUED")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

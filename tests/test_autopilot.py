@@ -325,6 +325,8 @@ def env(tmp_path, monkeypatch):
     playlists = []
     monkeypatch.setattr(auto, "add_to_playlists", lambda video_id, wanted: playlists.append((video_id, wanted)) or [t for t, _ in wanted])
     monkeypatch.setattr(main, "can_manage_playlists", lambda: True)
+    monkeypatch.setattr(main, "view_counts", lambda ids: {})
+    monkeypatch.setattr(main.settings, "youtube_stats_file", tmp_path / "stats.json")
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
     rendered = {}
@@ -1199,3 +1201,74 @@ def test_never_expiring_facebook_token_publishes_through_facebook_graph(tmp_path
 
     assert meta.publish_instagram_reel(video, "hola", request=fake, sleep=lambda s: None) == "M1"
     assert urls[0].startswith("https://graph.facebook.com/") and any("rupload.facebook.com/ig-api-upload" in u for u in urls)
+
+
+def test_three_shorts_are_made_and_the_last_two_scheduled(env, monkeypatch):
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    commands = []
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: commands.append(kw) or ["bash", "-c", f"touch '{output}'"])
+    ids = iter(["video1", "short1", "short2", "short3"])
+    monkeypatch.setattr(auto, "upload_video", lambda spec: env.uploads.append(spec) or next(ids))
+    run_id = make_run(env.session, shorts=3, duration_minutes=180)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and run.short_video_id == "short1" and run.extra_short_ids == "short2,short3"
+    _, first, second, third = env.uploads
+    assert first.publish_at is None and second.publish_at and third.publish_at and second.publish_at < third.publish_at
+    assert [u.video.name for u in (first, second, third)] == ["short.mp4", "short-2.mp4", "short-3.mp4"]
+    assert len({u.title for u in (first, second, third)}) == 3 and all(u.title.endswith("#shorts") for u in (first, second, third))
+    starts = [kw["start"] for kw in commands]
+    assert len(set(starts)) == 3 and commands[1]["subtitle"] == "Close your eyes and listen"
+    assert "2 Shorts més programats" in run.message
+
+
+def test_scheduled_upload_is_private_until_publish_time(tmp_path, monkeypatch):
+    from app.services import youtube
+    video = tmp_path / "short-2.mp4"
+    video.write_bytes(b"x")
+    bodies = []
+
+    class Request:
+        def next_chunk(self):
+            return None, {"id": "S2"}
+
+    class Videos:
+        def insert(self, **kwargs):
+            bodies.append(kwargs["body"])
+            return Request()
+
+    class Service:
+        def videos(self):
+            return Videos()
+
+    monkeypatch.setattr(youtube, "google_libraries", lambda: (None, None, None, lambda *a, **k: Service(), lambda *a, **k: None))
+    monkeypatch.setattr(youtube, "credentials", lambda: None)
+    spec = youtube.YouTubeUploadSpec(video, "t #shorts", "d", [], "22", "en", "public", None, {}, "2026-11-07T10:00:00Z")
+    assert youtube.upload_video(spec) == "S2"
+    assert bodies[0]["status"]["privacyStatus"] == "private" and bodies[0]["status"]["publishAt"] == "2026-11-07T10:00:00Z"
+
+
+def test_suggestions_follow_the_season_history_and_views():
+    from datetime import date, datetime
+    from app.services.suggestions import build_suggestions, easter, seasonal_themes
+    assert easter(2027) == date(2027, 3, 28)
+    assert seasonal_themes(date(2026, 11, 5))[0][0] == "Nadal"
+    assert "Halloween" in [t for t, _ in seasonal_themes(date(2026, 10, 10))]
+    history = [
+        ("Biblioteca victoriana", "pluja", "pomodoro", datetime(2026, 11, 3), "a"),
+        ("Biblioteca victoriana", "pluja-finestra", "dormir", datetime(2026, 11, 1), "b"),
+        ("Bosc", "bosc", "ambient", datetime(2026, 10, 1), "c"),
+    ]
+    tips = build_suggestions(date(2026, 11, 5), history, {"a": 120, "b": 80, "c": 5}, {}, {"Nadal", "Biblioteca victoriana", "Bosc"})
+    assert tips[0].theme == "Nadal" and "encara no n'has fet cap" in tips[0].text
+    assert tips[1].environment and "Encara no has fet cap vídeo de" in tips[1].text
+    assert tips[2].theme == "Biblioteca victoriana" and "100 visualitzacions" in tips[2].text
+    assert build_suggestions(date(2026, 11, 5), history, {}, {}, set())[0].theme is None  # sense fons de Nadal no es suggerix
+
+
+def test_home_shows_suggestions_and_shorts_choice(env, monkeypatch):
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+    assert 'name="shorts"' in page and '<option value="3" selected>' in page
+    assert "Suggeriments" in page and "data-suggest-environment" in page
