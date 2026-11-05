@@ -131,22 +131,22 @@ WORDS = {
            "read": "para leer", "ambient": "sonido ambiente sin música", "rpg": "ambiente para rol", "deep": "Trabajo profundo",
            "breath": "guiada", "noise": "para dormir y concentrarse", "dark": "pantalla oscura",
            "intro": "{theme} con {sound}{music}: {duration} {purpose}, sin interrupciones por nuestra parte.",
-           "with_music": " y música suave", "full": "Vídeo completo", "below": "Descripción original en inglés:"},
+           "with_music": " y música suave", "no_music": " (Sin música)", "full": "Vídeo completo", "below": "Descripción original en inglés:"},
     "pt": {"cozy": "Ambiente aconchegante", "hour": "hora", "hours": "horas", "minutes": "minutos", "study": "para estudar", "sleep": "para dormir",
            "read": "para ler", "ambient": "som ambiente sem música", "rpg": "ambiente para RPG", "deep": "Trabalho focado",
            "breath": "guiada", "noise": "para dormir e focar", "dark": "tela escura",
            "intro": "{theme} com {sound}{music}: {duration} {purpose}, sem interrupções da nossa parte.",
-           "with_music": " e música suave", "full": "Vídeo completo", "below": "Descrição original em inglês:"},
+           "with_music": " e música suave", "no_music": " (Sem música)", "full": "Vídeo completo", "below": "Descrição original em inglês:"},
     "de": {"cozy": "Gemütliche Atmosphäre", "hour": "Stunde", "hours": "Stunden", "minutes": "Minuten", "study": "zum Lernen", "sleep": "zum Einschlafen",
            "read": "zum Lesen", "ambient": "Ambient-Sounds ohne Musik", "rpg": "Atmosphäre für Rollenspiele", "deep": "Deep Work",
            "breath": "geführt", "noise": "zum Schlafen und Konzentrieren", "dark": "dunkler Bildschirm",
            "intro": "{theme} · Klänge: {sound}{music}. {duration} {purpose}, ohne Unterbrechungen von uns.",
-           "with_music": " und sanfte Musik", "full": "Ganzes Video", "below": "Originalbeschreibung auf Englisch:"},
+           "with_music": " und sanfte Musik", "no_music": " (Ohne Musik)", "full": "Ganzes Video", "below": "Originalbeschreibung auf Englisch:"},
     "fr": {"cozy": "Ambiance cosy", "hour": "heure", "hours": "heures", "minutes": "minutes", "study": "pour étudier", "sleep": "pour dormir",
            "read": "pour lire", "ambient": "sons d'ambiance sans musique", "rpg": "ambiance pour jeu de rôle", "deep": "Travail profond",
            "breath": "guidée", "noise": "pour dormir et se concentrer", "dark": "écran sombre",
            "intro": "{theme} avec {sound}{music} : {duration} {purpose}, sans interruption de notre part.",
-           "with_music": " et musique douce", "full": "Vidéo complète", "below": "Description originale en anglais :"},
+           "with_music": " et musique douce", "no_music": " (Sans musique)", "full": "Vidéo complète", "below": "Description originale en anglais :"},
 }
 
 
@@ -162,8 +162,9 @@ def duration_text(minutes: int, lang: str) -> str:
     return f"{hours} {words['hour'] if hours == 1 else words['hours']}"
 
 
-def _fit(options: list[str]) -> str:
-    return next((t for t in options if len(t) <= 100), options[-1][:100])
+def _fit(options: list[str], suffix: str = "") -> str:
+    candidates = [f"{t}{suffix}" for t in options] + options if suffix else options
+    return next((t for t in candidates if len(t) <= 100), options[-1][:100])
 
 
 def _purpose(fmt: str, words: dict[str, str]) -> str:
@@ -181,14 +182,15 @@ def localized_texts(*, fmt: str, public_theme: str, sound: str, duration_minutes
         words = WORDS[lang]
         duration = duration_text(duration_minutes, lang)
         dark = f" · {words['dark'].capitalize()}" if dim else ""
+        no_music = "" if music or fmt == "ambient" else words["no_music"]
         if fmt == "soroll" and noise in NOISE_NAMES:
             name = NOISE_NAMES[noise][lang]
-            title = _fit([f"{name} {words['noise']} | {duration}{dark}", f"{name} | {duration}{dark}"])
+            title = _fit([f"{name} {words['noise']} | {duration}{dark}", f"{name} | {duration}{dark}"], no_music)
             theme, sound_text = name, name.lower()
         elif fmt == "respiracio" and breath in BREATH_NAMES:
             name = BREATH_NAMES[breath][lang]
             theme, sound_text = name, _tr(SOUND_NAMES, sound, lang).lower()
-            title = _fit([f"{name} {words['breath']} | {duration} | {_tr(SOUND_NAMES, sound, lang)}", f"{name} {words['breath']} | {duration}"])
+            title = _fit([f"{name} {words['breath']} | {duration} | {_tr(SOUND_NAMES, sound, lang)}", f"{name} {words['breath']} | {duration}"], no_music)
         else:
             theme, sound_name = _tr(THEME_NAMES, public_theme, lang), _tr(SOUND_NAMES, sound, lang)
             sound_text = sound_name.lower() if lang != "de" else sound_name
@@ -202,7 +204,7 @@ def localized_texts(*, fmt: str, public_theme: str, sound: str, duration_minutes
                 f"{theme} | {middle} | {duration}{dark}",
                 f"{theme} | {sound_name} | {duration}",
                 f"{theme} | {duration}",
-            ])
+            ], no_music)
         intro = words["intro"].format(theme=theme, sound=sound_text, music=words["with_music"] if music else "",
                                       duration=duration, purpose=_purpose(fmt, words))
         description = f"{intro}\n\n{words['below']}\n\n{english_rest}"
