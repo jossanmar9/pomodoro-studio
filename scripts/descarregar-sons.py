@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 import sys
 import time
@@ -59,7 +60,25 @@ def incompetech_url(title: str) -> str | None:
     return None
 
 
+FREESOUND_PREVIEW = re.compile(r"https://cdn\.freesound\.org/previews/\d+/\d+_\d+-(?:hq|lq)\.mp3")
+
+
+def freesound_url(page: str) -> str:
+    """Adreça de l'MP3 d'alta qualitat (vista prèvia) d'un so de Freesound, llegida de la seua pàgina."""
+    request = urllib.request.Request(page, headers=HEADERS)
+    with urllib.request.urlopen(request, timeout=60) as response:
+        html = response.read().decode("utf-8", "replace")
+    found = FREESOUND_PREVIEW.findall(html)
+    if not found:
+        raise ValueError("no s'ha trobat l'àudio en la pàgina de Freesound")
+    best = next((u for u in found if u.endswith("-hq.mp3")), found[0])
+    return best.replace("-lq.mp3", "-hq.mp3")
+
+
 def fetch(entry: dict, target: Path) -> None:
+    if entry.get("freesound_page"):
+        download(freesound_url(entry["freesound_page"]), target)
+        return
     try:
         download(entry["download_url"], target)
     except urllib.error.HTTPError as exc:

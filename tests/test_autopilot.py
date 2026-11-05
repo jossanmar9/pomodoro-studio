@@ -1505,3 +1505,39 @@ def test_every_scene_belongs_only_to_its_season(tmp_path):
             owners.setdefault(path.name, []).append(theme)
     for scene, (season, _, _) in SCENES.items():
         assert owners.get(f"{slugify(scene)}-llar-temporada.png") == [season], scene
+
+
+def test_continents_are_themes_with_scenes_and_world_sounds():
+    from app.services.autopilot_plan import THEME_GROUPS, playlists_for
+    from app.services.overlays import overlay_style
+    from app.services.scenes import SCENES, SEASONS
+    import json as _json
+    continents = ("Àfrica", "Àsia", "Sud-amèrica", "Europa", "Nord-amèrica")
+    assert THEME_GROUPS["Món"][1] == continents
+    for theme in continents:
+        assert theme in SEASONS and sum(season == theme for season, _, _ in SCENES.values()) >= 5
+    assert overlay_style("Àfrica", "desert", Path("campament-al-desert-desert-temporada.png")) == "guspires"
+    assert overlay_style("Àsia", "selva-pluja", Path("temple-a-la-jungla-selva-pluja-temporada.png")) == "pluja"
+    assert overlay_style("Nord-amèrica", "hivern", Path("cabana-a-alaska-hivern-temporada.png")) == "neu"
+    assert "Around the World Ambience" in [t for t, _ in playlists_for("dormir", "Àsia", "selva-nit")]
+    catalog = _json.loads((Path(__file__).resolve().parent.parent / "assets" / "audio-catalog.json").read_text())
+    files = {Path(e["file"]).stem: e for e in catalog}
+    for key in ("selva", "selva-nit", "selva-pluja", "riu-selva", "sabana-nit", "desert", "monso"):
+        for layer in ENVIRONMENTS[key].layers:
+            for name in layer:
+                entry = files[name]
+                assert entry["license"].startswith("CC0") or "freesound_page" not in entry, name
+
+
+def test_freesound_preview_is_found_in_the_page():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("descarregar", Path(__file__).resolve().parent.parent / "scripts" / "descarregar-sons.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    html = '<div data-mp3="https://cdn.freesound.org/previews/676/676675_98765-lq.mp3"></div>'
+    module.urllib.request.urlopen = lambda request, timeout=60: __import__("io").BytesIO(html.encode())
+    class _Ctx(__import__("io").BytesIO):
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    module.urllib.request.urlopen = lambda request, timeout=60: _Ctx(html.encode())
+    assert module.freesound_url("https://freesound.org/x") == "https://cdn.freesound.org/previews/676/676675_98765-hq.mp3"

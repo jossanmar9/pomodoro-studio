@@ -105,6 +105,42 @@ ENVIRONMENTS: dict[str, Environment] = {
         "warm campfire glow and moonlight",
         (("camp-nit", "nit-grills-granotes"), ("foc-foguera-01", "foc-foguera-02", "foc-foguera-03")),
     ),
+    # Entorns del món (sons de Freesound amb llicència CC0).
+    "selva": Environment(
+        "Selva i ocells", "Jungle Birdsong", "morning", "warm humid air, tropical birds and insects",
+        "soft green daylight filtering through dense tropical leaves",
+        (("selva-matinada-amazones", "selva-clariana-amazones", "selva-madagascar", "selva-malasia"),),
+    ),
+    "selva-nit": Environment(
+        "Selva de nit", "Jungle Night", "night", "warm tropical night full of insects and frogs",
+        "lanterns and moonlight over the dark jungle",
+        (("selva-nit-amazones", "selva-nit-insectes", "selva-nit-riu"),),
+    ),
+    "selva-pluja": Environment(
+        "Pluja a la selva", "Rainforest Rain", "afternoon", "warm tropical rain on large leaves, distant thunder",
+        "soft grey-green light, rain falling on the jungle",
+        (("selva-pluja", "bosc-nit-pluja"), ("selva-trons-amazones",)),
+    ),
+    "riu-selva": Environment(
+        "Riu de la selva", "Jungle River", "morning", "a slow tropical river, birds and insects",
+        "golden morning light over the river and the forest",
+        (("riu-selva-amazones",), ("selva-clariana-amazones", "selva-matinada-amazones")),
+    ),
+    "sabana-nit": Environment(
+        "Sabana de nit", "African Savanna Night", "night", "warm dry night on the savanna, crickets and distant animals",
+        "lantern light, a full moon and a starry sky over the savanna",
+        (("sabana-nit-masai-mara",), ("nit-grills-granotes", "selva-nit-insectes")),
+    ),
+    "desert": Environment(
+        "Vent del desert", "Desert Wind", "evening", "dry wind over the dunes",
+        "warm lantern light against a deep blue desert sky",
+        (("desert-vent", "vent-herba", "vent-fort-01"),),
+    ),
+    "monso": Environment(
+        "Pluja del monsó", "Monsoon Rain", "afternoon", "heavy warm monsoon rain and distant thunder",
+        "dim stormy light and warm lamps",
+        (("pluja-tempesta-35min", "pluja-trons"), ("selva-pluja",)),
+    ),
     "tempesta-mar": Environment(
         "Tempesta al mar", "Stormy Sea", "night", "violent storm at sea, heavy rain and rough waves",
         "swinging lantern light, dark storm clouds and lightning",
@@ -284,6 +320,11 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Tardor": ("cozy autumn scene", "red and golden trees, falling leaves, soft rain and warm lamps", "cozy"),
     "Primavera": ("cozy spring scene", "cherry blossoms, fresh flowers, soft bright light and green leaves", "cozy"),
     "Hivern": ("cozy winter scene", "snow outside the windows, warm fireplaces and hot drinks", "cozy"),
+    "Àfrica": ("cozy african scene", "safari lodges, desert camps, riads and the savanna under warm light", "timeless"),
+    "Àsia": ("cozy asian scene", "jungle treehouses, rainy tropical villas, tea estates and river houses", "timeless"),
+    "Sud-amèrica": ("cozy south american scene", "amazon lodges, andean huts, tropical terraces and colonial houses", "timeless"),
+    "Europa": ("cozy european scene", "alpine chalets, scottish cottages, nordic cabins and tuscan villas", "timeless"),
+    "Nord-amèrica": ("cozy north american scene", "canadian lake cabins, new england houses, rocky mountain lodges and alaskan cabins", "timeless"),
     "Nadal": ("cozy christmas scene", "christmas trees with warm lights, garlands, candles and snow outside", "cozy"),
     "Halloween": ("cozy halloween scene", "carved pumpkins with candlelight, autumn leaves, a full moon and light fog", "cozy"),
     "Pasqua": ("cozy easter scene", "pastel painted eggs, spring flowers and soft morning sunlight", "cozy"),
@@ -302,6 +343,7 @@ THEME_GROUPS: dict[str, tuple[str, tuple[str, ...]]] = {
     "Cases i refugis": ("🏡", ("Cabana amb pluja", "Golfa amb pluja", "Far en la tempesta", "Casa de te japonesa", "Hivernacle")),
     "Natura": ("🌲", ("Bosc", "Platja", "Riu", "Port")),
     "Viatges": ("🚆", ("Tren", "Avió", "Vaixell pirata")),
+    "Món": ("🌍", ("Àfrica", "Àsia", "Sud-amèrica", "Europa", "Nord-amèrica")),
     "Història": ("🏛️", ("Roma antiga", "Grècia antiga", "Japó feudal", "Castell gòtic")),
     "Fantasia i rol": ("🐉", ("Taverna medieval", "Torre de l'alquimista", "Masmorra", "Campament d'aventurers", "Cova del drac")),
     "Estiu": ("☀️", ("Estiu",)),
@@ -951,7 +993,8 @@ SEASON_PLAYLISTS = {
     "Nadal": "Christmas Ambience", "Hivern": "Winter Ambience", "Tardor": "Autumn Ambience", "Primavera": "Spring Ambience",
     "Estiu": "Summer Ambience", "Halloween": "Halloween Ambience", "Pasqua": "Easter Ambience",
 }
-_RAIN_ENVIRONMENTS = {"pluja", "pluja-bosc", "pluja-ciutat", "pluja-finestra", "pluja-llar", "tempesta", "bosc-tempesta", "llar-tempesta",
+WORLD_THEMES = {"Àfrica", "Àsia", "Sud-amèrica", "Europa", "Nord-amèrica"}
+_RAIN_ENVIRONMENTS = {"selva-pluja", "monso", "pluja", "pluja-bosc", "pluja-ciutat", "pluja-finestra", "pluja-llar", "tempesta", "bosc-tempesta", "llar-tempesta",
                       "platja-tempesta", "tempesta-mar", "temporal"}
 _FIRE_ENVIRONMENTS = {"llar", "pluja-llar", "llar-tempesta", "hivern", "rellotge", "campament"}
 _CAFE_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer"}
@@ -962,6 +1005,8 @@ def playlists_for(fmt: str, theme: str, environment: str) -> list[tuple[str, str
     result: list[tuple[str, str]] = []
     if fmt in FORMAT_PLAYLISTS:
         result.append(FORMAT_PLAYLISTS[fmt])
+    if theme in WORLD_THEMES:
+        result.append(("Around the World Ambience", "Cozy places around the world: safari lodges, jungle treehouses, alpine chalets and more."))
     if theme in SEASON_PLAYLISTS:
         name = SEASON_PLAYLISTS[theme]
         result.append((name, f"Cozy {name.split()[0].lower()} scenes with soft ambience to study, read and sleep."))
