@@ -1177,3 +1177,25 @@ def test_new_thumbnail_has_big_title_over_the_image(tmp_path):
     assert image.size == (1280, 720)
     top, bottom = image.getpixel((640, 40)), image.getpixel((1200, 700))
     assert sum(bottom) < sum(top)  # degradat fosc baix, la part de dalt queda viva
+
+
+def test_never_expiring_facebook_token_publishes_through_facebook_graph(tmp_path, monkeypatch):
+    from app.services import meta
+    monkeypatch.setattr(meta.settings, "instagram_user_id", "1784")
+    monkeypatch.setattr(meta.settings, "instagram_access_token", "EAAsistema")
+    monkeypatch.setattr(meta.settings, "instagram_token_file", tmp_path / "ig.json")
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"12")
+    urls = []
+
+    def fake(method, url, params, headers, body):
+        urls.append(url)
+        assert "refresh_access_token" not in url
+        if url.endswith("/1784/media"):
+            return meta.HttpResponse(200, {"id": "C1"})
+        if url.endswith("/C1"):
+            return meta.HttpResponse(200, {"status_code": "FINISHED"})
+        return meta.HttpResponse(200, {"id": "M1", "success": True})
+
+    assert meta.publish_instagram_reel(video, "hola", request=fake, sleep=lambda s: None) == "M1"
+    assert urls[0].startswith("https://graph.facebook.com/") and any("rupload.facebook.com/ig-api-upload" in u for u in urls)
