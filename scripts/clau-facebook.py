@@ -41,13 +41,20 @@ def main() -> None:
     long_lived = get("oauth/access_token", grant_type="fb_exchange_token", client_id=app_id, client_secret=secret, fb_exchange_token=short)["access_token"]
     pages = get("me/accounts", access_token=long_lived, fields="id,name,access_token").get("data", [])
     if not pages:
-        sys.exit("No s'ha trobat cap pàgina. Comprova que la clau té el permís pages_show_list i que has triat la pàgina en generar-la.")
+        print("\nFacebook no ha tornat la llista de pàgines. La buscarem pel seu número.")
+        print("El trobaràs en la pàgina de Facebook → Informació → Transparència de la pàgina → «Identificador de la pàgina».")
+        page_id = input("Identificador de la pàgina: ").strip()
+        page = get(page_id, access_token=long_lived, fields="id,name,access_token")
+        if not page.get("access_token"):
+            sys.exit("Facebook no ha donat la clau de la pàgina. Comprova que eres administrador de la pàgina i que la vas marcar en generar la clau.")
+        pages = [page]
     for number, page in enumerate(pages, 1):
         print(f"{number}. {page['name']}")
     choice = pages[0] if len(pages) == 1 else pages[int(input("Quina pàgina? (número): ")) - 1]
-    print("\nAfig estes dues línies al fitxer .env de pomodoro-studio:\n")
+    print("\nAfig estes línies al fitxer .env de pomodoro-studio:\n")
     print(f"FACEBOOK_PAGE_ID={choice['id']}")
     print(f"FACEBOOK_PAGE_TOKEN={choice['access_token']}")
+    print(f"INSTAGRAM_ACCESS_TOKEN={choice['access_token']}")
     print("\nDesprés torna a obrir Pomodoro.")
 
 
