@@ -44,8 +44,8 @@ def _title_layers(width: int, height: int, font_path: Path | None) -> tuple[Imag
     """Capa del nom en daurat (amb la frase i dues línies fines) i la seua lluentor."""
     mask = Image.new("L", (width, height))
     draw = ImageDraw.Draw(mask)
-    big = _font(font_path, int(height * 0.1))
-    small = _font(font_path, int(height * 0.024))
+    big = _font(font_path, max(8, int(height * 0.1)))
+    small = _font(font_path, max(6, int(height * 0.024)))
     cx, cy = width / 2, height * 0.47
     draw.text((cx, cy), NAME, font=big, fill=255, anchor="mm")
     spaced = " ".join(TAGLINE)
