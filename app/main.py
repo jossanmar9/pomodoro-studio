@@ -27,7 +27,8 @@ from app.services.renderer import AudioTrack, RenderSpec
 from app.services.fonts import fonts_for_theme
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
-from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, forget_upload, reconnect as reconnect_youtube, upload_video, view_counts, youtube_configured
+from app.services.backup import backup_in_background
+from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, has_all_permissions, forget_upload, reconnect as reconnect_youtube, upload_video, view_counts, youtube_configured
 from app.services.suggestions import build_suggestions, cached_views, refresh_views_in_background
 from app.services.schedule import from_local, label as schedule_label, local_day, next_slot
 from app.services.power import power
@@ -62,6 +63,7 @@ async def lifespan(_):
     # En obrir Pomodoro: es publiquen els reels que falten (els dels vídeos programats, quan ja són públics).
     try: autopilot.submit_pending_reels()
     except Exception: logging.getLogger(__name__).exception("No s'han pogut revisar els reels pendents")
+    backup_in_background()  # una vegada a la setmana: base de dades, .env i claus
     yield
 app=FastAPI(title=settings.app_name,lifespan=lifespan); app.mount("/static",StaticFiles(directory="app/static"),name="static"); templates=Jinja2Templates(directory="app/templates")
 @app.get("/health")
@@ -425,7 +427,7 @@ def auto_home(request:Request,error:str=Query("")):
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
         "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
-        "instagram_ready":instagram_configured(),"youtube_playlists":can_manage_playlists(),"facebook_ready":facebook_configured(),
+        "instagram_ready":instagram_configured(),"youtube_playlists":has_all_permissions(),"facebook_ready":facebook_configured(),
     })
 
 

@@ -206,3 +206,74 @@ OUTROS = (
     "An original {channel} ambience. Tell us in the comments where you're listening from.",
     "Created for {channel}. Thank you for being here, see you in the next cozy place.",
 )
+
+
+# ---------------------------------------------------------------- primer comentari del canal
+
+COMMENTS = {
+    "pomodoro": (
+        "What are you studying today? Tell us below and let's stay focused together 🕯️",
+        "Write your goal for this session here, and come back to tick it off when you're done ✍️",
+        "How many sessions are you doing today? Good luck, you've got this 🤍",
+        "Studying for an exam? Share the subject and the date, we're cheering for you 📚",
+        "Before you start: put your phone face down, get some water and take one deep breath. Ready? 🕯️",
+        "Where are you studying from today? Let's fill this place with quiet focus ✨",
+        "Drop a 🕯️ when you finish your first session",
+        "What's the one task you want done by the end of this video? Write it here so you keep your word 💪",
+    ),
+    "sleep": (
+        "Sleep well. Where are you listening from tonight? 🌙",
+        "Leave a 🌙 if you fell asleep before the end",
+        "Do you sleep better with rain, fire or quiet music? Tell us below 🤍",
+        "Wishing you a calm, restful night. Thank you for being here ✨",
+        "What helps you fall asleep besides sounds like these? Share your tips 🛏️",
+        "Goodnight from The Amber Window. Rest, you've done enough today 🕯️",
+        "Is it night where you are, or is this an afternoon nap? 😴",
+        "Close your eyes and breathe slowly. We'll keep the light on for you 🌙",
+    ),
+    "reading": (
+        "What are you reading right now? We're always looking for the next book 📖",
+        "Share the book on your nightstand, let's build a reading list together 📚",
+        "Tea, coffee or hot chocolate for this reading session? ☕",
+        "Leave a 📖 if you finished a chapter with this ambience",
+        "What's the coziest book you've ever read? Tell us below 🕯️",
+        "Paper book, e-reader or audiobook today? ✨",
+        "Which place should we make next for reading? Ideas are welcome 🤍",
+        "Writing, journaling or reading tonight? Tell us what you're working on ✍️",
+    ),
+    "rpg": (
+        "What's happening at your table tonight? Tell us about your campaign 🎲",
+        "Which system are you playing: D&D, Pathfinder or something else? 🐉",
+        "Game masters: what scene are you using this ambience for? ⚔️",
+        "Which place should we make next for your sessions? Leave your ideas below 🗺️",
+        "Roll a d20 in the comments: what did you get? 🎲",
+        "Share the best moment of your last session 🕯️",
+        "Is your party exploring, fighting or resting at the inn right now? 🍺",
+        "Players or game master? Tell us who's listening 🎲",
+    ),
+    "noise": (
+        "What do you use this noise for: sleep, focus or calming a baby? 🤍",
+        "Brown, pink or white: which colour works best for you?",
+        "Leave a 💤 if it helped you fall asleep",
+        "Is it noisy where you live? Tell us what this helps you block out",
+        "Do you listen with headphones or speakers? Share your setup 🎧",
+        "Sleep well and focus well. Thank you for listening 🕯️",
+        "How long do you usually leave it playing? 🌙",
+        "Which length should we make next? Tell us below",
+    ),
+    "breathing": (
+        "How do you feel after this exercise? Tell us in one word 🤍",
+        "Leave a 🌿 if you feel a little calmer now",
+        "When do you use breathing exercises: before sleep, before exams or during the day?",
+        "Which breathing pattern should we make next? 🌬️",
+        "Take a moment for yourself. How was this session for you? ✨",
+        "Share this with someone who needs a calm minute today 🤍",
+        "Did you do it with your eyes open or closed? 🌿",
+        "Breathe gently and be kind to yourself today 🕯️",
+    ),
+}
+COMMENT_GROUPS = {"pomodoro": "pomodoro", "dormir": "sleep", "llegir": "reading", "ambient": "sleep", "rol": "rpg", "soroll": "noise", "respiracio": "breathing"}
+
+
+def first_comment(fmt: str, seed: int) -> str:
+    return pick(COMMENTS[COMMENT_GROUPS.get(fmt, "pomodoro")], seed, 3)

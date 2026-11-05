@@ -37,7 +37,7 @@
       <strong>YouTube</strong>
       {% if youtube_connected %}
         {% if youtube_playlists %}<span>Canal connectat</span>{% else %}
-        <span>Canal connectat. Per a les llistes de reproducció cal donar un permís nou:</span>
+        <span>Canal connectat. Per a les llistes de reproducció i els comentaris cal donar un permís nou:</span>
         <form action="/youtube/reconnect" method="post"><button type="submit" class="mini">Tornar a connectar</button></form>{% endif %}
       {% elif youtube_configured %}
         <form action="/youtube/connect" method="post"><button type="submit" class="mini">Connectar el canal</button></form>
