@@ -147,3 +147,10 @@ button.big:hover{background:#f0b862}
 .top-videos{margin:0;padding-left:22px;display:grid;gap:6px}
 .top-videos strong{color:var(--amber);margin-left:6px}
 .stats form{margin:0 0 6px}
+.batch summary{cursor:pointer;font-family:"Lora",Georgia,serif;font-size:1.15rem;font-weight:600;color:var(--text)}
+.batch-form{display:grid;gap:10px;margin-top:10px}
+.batch-fields{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.batch-fields input,.batch-fields select{min-height:44px}
+.schedule-date{display:flex;gap:8px}
+.schedule-date[hidden]{display:none!important}
+.schedule-date input{flex:1;min-height:44px}

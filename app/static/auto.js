@@ -219,6 +219,9 @@
   };
   form?.querySelectorAll('input[name="noise_screen"]').forEach((el) => el.addEventListener("change", syncPulse));
   if (pulse) syncPulse();
+  const schedule = document.getElementById("schedule");
+  const scheduleDate = document.getElementById("schedule-date");
+  schedule?.addEventListener("change", () => { scheduleDate.hidden = schedule.value !== "date"; });
   if (form) applyFormat();
 
   previewBtn?.addEventListener("click", () => preview(true));
