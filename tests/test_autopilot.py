@@ -1387,3 +1387,36 @@ def test_form_schedules_and_stats_page(env, monkeypatch):
         monkeypatch.setattr(main, "view_counts", lambda ids: {i: 7 for i in ids})
         assert client.post("/estadistiques/actualitzar", follow_redirects=False).status_code == 303
         assert '"vid1": 7' in main.settings.youtube_stats_file.read_text()
+
+
+def test_channel_intro_renders_and_blends_with_the_start(tmp_path):
+    from app.services.channel_intro import SECONDS, ensure_channel_intro, render_frame, _sparks, _title_layers
+    import random as _random
+    gold, glow = _title_layers(96, 54, None)
+    sparks = _sparks(96, 54, _random.Random(1), 10)
+    assert render_frame(0, 96, 54, gold, glow, sparks).tobytes() != render_frame(2, 96, 54, gold, glow, sparks).tobytes()
+    clip = ensure_channel_intro(cache_dir=tmp_path, width=64, height=36, fps=5)
+    background = tmp_path / "bg.png"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x556677:s=64x36", "-frames:v", "1", str(background)], check=True)
+    output = tmp_path / "out.mp4"
+    spec = RenderSpec(background, output, "64x36", build_timeline(1, 0, 1), fps=5, show_timer=True, channel_intro=clip)
+    command = build_ffmpeg_command(spec, plan=select_encoding(EncodingOptions("cpu"), has_nvenc=False))
+    joined = " ".join(command)
+    assert "blend=all_mode=screen" in joined and "concat=n=2" in joined and "alpha=" in joined
+    command[command.index("-t") + 1] = str(SECONDS + 3)
+    subprocess.run(command, check=True, capture_output=True)
+    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(output)], capture_output=True, text=True, check=True)
+    assert float(probe.stdout) >= SECONDS + 2
+
+
+def test_intro_is_requested_from_the_form(env, monkeypatch):
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    monkeypatch.setattr(auto, "ensure_channel_intro", lambda **kw: touch(env.tmp / "overlays" / "intro.mp4"))
+    with TestClient(main.app) as client:
+        assert 'name="intro"' in client.get("/").text
+        client.post("/auto", data={"theme": "Biblioteca medieval", "environment": "pluja", "duration_minutes": "60", "intro": "1"}, follow_redirects=False)
+    with env.session() as db:
+        run_id = db.query(AutoRun).order_by(AutoRun.id.desc()).first().id
+        assert db.get(AutoRun, run_id).intro == 1
+    auto.execute(run_id, rng=random.Random(0))
+    assert env.rendered["spec"].channel_intro.name == "intro.mp4"
