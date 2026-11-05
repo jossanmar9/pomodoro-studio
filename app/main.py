@@ -316,9 +316,12 @@ def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None)->li
 
 
 @app.post("/auto/setmana")
-def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("")):
+def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0)):
     """Prepara diversos vídeos d'una vegada: es fan i es pugen seguits i es publica un cada dia."""
     if not 1<=count<=7: raise HTTPException(400,"Han de ser d'1 a 7 vídeos")
+    if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
+    if music_level not in MUSIC_LEVELS: raise HTTPException(400,"Volum de música no vàlid")
+    if music_mode not in {"auto","si","no"}: raise HTTPException(400,"Opció de música no vàlida")
     try: first=from_local(first_day,publish_time or f"{settings.publish_hour:02d}:00",settings.timezone)
     except ValueError: raise HTTPException(400,"Dia o hora no vàlids") from None
     if first<datetime.utcnow(): raise HTTPException(400,"El primer dia ja ha passat")
@@ -330,7 +333,8 @@ def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("
             fmt=p["format"]
             advice=music_advice(fmt,p["environment"],p["theme"])
             run=AutoRun(theme=p["theme"],environment=p["environment"],duration_minutes=p["duration_minutes"],focus_minutes=25,break_minutes=5,privacy="public",publish=1,
-                        music=1 if advice.get("recommended") else 0,music_level=0,chime=1 if fmt=="pomodoro" else 0,ambience_level=0,format=fmt,dim=1 if fmt=="dormir" else 0,
+                        music=(1 if advice.get("recommended") else 0) if music_mode=="auto" else (1 if music_mode=="si" and fmt!="ambient" else 0),
+                        music_level=music_level,chime=1 if fmt=="pomodoro" else 0,ambience_level=ambience_level,format=fmt,dim=1 if fmt=="dormir" else 0,
                         motion=1,shorts=3,background=p["background"],delete_after=1,intro=1,scheduled_for=p["scheduled_for"],
                         instagram=1 if instagram_configured() else 0,facebook=1 if facebook_configured() else 0)
             db.add(run); db.commit(); ids.append(run.id)
