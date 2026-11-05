@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 import random
 import re
@@ -24,7 +25,8 @@ from app.services.renderer import AudioTrack, RenderSpec
 from app.services.fonts import fonts_for_theme
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
-from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, forget_upload, reconnect as reconnect_youtube, upload_video, youtube_configured
+from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, forget_upload, reconnect as reconnect_youtube, upload_video, view_counts, youtube_configured
+from app.services.suggestions import build_suggestions, cached_views, refresh_views_in_background
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
 from app.services.meta import facebook_configured, instagram_configured
@@ -218,6 +220,21 @@ def _music_counts()->dict[str,int]:
     return {k:len(music_tracks(settings.assets_dir/"music",k,names)) for k in MUSIC_STYLES}
 
 
+def _suggestions(available:set[str])->list:
+    """Què toca fer ara: temporada, el que fa temps que no es fa i el que més funciona."""
+    try:
+        with SessionLocal() as db:
+            rows=db.query(AutoRun).filter(AutoRun.step=="DONE",AutoRun.video_id.isnot(None)).all()
+            history=[(r.theme,r.environment,r.format or "pomodoro",r.published_at or r.created_at,r.video_id) for r in rows if r.format!="short"]
+        ids=[h[4] for h in history]
+        if youtube_connected() and can_manage_playlists():
+            refresh_views_in_background(settings.youtube_stats_file,ids,view_counts)
+        return build_suggestions(date.today(),history,cached_views(settings.youtube_stats_file),THEMES,available)
+    except Exception:
+        logging.getLogger(__name__).exception("No s'han pogut preparar els suggeriments")
+        return []
+
+
 @app.get("/",response_class=HTMLResponse)
 def auto_home(request:Request,error:str=Query("")):
     try: cleanup_published_videos()
@@ -227,7 +244,8 @@ def auto_home(request:Request,error:str=Query("")):
     theme_groups=[{"name":g,"icon":icon,"direct":ts==[g],"backgrounds":sum(len(gallery.get(t,[])) for t in ts),"themes":[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in ts]} for g,icon,ts in grouped_themes()]
     environments=[{"key":k,"label":e.label} for k,e in environments_by_label()]
     counts={"ambience":len(catalog().ambience),"music":len(catalog().music)}
-    return templates.TemplateResponse(request,"auto.html",{
+    tips=_suggestions({t["name"] for t in themes if t["backgrounds"]})
+    return templates.TemplateResponse(request,"auto.html",{"suggestions":tips,
         "themes":themes,"theme_groups":theme_groups,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
@@ -279,11 +297,12 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     if music_level not in MUSIC_LEVELS: raise HTTPException(400,"Volum de música no vàlid")
     if music_style and music_style not in MUSIC_STYLES: raise HTTPException(400,"Estil de música no vàlid")
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
+    shorts_count=int(shorts) if shorts in {"1","3"} and publish else 0
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=1 if shorts and publish else 0,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,
-                 instagram=1 if instagram and publish and (shorts or format=="short") and instagram_configured() else 0,
-                 facebook=1 if facebook and publish and (shorts or format=="short") and facebook_configured() else 0)
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,
+                 instagram=1 if instagram and publish and (shorts_count or format=="short") and instagram_configured() else 0,
+                 facebook=1 if facebook and publish and (shorts_count or format=="short") and facebook_configured() else 0)
         db.add(run); db.commit(); run_id=run.id
     autopilot.submit(run_id)
     return RedirectResponse("/",303)

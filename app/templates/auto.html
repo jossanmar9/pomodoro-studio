@@ -47,6 +47,19 @@
     </div>
   </section>
 
+  {% if suggestions %}
+  <section class="card suggestions">
+    <h2>💡 Suggeriments</h2>
+    <ul>
+      {% for tip in suggestions %}
+      <li><span>{{ tip.text }}</span>
+        {% if tip.theme or tip.environment %}<button type="button" class="mini secondary" data-suggest-theme="{{ tip.theme or '' }}" data-suggest-environment="{{ tip.environment or '' }}">Fer-ho</button>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
   <form action="/auto" method="post" class="card auto-form" id="auto-form">
     <fieldset class="choice-block">
       <legend>Format</legend>
@@ -204,7 +217,13 @@
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
         <label class="check" data-hide-for="respiracio soroll"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
-        <label class="check" data-hide-for="short"><input type="checkbox" name="shorts" value="1" checked> Publicar també un Short (45 s en vertical) que enllace amb el vídeo</label>
+        <label data-hide-for="short">Shorts (45 s en vertical) que enllacen amb el vídeo
+          <select name="shorts">
+            <option value="3" selected>3 Shorts: un hui i els altres demà i passat demà</option>
+            <option value="1">1 Short</option>
+            <option value="0">Cap Short</option>
+          </select>
+        </label>
         {% if instagram_ready %}<label class="check"><input type="checkbox" name="instagram" value="1" checked> Publicar el Short també com a reel a Instagram</label>{% endif %}
         {% if facebook_ready %}<label class="check"><input type="checkbox" name="facebook" value="1" checked> Publicar el Short també com a reel a Facebook</label>{% endif %}
         <label class="check"><input type="checkbox" name="delete_after" value="1" checked> Esborrar el vídeo de l'ordinador {{ keep_days }} dies després de publicar-lo</label>

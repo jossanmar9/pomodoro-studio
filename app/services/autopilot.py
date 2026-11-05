@@ -29,7 +29,7 @@ from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip, ensure_breath_intro
 from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity, overlay_style
-from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts
+from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, SHORT_VARIANTS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts, variant_title
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
@@ -531,6 +531,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         subtitle, with_motion = _short_subtitle(run), bool(run.motion)
         total = run.duration_minutes * 60
         noise = run.noise if run.format == "soroll" and run.noise in NOISE_COLORS else None
+        count = run.shorts
     if noise:
         # El Short del soroll sempre va amb el fons de color (en negre no es veuria res).
         background, with_motion = noise_background(noise, "color", with_name=False), False
@@ -557,10 +558,34 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     if result.returncode != 0 or not output.is_file():
         return f"Short no fet: {(result.stderr or '')[-200:]}"
     title, description, tags = short_texts(main.title, main.description, main.tags, video_id)
-    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None,
-                                              localized_short(main.localizations, video_id) if main.localizations else {}))
+    localized = localized_short(main.localizations, video_id) if main.localizations else {}
+    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None, localized))
     _update(run_id, short_video_id=short_id)
-    return "; ".join(share_reels(run_id, output)) or None
+    notes = share_reels(run_id, output)
+    if count >= 3:
+        # Shorts 2 i 3: altres moments del vídeo i altres frases, programats per a demà i passat demà.
+        made: list[str] = []
+        public_name = f"{NOISE_COLORS[noise][1]} Noise" if noise else publication_theme(theme)
+        sound = (ENVIRONMENTS[environment].public_label if environment in ENVIRONMENTS else "")
+        for part in (2, 3):
+            extra = folder / f"short-{part}.mp4"
+            try:
+                command = build_short_command(background, main.video, extra, title=public_name, subtitle=SHORT_VARIANTS[part][0],
+                                              start=short_start(total, part=part), label_font=fonts.label, text_font=fonts.digits,
+                                              overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)
+                result = subprocess.run(command, capture_output=True, text=True, check=False)
+                if result.returncode != 0 or not extra.is_file():
+                    raise AutopilotError((result.stderr or "")[-200:])
+                when = (datetime.utcnow() + timedelta(days=part - 1)).replace(microsecond=0).isoformat() + "Z" if main.privacy == "public" else None
+                made.append(upload_video(YouTubeUploadSpec(extra, variant_title(part, public_name, sound or "Ambience"), description, tags,
+                                                           main.category_id, main.language, main.privacy, None, localized, when)))
+                _update(run_id, extra_short_ids=",".join(made))
+            except Exception as exc:
+                logger.exception("No s'ha pogut fer el Short %s", part)
+                notes.append(f"Short {part} no fet: {exc}"[:200])
+        if made and main.privacy == "public":
+            notes.append(f"{len(made)} Shorts més programats per als pròxims dies")
+    return "; ".join(notes) or None
 
 
 def _reel_names(run: AutoRun) -> tuple[str, str]:
