@@ -28,8 +28,8 @@ CHANNEL_URL = "https://www.youtube.com/@TheAmberWindow"
 # Sonoritat objectiu (LUFS). La música i els efectes es normalitzen perquè cap
 # pista tape les altres, independentment de com s'haja gravat cada fitxer.
 MUSIC_LOUDNESS = -22.0
-PRIMARY_AMBIENCE_LOUDNESS = -34.0
-SECONDARY_AMBIENCE_LOUDNESS = -41.0
+PRIMARY_AMBIENCE_LOUDNESS = -40.0
+SECONDARY_AMBIENCE_LOUDNESS = -47.0
 # Els vídeos de soroll de color mantenen el seu volum (el soroll és el protagonista).
 NOISE_LOUDNESS = -30.0
 MUSIC_CROSSFADE_SECONDS = 6
