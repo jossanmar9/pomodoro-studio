@@ -134,3 +134,16 @@ button.big:hover{background:#f0b862}
 .auto #music-advice{font-size:.85rem;color:var(--muted)}
 .auto input[type=checkbox]{accent-color:var(--amber);width:18px;height:18px}
 .auto :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.calendar h2{font-size:1.15rem;margin:0 0 8px}
+.calendar ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.calendar li{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline}
+.calendar strong{color:var(--amber);min-width:170px}
+.stats .pill strong{font-size:1.6rem;font-family:"Lora",Georgia,serif}
+.table-wrap{overflow-x:auto}
+.stats-table{width:100%;border-collapse:collapse;font-size:.95rem}
+.stats-table th{text-align:left;color:var(--muted);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--line)}
+.stats-table td{padding:8px 10px;border-bottom:1px solid #1d2633;color:var(--text);position:relative}
+.stats-table td .bar{display:inline-block;height:8px;width:calc(var(--w) * 1.2px);background:var(--amber);border-radius:4px;margin-right:8px;vertical-align:middle;opacity:.8}
+.top-videos{margin:0;padding-left:22px;display:grid;gap:6px}
+.top-videos strong{color:var(--amber);margin-left:6px}
+.stats form{margin:0 0 6px}

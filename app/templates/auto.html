@@ -15,7 +15,7 @@
       <h1>Un botó, un vídeo.</h1>
       <p class="muted">Tria el format, el tema, l'entorn i la duració. La resta es fa sola: fons, sons, renderitzat i publicació.</p>
     </div>
-    <nav class="header-links"><a class="back" href="/fons">Biblioteca de fons →</a><a class="back" href="/estudi">Mode avançat →</a></nav>
+    <nav class="header-links"><a class="back" href="/fons">Biblioteca de fons →</a><a class="back" href="/estadistiques">Estadístiques →</a><a class="back" href="/estudi">Mode avançat →</a></nav>
   </header>
 
   {% if error %}<div class="warning">{{ error }}</div>{% endif %}
@@ -55,6 +55,17 @@
       <li><span>{{ tip.text }}</span>
         {% if tip.theme or tip.environment %}<button type="button" class="mini secondary" data-suggest-theme="{{ tip.theme or '' }}" data-suggest-environment="{{ tip.environment or '' }}">Fer-ho</button>{% endif %}
       </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if calendar %}
+  <section class="card calendar">
+    <h2>📅 Calendari</h2>
+    <ul>
+      {% for item in calendar %}
+      <li><strong>{{ item.when }}</strong> <span>{{ item.theme }}</span> <small class="muted">{{ "pujat i programat" if item.ready else "s'està preparant" }}</small></li>
       {% endfor %}
     </ul>
   </section>
@@ -221,6 +232,7 @@
       <fieldset class="option-group">
         <legend>Publicació</legend>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
+        <label class="check" title="Només per a vídeos públics"><input type="checkbox" name="schedule" value="1"> Programar-lo al calendari (pròxim dia lliure: {{ next_slot }})</label>
         <label>Visibilitat
           <select name="privacy">
             {% for key, label in privacy_choices.items() %}<option value="{{ key }}" {% if key == default_privacy %}selected{% endif %}>{{ label }}</option>{% endfor %}

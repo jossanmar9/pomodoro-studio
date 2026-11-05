@@ -326,6 +326,8 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto, "add_to_playlists", lambda video_id, wanted: playlists.append((video_id, wanted)) or [t for t, _ in wanted])
     monkeypatch.setattr(main, "can_manage_playlists", lambda: True)
     monkeypatch.setattr(main, "view_counts", lambda ids: {})
+    monkeypatch.setattr(auto, "check_video", lambda video, seconds, **kw: [])
+    monkeypatch.setattr(main, "refresh_views_in_background", lambda *a, **k: None)
     monkeypatch.setattr(main.settings, "youtube_stats_file", tmp_path / "stats.json")
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
@@ -1303,3 +1305,85 @@ def test_new_cozy_themes_replace_the_bunker():
     assert "Búnquer postapocalíptic" not in AUTO_THEMES
     for theme in ("Llibreria acollidora", "Golfa amb pluja", "Far en la tempesta", "Casa de te japonesa"):
         assert theme in AUTO_THEMES and theme in THEME_FONTS and THEMES[theme] in THEME_NAMES, theme
+
+
+def test_video_check_finds_silence_black_and_wrong_length(tmp_path):
+    from app.services.quality import check_video
+    good, bad = tmp_path / "g.mp4", tmp_path / "b.mp4"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=0x556677:s=64x36:d=40", "-f", "lavfi", "-i", "anoisesrc=d=40:a=0.05", "-shortest", str(good)], check=True)
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x36:d=40", "-f", "lavfi", "-i", "anullsrc", "-t", "40", str(bad)], check=True)
+    assert check_video(good, 40) == []
+    problems = check_video(bad, 120)
+    assert any("dura" in p for p in problems) and any("sense so" in p for p in problems) and any("negra" in p for p in problems)
+    assert not any("negra" in p for p in check_video(bad, 40, black_screen=True))
+
+
+def test_failed_check_stops_upload_and_can_publish_anyway(env, monkeypatch):
+    monkeypatch.setattr(auto, "check_video", lambda video, seconds, **kw: ["hi ha 1 tros sense so (el més llarg, de 60 s)"])
+    run_id = make_run(env.session)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "FAILED" and run.error.startswith("Comprovació:") and env.uploads == []
+    auto._publish_existing(run_id)
+    with env.session() as db:
+        assert db.get(AutoRun, run_id).step == "DONE" and len(env.uploads) == 1
+
+
+def test_calendar_slots_one_video_per_day():
+    from datetime import datetime
+    from app.services.schedule import label, next_slot, publish_at
+    now = datetime(2026, 11, 5, 14, 0)  # 15:00 a València
+    first = next_slot(now, [], hour=18, zone="Europe/Madrid")
+    second = next_slot(now, [first], hour=18, zone="Europe/Madrid")
+    assert label(first, "Europe/Madrid") == "dv 6/11 a les 18:00" and label(second, "Europe/Madrid") == "ds 7/11 a les 18:00"
+    assert publish_at(first, now) == "2026-11-06T17:00:00Z" and publish_at(first, first) is None
+
+
+def test_scheduled_video_is_uploaded_with_publish_time_and_reels_wait(env, monkeypatch):
+    from datetime import datetime, timedelta
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    monkeypatch.setattr(auto, "instagram_configured", lambda: True)
+    shared = []
+    monkeypatch.setattr(auto, "publish_instagram_reel", lambda video, caption: shared.append(video.name) or "IG1")
+    ids = iter(["video1", "short1", "short2", "short3"])
+    monkeypatch.setattr(auto, "upload_video", lambda spec: env.uploads.append(spec) or next(ids))
+    when = datetime.utcnow().replace(microsecond=0) + timedelta(days=1)
+    run_id = make_run(env.session, shorts=3, instagram=1, scheduled_for=when)
+    auto.execute(run_id, rng=random.Random(0))
+    main_upload, first_short, second_short, _ = env.uploads
+    assert main_upload.publish_at == when.isoformat() + "Z" and first_short.publish_at == main_upload.publish_at
+    assert second_short.publish_at == (when + timedelta(days=1)).isoformat() + "Z"
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        assert run.reels_due == 1 and shared == [] and run_summary_label(run).startswith("Programat")
+    assert auto.due_reel_runs() == [] and auto.due_reel_runs(now=when + timedelta(minutes=1)) == [run_id]
+    auto._share_due_reels(run_id)
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert shared == ["short.mp4"] and run.reels_due == 0 and run.instagram_media_id == "IG1"
+
+
+def run_summary_label(run):
+    return auto.run_summary(run)["step_label"]
+
+
+def test_form_schedules_and_stats_page(env, monkeypatch):
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+        assert 'name="schedule"' in page and "pròxim dia lliure" in page
+        for _ in range(2):
+            client.post("/auto", data={"theme": "Bosc", "environment": "bosc", "duration_minutes": "60", "publish": "1", "privacy": "public", "schedule": "1"}, follow_redirects=False)
+        assert "Calendari" in client.get("/").text
+        with env.session() as db:
+            first, second = [r.scheduled_for for r in db.query(AutoRun).order_by(AutoRun.id).all()[-2:]]
+        assert first and second and (second - first).days == 1
+        make_run(env.session, step="DONE", video_id="vid1", theme="Bosc")
+        main.settings.youtube_stats_file.write_text('{"fetched": "2026-11-05T12:00:00", "views": {"vid1": 42}}')
+        stats = client.get("/estadistiques").text
+        assert "Per tema" in stats and "42" in stats
+        monkeypatch.setattr(main, "view_counts", lambda ids: {i: 7 for i in ids})
+        assert client.post("/estadistiques/actualitzar", follow_redirects=False).status_code == 303
+        assert '"vid1": 7' in main.settings.youtube_stats_file.read_text()

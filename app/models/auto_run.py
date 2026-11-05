@@ -61,6 +61,9 @@ class AutoRun(Base):
     # 1 = esborrar video.mp4 uns dies després de publicar-lo (es conserven miniatura i textos).
     delete_after: Mapped[int] = mapped_column(Integer, default=0)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Calendari: hora (UTC) a la qual YouTube farà públic el vídeo; reels pendents per a eixa hora.
+    scheduled_for: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reels_due: Mapped[int] = mapped_column(Integer, default=0)
     # Fons triat a mà en el formulari; després de fer el vídeo, el fons que s'ha usat.
     # Respiració guiada: patró (quadrada, 478, coherent).
     breath: Mapped[str | None] = mapped_column(String(20), nullable=True)

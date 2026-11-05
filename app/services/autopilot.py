@@ -33,6 +33,8 @@ from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECOND
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.backdrops import short_backdrop, timer_backdrop
+from app.services.quality import check_video
+from app.services.schedule import label as schedule_label, publish_at as schedule_publish_at
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail
 from app.services.timer import build_chapters, build_timeline
@@ -323,6 +325,23 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         if music_track:
             music_track.path.unlink(missing_ok=True)
 
+        _update(run_id, message="Comprovant el vídeo (duració, so i imatge)…")
+        try:
+            problems = check_video(folder / "video.mp4", timeline.total_seconds, dark_after=dim_after,
+                                   black_screen=fmt == "soroll" and noise_screen == "negre")
+        except Exception as exc:  # si la comprovació mateixa falla, no es bloqueja el vídeo
+            logger.exception("No s'ha pogut comprovar el vídeo")
+            notes.append(f"No s'ha pogut comprovar el vídeo: {exc}"[:200])
+            problems = []
+        if problems and publish:
+            _update(run_id, step="FAILED", message="; ".join(notes) or None,
+                    error="Comprovació: " + "; ".join(problems) + ". Mira el vídeo i, si està bé, prem «Publicar igualment».")
+            return
+        if problems:
+            notes.append("Comprovació: " + "; ".join(problems))
+        elif not notes or not notes[-1].startswith("No s'ha pogut comprovar"):
+            notes.append("Vídeo comprovat")
+
         if not publish:
             _update(run_id, step="DONE_LOCAL", message="; ".join(notes + ["Vídeo fet; no s'ha demanat publicar-lo"]))
             return
@@ -429,6 +448,7 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
             [t.strip() for t in meta.tags.split(",") if t.strip()], category, meta.language, privacy,
             (root / "thumbnail.jpg") if (root / "thumbnail.jpg").is_file() else None,
             _localizations(run, meta.description) if run else {},
+            schedule_publish_at(run.scheduled_for, datetime.utcnow()) if run and privacy == "public" else None,
         )
     try:
         video_id = upload_video(spec)
@@ -445,6 +465,10 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
     playlist_note = _add_to_playlists(run_id, video_id)
     if playlist_note:
         notes.append(playlist_note)
+    if spec.publish_at:
+        with SessionLocal() as db:
+            when = db.get(AutoRun, run_id).scheduled_for
+        notes.append(f"Programat: es farà públic el {schedule_label(when, settings.timezone)}")
     _update(run_id, step="DONE", video_id=video_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
     try:
         short_note = publish_short(run_id, root, spec, video_id)
@@ -571,9 +595,20 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         return f"Short no fet: {(result.stderr or '')[-200:]}"
     title, description, tags = short_texts(main.title, main.description, main.tags, video_id)
     localized = localized_short(main.localizations, video_id) if main.localizations else {}
-    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None, localized))
+    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None, localized,
+                                              main.publish_at))
     _update(run_id, short_video_id=short_id)
-    notes = share_reels(run_id, output)
+    if main.publish_at:
+        # Vídeo programat: els reels es publiquen quan el vídeo ja siga públic (Instagram no deixa programar).
+        with SessionLocal() as db:
+            saved = db.get(AutoRun, run_id)
+            pending = bool(saved.instagram or saved.facebook)
+            saved.reels_due = 1 if pending else 0
+            db.commit()
+        notes = ["Els reels es publicaran quan el vídeo siga públic (cal que Pomodoro estiga obert)"] if pending else []
+    else:
+        notes = share_reels(run_id, output)
+    start_time = datetime.fromisoformat(main.publish_at.rstrip("Z")) if main.publish_at else datetime.utcnow()
     if count >= 3:
         # Shorts 2 i 3: altres moments del vídeo i altres frases, programats per a demà i passat demà.
         made: list[str] = []
@@ -588,7 +623,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
                 result = subprocess.run(command, capture_output=True, text=True, check=False)
                 if result.returncode != 0 or not extra.is_file():
                     raise AutopilotError((result.stderr or "")[-200:])
-                when = (datetime.utcnow() + timedelta(days=part - 1)).replace(microsecond=0).isoformat() + "Z" if main.privacy == "public" else None
+                when = (start_time + timedelta(days=part - 1)).replace(microsecond=0).isoformat() + "Z" if main.privacy == "public" else None
                 made.append(upload_video(YouTubeUploadSpec(extra, variant_title(part, public_name, sound or "Ambience"), description, tags,
                                                            main.category_id, main.language, main.privacy, None, localized, when)))
                 _update(run_id, extra_short_ids=",".join(made))
@@ -644,6 +679,28 @@ def share_reels(run_id: int, video: Path, *, every: bool = False) -> list[str]:
             logger.exception("No s'ha pogut publicar el reel a Facebook")
             notes.append(f"Facebook ha fallat: {exc}"[:300])
     return notes
+
+
+def due_reel_runs(now: datetime | None = None) -> list[int]:
+    """Vídeos programats que ja són públics i tenen els reels pendents."""
+    now = now or datetime.utcnow()
+    with SessionLocal() as db:
+        rows = db.query(AutoRun.id).filter(AutoRun.reels_due == 1, AutoRun.step == "DONE", AutoRun.scheduled_for.isnot(None),
+                                           AutoRun.scheduled_for <= now).all()
+    return [row[0] for row in rows]
+
+
+def _share_due_reels(run_id: int) -> None:
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not run or not run.reels_due:
+            return
+        run.reels_due = 0
+        db.commit()
+        previous = run.message
+    path = _short_file(run)
+    notes = share_reels(run_id, path) if path and path.is_file() else ["Reel no fet: no es troba el Short"]
+    _update(run_id, message="; ".join(([previous] if previous else []) + notes) or None)
 
 
 def _short_file(run: AutoRun) -> Path | None:
@@ -715,6 +772,14 @@ class AutopilotRunner:
     def submit_reel(self, run_id: int) -> None:
         self._push(("reel", run_id))
 
+    def submit_due_reels(self) -> None:
+        """Posa en cua els reels dels vídeos programats que ja s'han fet públics."""
+        for run_id in due_reel_runs():
+            with self._lock:
+                if ("reel_due", run_id) in self._queue:
+                    continue
+            self._push(("reel_due", run_id))
+
     def _push(self, item: tuple[str, int]) -> None:
         # Si hi havia una apagada pendent i es demana més faena, ja no toca apagar.
         power.cancel()
@@ -738,6 +803,8 @@ class AutopilotRunner:
                     _make_missing_short(run_id)
                 elif kind == "reel":
                     _make_missing_reel(run_id)
+                elif kind == "reel_due":
+                    _share_due_reels(run_id)
                 else:
                     _publish_existing(run_id)
             except RunCancelled:
@@ -887,6 +954,12 @@ def _environment_label(run: AutoRun) -> str:
     return ENVIRONMENTS[run.environment].label if run.environment in ENVIRONMENTS else run.environment
 
 
+def _step_label(run: AutoRun) -> str:
+    if run.step == "DONE" and run.scheduled_for and run.scheduled_for > datetime.utcnow():
+        return f"Programat · {schedule_label(run.scheduled_for, settings.timezone)}"
+    return AUTO_STEPS.get(run.step, run.step)
+
+
 def run_summary(run: AutoRun) -> dict:
     data = {
         "id": run.id, "theme": run.theme, "environment": run.environment,
@@ -894,7 +967,7 @@ def run_summary(run: AutoRun) -> dict:
         "duration_minutes": run.duration_minutes,
         "pomodoro": f"{run.focus_minutes}/{run.break_minutes}" if (run.format or "pomodoro") == "pomodoro" else FORMATS.get(run.format, run.format),
         "format": run.format or "pomodoro",
-        "privacy": run.privacy, "step": run.step, "step_label": AUTO_STEPS.get(run.step, run.step),
+        "privacy": run.privacy, "step": run.step, "step_label": _step_label(run),
         "message": run.message, "error": run.error, "project_id": run.project_id, "video_id": run.video_id,
         "video_url": f"https://youtu.be/{run.video_id}" if run.video_id else None,
         "video_available": _video_available(run),

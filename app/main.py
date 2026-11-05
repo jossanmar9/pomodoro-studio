@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 import random
 import re
+import json
 import logging
 import shutil
 import subprocess
@@ -27,6 +28,7 @@ from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, forget_upload, reconnect as reconnect_youtube, upload_video, view_counts, youtube_configured
 from app.services.suggestions import build_suggestions, cached_views, refresh_views_in_background
+from app.services.schedule import label as schedule_label, next_slot
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
 from app.services.meta import facebook_configured, instagram_configured
@@ -220,13 +222,84 @@ def _music_counts()->dict[str,int]:
     return {k:len(music_tracks(settings.assets_dir/"music",k,names)) for k in MUSIC_STYLES}
 
 
+def _published_ids()->list[str]:
+    """Identificadors de YouTube dels vídeos i Shorts publicats."""
+    with SessionLocal() as db:
+        rows=db.query(AutoRun).filter(AutoRun.step=="DONE",AutoRun.video_id.isnot(None)).all()
+        ids=[]
+        for r in rows:
+            ids+=[r.video_id]+([r.short_video_id] if r.short_video_id and r.short_video_id!=r.video_id else [])+[i for i in (r.extra_short_ids or "").split(",") if i]
+    return list(dict.fromkeys(ids))
+
+
+def _stats()->dict:
+    """Visualitzacions per tema, per format i per vídeo (de les dades guardades)."""
+    views=cached_views(settings.youtube_stats_file)
+    with SessionLocal() as db:
+        rows=db.query(AutoRun).filter(AutoRun.step=="DONE",AutoRun.video_id.isnot(None)).order_by(AutoRun.id.desc()).all()
+        videos=[]
+        for r in rows:
+            shorts=[i for i in ([r.short_video_id] if r.short_video_id and r.short_video_id!=r.video_id else [])+(r.extra_short_ids or "").split(",") if i]
+            videos.append({"id":r.id,"theme":r.theme,"format":FORMATS.get(r.format or "pomodoro",r.format),"environment":ENVIRONMENTS[r.environment].label if r.environment in ENVIRONMENTS else r.environment,
+                           "hours":r.duration_minutes/60,"url":f"https://youtu.be/{r.video_id}","views":views.get(r.video_id),
+                           "short_views":sum(views.get(i,0) for i in shorts),"date":(r.published_at or r.created_at).strftime("%d/%m/%Y"),"is_short":r.format=="short"})
+    def group(key):
+        out={}
+        for v in videos:
+            if v["is_short"]: continue
+            g=out.setdefault(v[key],{"name":v[key],"videos":0,"views":0,"short_views":0})
+            g["videos"]+=1; g["views"]+=v["views"] or 0; g["short_views"]+=v["short_views"]
+        for g in out.values(): g["average"]=round(g["views"]/g["videos"]) if g["videos"] else 0
+        return sorted(out.values(),key=lambda g:(-g["average"],g["name"]))
+    long_videos=[v for v in videos if not v["is_short"]]
+    try: fetched=json.loads(settings.youtube_stats_file.read_text(encoding="utf-8")).get("fetched")
+    except (OSError,ValueError): fetched=None
+    return {"themes":group("theme"),"formats":group("format"),"environments":group("environment"),
+            "top":sorted([v for v in long_videos if v["views"] is not None],key=lambda v:-v["views"])[:10],
+            "total_videos":len(long_videos),"total_views":sum(v["views"] or 0 for v in long_videos),
+            "total_short_views":sum(v["short_views"] for v in videos)+sum(v["views"] or 0 for v in videos if v["is_short"]),
+            "fetched":fetched,"has_views":bool(views)}
+
+
+@app.get("/estadistiques",response_class=HTMLResponse)
+def stats_page(request:Request,error:str=Query("")):
+    return templates.TemplateResponse(request,"stats.html",{"stats":_stats(),"error":error[:300],"can_read":youtube_connected() and can_manage_playlists()})
+
+
+@app.post("/estadistiques/actualitzar")
+def stats_refresh():
+    """Llig ara mateix les visualitzacions de YouTube."""
+    try:
+        counts=view_counts(_published_ids())
+        settings.youtube_stats_file.parent.mkdir(parents=True,exist_ok=True)
+        settings.youtube_stats_file.write_text(json.dumps({"fetched":datetime.utcnow().isoformat(timespec="seconds"),"views":counts}),encoding="utf-8")
+    except Exception as exc:
+        return RedirectResponse("/estadistiques?error="+quote(f"No s'han pogut llegir les dades de YouTube: {exc}"),303)
+    return RedirectResponse("/estadistiques",303)
+
+
+def _taken_slots()->list:
+    """Hores ja reservades en el calendari (vídeos programats que no han fallat)."""
+    with SessionLocal() as db:
+        rows=db.query(AutoRun.scheduled_for).filter(AutoRun.scheduled_for.isnot(None),AutoRun.scheduled_for>=datetime.utcnow()-timedelta(days=1),
+                                                    AutoRun.step.notin_(["FAILED","CANCELLED"])).all()
+    return [r[0] for r in rows]
+
+
+def _calendar()->list[dict]:
+    now=datetime.utcnow()
+    with SessionLocal() as db:
+        rows=db.query(AutoRun).filter(AutoRun.scheduled_for.isnot(None),AutoRun.scheduled_for>now,AutoRun.step.notin_(["FAILED","CANCELLED"])).order_by(AutoRun.scheduled_for).all()
+        return [{"when":schedule_label(r.scheduled_for,settings.timezone),"theme":r.theme,"ready":r.step=="DONE"} for r in rows]
+
+
 def _suggestions(available:set[str])->list:
     """Què toca fer ara: temporada, el que fa temps que no es fa i el que més funciona."""
     try:
         with SessionLocal() as db:
             rows=db.query(AutoRun).filter(AutoRun.step=="DONE",AutoRun.video_id.isnot(None)).all()
             history=[(r.theme,r.environment,r.format or "pomodoro",r.published_at or r.created_at,r.video_id) for r in rows if r.format!="short"]
-        ids=[h[4] for h in history]
+        ids=_published_ids()
         if youtube_connected() and can_manage_playlists():
             refresh_views_in_background(settings.youtube_stats_file,ids,view_counts)
         return build_suggestions(date.today(),history,cached_views(settings.youtube_stats_file),THEMES,available)
@@ -245,7 +318,8 @@ def auto_home(request:Request,error:str=Query("")):
     environments=[{"key":k,"label":e.label} for k,e in environments_by_label()]
     counts={"ambience":len(catalog().ambience),"music":len(catalog().music)}
     tips=_suggestions({t["name"] for t in themes if t["backgrounds"]})
-    return templates.TemplateResponse(request,"auto.html",{"suggestions":tips,
+    slot=next_slot(datetime.utcnow(),_taken_slots(),hour=settings.publish_hour,zone=settings.timezone)
+    return templates.TemplateResponse(request,"auto.html",{"suggestions":tips,"calendar":_calendar(),"next_slot":schedule_label(slot,settings.timezone),
         "themes":themes,"theme_groups":theme_groups,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
@@ -256,7 +330,7 @@ def auto_home(request:Request,error:str=Query("")):
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form("")):
+def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form(""),schedule:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if format=="soroll":
         # El soroll de color no usa cap tema ni foto: el fons es genera del color del soroll.
@@ -298,9 +372,10 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     if music_style and music_style not in MUSIC_STYLES: raise HTTPException(400,"Estil de música no vàlid")
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     shorts_count=int(shorts) if shorts in {"1","3"} and publish else 0
+    scheduled_for=next_slot(datetime.utcnow(),_taken_slots(),hour=settings.publish_hour,zone=settings.timezone) if schedule and publish and privacy=="public" else None
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,scheduled_for=scheduled_for,
                  instagram=1 if instagram and publish and (shorts_count or format=="short") and instagram_configured() else 0,
                  facebook=1 if facebook and publish and (shorts_count or format=="short") and facebook_configured() else 0)
         db.add(run); db.commit(); run_id=run.id
@@ -310,6 +385,8 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
 
 @app.get("/api/auto")
 def auto_status():
+    try: autopilot.submit_due_reels()
+    except Exception: logging.getLogger(__name__).exception("No s'han pogut revisar els reels pendents")
     return {"runs":_recent_runs(),"youtube_connected":youtube_connected(),"shutdown":power.status()}
 
 
