@@ -24,7 +24,7 @@ from app.services.renderer import AudioTrack, RenderSpec
 from app.services.fonts import fonts_for_theme
 from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
-from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, credentials, forget_upload, upload_video, youtube_configured
+from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, forget_upload, reconnect as reconnect_youtube, upload_video, youtube_configured
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
 from app.services.meta import facebook_configured, instagram_configured
@@ -233,7 +233,7 @@ def auto_home(request:Request,error:str=Query("")):
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
         "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
-        "instagram_ready":instagram_configured(),"facebook_ready":facebook_configured(),
+        "instagram_ready":instagram_configured(),"youtube_playlists":can_manage_playlists(),"facebook_ready":facebook_configured(),
     })
 
 
@@ -350,6 +350,14 @@ def auto_publish(run_id:int,again:str=Form("")):
             run.video_id=None
             db.commit()
     autopilot.submit_publish(run_id)
+    return RedirectResponse("/",303)
+
+
+@app.post("/youtube/reconnect")
+def youtube_reconnect():
+    """Torna a autoritzar el canal amb el permís de llistes de reproducció."""
+    try: reconnect_youtube()
+    except Exception as exc: return RedirectResponse("/?error="+quote(f"No s'ha pogut connectar YouTube: {exc}"),303)
     return RedirectResponse("/",303)
 
 

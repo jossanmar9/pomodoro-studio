@@ -39,6 +39,12 @@ Si **Publicar també un Short** està marcat (ho està per defecte), després de
 
 Amb el format **Només un Short** no es fa cap vídeo llarg: tries tema, entorn i fons, i es fa i es puja un Short de 45 segons amb els sons de l'entorn (i música si la marques) que convida a anar al canal. La descripció porta l'enllaç del canal.
 
+### Traduccions, llistes i miniatures
+
+- **Traduccions**: cada vídeo es puja amb el títol i la descripció també en castellà, portugués, alemany i francés. YouTube els mostra a qui té el navegador en eixos idiomes i els fa servir en les cerques. La descripció traduïda porta una introducció en l'idioma i després la descripció anglesa sencera (capítols i crèdits). El Short també es tradueix.
+- **Llistes de reproducció**: cada vídeo s'afig a les llistes que li toquen (per format, per estació o festa i per tipus de so: pluja, llar de foc o cafeteria). Si una llista no existix, es crea pública. Cal que el canal estiga connectat amb el permís de gestionar llistes: si el vas connectar abans, la pàgina mostra **Tornar a connectar**.
+- **Miniatures**: la imatge es veu viva, amb un degradat fosc a baix, el nom gran (fins a dues línies) amb la tipografia del tema i una línia en ambre amb la duració i el so.
+
 ### Reels a Instagram i Facebook
 
 Si has configurat Instagram o la pàgina de Facebook, ixen les caselles **Publicar el Short també com a reel a Instagram** i **… a Facebook**. Quan el Short s'ha pujat a YouTube, el mateix `short.mp4` es publica com a reel amb un text en anglés (nom de l'escena, «link in bio» a Instagram o l'enllaç del canal a Facebook, i 5 etiquetes). Si una xarxa falla, la resta continua publicada i la pàgina ho avisa; amb el botó **Fer el reel** es torna a provar (també serveix per als Shorts d'abans).

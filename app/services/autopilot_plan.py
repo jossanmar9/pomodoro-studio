@@ -932,3 +932,41 @@ def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chi
 def has_fire(layers: list[AmbienceLayer]) -> bool:
     """Si l'ambient porta foc, la llum del vídeo parpelleja suaument."""
     return any(layer.path.stem.startswith("foc-") for layer in layers)
+
+
+# Llistes de reproducció del canal: per format, per estació o festa i per tipus de so.
+FORMAT_PLAYLISTS = {
+    "pomodoro": ("Pomodoro Study Sessions", "Cozy pomodoro timers with ambience to study and focus."),
+    "dormir": ("Sleep Ambience", "Long cozy ambience videos to fall asleep, with no timers and no interruptions."),
+    "llegir": ("Reading Ambience", "Cozy places and soft sounds to read with."),
+    "ambient": ("Ambient Sounds (No Music)", "Pure ambience: only the sounds of the place, without music."),
+    "respiracio": ("Guided Breathing", "Calm guided breathing exercises with ambience."),
+    "rol": ("Tabletop RPG Ambience", "Background ambience for D&D and tabletop roleplaying sessions."),
+    "soroll": ("Brown, Pink & White Noise", "Smooth color noise for sleep, focus and relaxation."),
+}
+SEASON_PLAYLISTS = {
+    "Nadal": "Christmas Ambience", "Hivern": "Winter Ambience", "Tardor": "Autumn Ambience", "Primavera": "Spring Ambience",
+    "Estiu": "Summer Ambience", "Halloween": "Halloween Ambience", "Pasqua": "Easter Ambience",
+}
+_RAIN_ENVIRONMENTS = {"pluja", "pluja-bosc", "pluja-ciutat", "pluja-finestra", "pluja-llar", "tempesta", "bosc-tempesta", "llar-tempesta",
+                      "platja-tempesta", "tempesta-mar", "temporal"}
+_FIRE_ENVIRONMENTS = {"llar", "pluja-llar", "llar-tempesta", "hivern", "rellotge", "campament"}
+_CAFE_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer"}
+
+
+def playlists_for(fmt: str, theme: str, environment: str) -> list[tuple[str, str]]:
+    """Llistes on va un vídeo (títol i descripció). Com a molt tres."""
+    result: list[tuple[str, str]] = []
+    if fmt in FORMAT_PLAYLISTS:
+        result.append(FORMAT_PLAYLISTS[fmt])
+    if theme in SEASON_PLAYLISTS:
+        name = SEASON_PLAYLISTS[theme]
+        result.append((name, f"Cozy {name.split()[0].lower()} scenes with soft ambience to study, read and sleep."))
+    if fmt != "soroll":
+        if environment in _RAIN_ENVIRONMENTS:
+            result.append(("Rain & Thunderstorm Ambience", "Cozy places with rain and gentle thunderstorms."))
+        elif environment in _FIRE_ENVIRONMENTS:
+            result.append(("Fireplace Ambience", "Crackling fireplaces and warm cozy rooms."))
+        elif environment in _CAFE_ENVIRONMENTS:
+            result.append(("Coffee Shop Ambience", "Cozy cafés with soft chatter and coffee shop sounds."))
+    return result[:3]

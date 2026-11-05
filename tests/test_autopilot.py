@@ -320,6 +320,11 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto, "ensure_breath_clip", lambda pattern, **kw: touch(tmp_path / "overlays" / f"respiracio-{pattern}.mp4"))
     monkeypatch.setattr(auto, "ensure_breath_intro", lambda **kw: touch(tmp_path / "overlays" / "respiracio-intro.mp4"))
     monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
+    monkeypatch.setattr(auto, "make_thumbnail", lambda bg, out, title, subtitle="", **kw: touch(out))
+    monkeypatch.setattr(auto, "can_manage_playlists", lambda: True)
+    playlists = []
+    monkeypatch.setattr(auto, "add_to_playlists", lambda video_id, wanted: playlists.append((video_id, wanted)) or [t for t, _ in wanted])
+    monkeypatch.setattr(main, "can_manage_playlists", lambda: True)
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
     rendered = {}
@@ -335,7 +340,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto.render_queue, "enqueue", fake_enqueue)
     uploads = []
     monkeypatch.setattr(auto, "upload_video", lambda spec: uploads.append(spec) or "abc123")
-    return SimpleNamespace(session=session, rendered=rendered, uploads=uploads, tmp=tmp_path)
+    return SimpleNamespace(session=session, rendered=rendered, uploads=uploads, tmp=tmp_path, playlists=playlists)
 
 
 def make_run(session, **overrides):
@@ -421,7 +426,7 @@ def test_noise_backgrounds_and_pulse_render(tmp_path):
 
 def test_natural_overlay_replaces_camera_motion_and_can_be_turned_off(env):
     touch(auto.settings.assets_dir / "ambience" / "foc-llar.mp3")
-    run_id = make_run(env.session, environment="llar")
+    run_id = make_run(env.session)
     auto.execute(run_id, rng=random.Random(0))
     spec = env.rendered["spec"]
     assert spec.motion is False and spec.flicker is False and spec.overlay.name == "pols.mp4" and spec.overlay_opacity > 0
@@ -1097,3 +1102,78 @@ def test_reel_checkboxes_only_when_configured(env, monkeypatch):
     with env.session() as db:
         saved = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
     assert saved.instagram == 1 and saved.facebook == 0
+
+
+def test_videos_get_translations_and_playlists(env, monkeypatch):
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    ids = iter(["video1", "short1"])
+    monkeypatch.setattr(auto, "upload_video", lambda spec: env.uploads.append(spec) or next(ids))
+    run_id = make_run(env.session, format="dormir", environment="pluja", shorts=1, duration_minutes=180)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE", run.error
+    main_upload, short_upload = env.uploads
+    assert set(main_upload.localizations) == {"es", "pt", "de", "fr"}
+    es = main_upload.localizations["es"]
+    assert "Biblioteca medieval" in es["title"] and "3 horas" in es["title"] and "para dormir" in es["title"] and len(es["title"]) <= 100
+    assert es["description"].startswith("Biblioteca medieval con lluvia suave") and "The Amber Window" in es["description"]
+    assert short_upload.localizations["de"]["title"].endswith("#shorts") and "https://youtu.be/video1" in short_upload.localizations["de"]["description"]
+    assert env.playlists == [("video1", [("Sleep Ambience", ANY_TEXT), ("Rain & Thunderstorm Ambience", ANY_TEXT)])]
+    assert "Afegit a les llistes: Sleep Ambience, Rain & Thunderstorm Ambience" in run.message
+
+
+class _AnyText(str):
+    def __eq__(self, other):
+        return isinstance(other, str) and bool(other)
+
+
+ANY_TEXT = _AnyText("")
+
+
+def test_old_youtube_connection_asks_to_reconnect_for_playlists(env, monkeypatch):
+    monkeypatch.setattr(auto, "can_manage_playlists", lambda: False)
+    run_id = make_run(env.session)
+    auto.execute(run_id, rng=random.Random(0))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+    assert run.step == "DONE" and env.playlists == [] and "torna a connectar YouTube" in run.message
+    monkeypatch.setattr(main, "can_manage_playlists", lambda: False)
+    with TestClient(main.app) as client:
+        assert "/youtube/reconnect" in client.get("/").text
+
+
+def test_playlists_follow_format_season_and_sound():
+    from app.services.autopilot_plan import playlists_for
+    assert [t for t, _ in playlists_for("pomodoro", "Nadal", "llar")] == ["Pomodoro Study Sessions", "Christmas Ambience", "Fireplace Ambience"]
+    assert [t for t, _ in playlists_for("soroll", "Soroll de color", "soroll")] == ["Brown, Pink & White Noise"]
+    assert [t for t, _ in playlists_for("llegir", "Cafeteria a París", "cafeteria")] == ["Reading Ambience", "Coffee Shop Ambience"]
+
+
+def test_translated_titles_fit_and_cover_every_theme_and_sound():
+    from app.services.translations import LANGUAGES, SOUND_NAMES, THEME_NAMES, localized_texts
+    from app.themes import THEMES
+    for public in THEMES.values():
+        assert public in THEME_NAMES, public
+    for env in ENVIRONMENTS.values():
+        assert env.public_label in SOUND_NAMES, env.public_label
+    for fmt, noise, breath in (("pomodoro", None, None), ("dormir", None, None), ("soroll", "Brown", None), ("respiracio", None, "Box Breathing"), ("rol", None, None)):
+        texts = localized_texts(fmt=fmt, public_theme="Enchanted Wizard Library", sound="Winter Wind & Fireplace", duration_minutes=600,
+                                english_description="Intro.\n\nChapters:\n00:00:00 Hour 1", focus=90, pause=15, noise=noise, breath=breath, dim=True)
+        for lang in LANGUAGES:
+            assert 0 < len(texts[lang]["title"]) <= 100 and "00:00:00 Hour 1" in texts[lang]["description"], (fmt, lang)
+    assert "Trabajo profundo 90/15" in localized_texts(fmt="pomodoro", public_theme="Rainy Cabin", sound="Gentle Rain", duration_minutes=120,
+                                                      english_description="x", focus=90, pause=15)["es"]["title"]
+
+
+def test_new_thumbnail_has_big_title_over_the_image(tmp_path):
+    from PIL import Image
+    from app.services.thumbnail import make_thumbnail
+    background = tmp_path / "bg.png"
+    Image.new("RGB", (1920, 1080), (90, 120, 160)).save(background)
+    out = make_thumbnail(background, tmp_path / "t.jpg", "Victorian Library", "3 Hours · Howling Wind")
+    image = Image.open(out)
+    assert image.size == (1280, 720)
+    top, bottom = image.getpixel((640, 40)), image.getpixel((1200, 700))
+    assert sum(bottom) < sum(top)  # degradat fosc baix, la part de dalt queda viva

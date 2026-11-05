@@ -20,7 +20,7 @@ from app.database import SessionLocal
 from app.models import AUTO_ACTIVE_STEPS, AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_LEVELS, MUSIC_STYLES, music_style, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
-    CHANNEL_URL, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
+    CHANNEL_URL, playlists_for, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
@@ -33,9 +33,10 @@ from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECOND
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
-from app.services.thumbnail import fitting_fontsize, generate_thumbnail
+from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail
 from app.services.timer import build_chapters, build_timeline
-from app.services.youtube import YouTubeUploadSpec, upload_video
+from app.services.youtube import YouTubeUploadSpec, add_to_playlists, can_manage_playlists, upload_video
+from app.services.translations import localized_short, localized_texts
 from app.themes import publication_theme
 
 logger = logging.getLogger(__name__)
@@ -267,10 +268,9 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
         fonts = fonts_for_theme(theme)
-        thumbnail_text = texts.thumbnail_text.replace(" · ", fonts.separator)
-        thumbnail_font = fonts.label if fonts.uppercase_labels else fonts.digits
         thumbnail_background = noise_background(run_noise, "color", with_name=False) if fmt == "soroll" else background
-        generate_thumbnail(thumbnail_background, folder / "thumbnail.jpg", thumbnail_text, fitting_fontsize(thumbnail_text), thumbnail_font)
+        thumb_title, thumb_subtitle = thumbnail_lines(fmt, public_theme, environment, duration, focus, pause, run_noise, breath)
+        make_thumbnail(thumbnail_background, folder / "thumbnail.jpg", thumb_title, thumb_subtitle, title_font=fonts.label, text_font=fonts.digits)
 
         with SessionLocal() as db:
             saved = db.get(Project, project_id)
@@ -352,6 +352,52 @@ def is_cancelled_project(project_id: int) -> bool:
     return bool(run and is_cancelled(run.id))
 
 
+def thumbnail_lines(fmt: str, public_theme: str, environment: str, duration: int, focus: int, pause: int,
+                    noise: str | None = None, breath: str | None = None) -> tuple[str, str]:
+    """Nom gran i línia petita de la miniatura."""
+    label = duration_label(duration)
+    sound = ENVIRONMENTS[environment].public_label if environment in ENVIRONMENTS else ""
+    if fmt == "soroll" and noise in NOISE_COLORS:
+        return f"{NOISE_COLORS[noise][1]} Noise", f"{label} · Sleep & Focus"
+    if fmt == "respiracio" and breath in BREATH_PATTERNS:
+        return BREATH_PATTERNS[breath].public, f"{duration} Min · {sound}" if sound else f"{duration} Min"
+    purpose = {"pomodoro": f"Pomodoro {focus}/{pause}" if (focus, pause) in {(25, 5), (50, 10)} else f"Deep Work {focus}/{pause}",
+               "dormir": "Sleep", "llegir": "Reading", "rol": "Tabletop RPG"}.get(fmt)
+    return public_theme, " · ".join(part for part in (label, sound, purpose) if part)
+
+
+def _localizations(run: AutoRun, description: str) -> dict[str, dict[str, str]]:
+    """Títol i descripció en castellà, portugués, alemany i francés (si falla, el vídeo es puja igual)."""
+    try:
+        env = ENVIRONMENTS.get(run.environment)
+        return localized_texts(
+            fmt=run.format or "pomodoro", public_theme=publication_theme(run.theme), sound=env.public_label if env else "",
+            duration_minutes=run.duration_minutes, english_description=description, focus=run.focus_minutes, pause=run.break_minutes,
+            music=bool(run.music), noise=NOISE_COLORS[run.noise][1] if run.noise in NOISE_COLORS else None,
+            breath=BREATH_PATTERNS[run.breath].public if run.breath in BREATH_PATTERNS else None, dim=bool(run.dim),
+        )
+    except Exception:  # les traduccions són un extra
+        logger.exception("No s'han pogut preparar les traduccions")
+        return {}
+
+
+def _add_to_playlists(run_id: int, video_id: str) -> str | None:
+    """Afig el vídeo a les llistes del canal. Torna una nota per a l'usuari."""
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        wanted = playlists_for(run.format or "pomodoro", run.theme, run.environment) if run else []
+    if not wanted:
+        return None
+    if not can_manage_playlists():
+        return "Per a afegir els vídeos a les llistes, torna a connectar YouTube"
+    try:
+        added = add_to_playlists(video_id, wanted)
+    except Exception as exc:
+        logger.exception("No s'ha pogut afegir el vídeo a les llistes")
+        return f"Les llistes han fallat: {exc}"[:200]
+    return f"Afegit a les llistes: {', '.join(added)}" if added else None
+
+
 def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str] | None = None) -> None:
     notes = list(notes or [])
     _update(run_id, step="PUBLISHING", message="Pujant el vídeo a YouTube…", error=None)
@@ -371,6 +417,7 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
             root / "video.mp4", meta.title, meta.description,
             [t.strip() for t in meta.tags.split(",") if t.strip()], category, meta.language, privacy,
             (root / "thumbnail.jpg") if (root / "thumbnail.jpg").is_file() else None,
+            _localizations(run, meta.description) if run else {},
         )
     try:
         video_id = upload_video(spec)
@@ -384,6 +431,9 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
         record = db.query(YouTubePublication).filter(YouTubePublication.project_id == project_id).first()
         record.status, record.video_id, record.error = "PUBLISHED", video_id, None
         db.commit()
+    playlist_note = _add_to_playlists(run_id, video_id)
+    if playlist_note:
+        notes.append(playlist_note)
     _update(run_id, step="DONE", video_id=video_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
     try:
         short_note = publish_short(run_id, root, spec, video_id)
@@ -438,7 +488,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
     title, description, tags = channel_short_texts(public_theme, env.public_label, CHANNEL_URL, music_text)
     if track:
         description += "\n\n" + build_credits([track], [], catalog, compact=True)
-    generate_thumbnail(background, folder / "thumbnail.jpg", public_theme.upper(), fitting_fontsize(public_theme.upper()), fonts.label)
+    make_thumbnail(background, folder / "thumbnail.jpg", public_theme, f"{env.public_label} Ambience", title_font=fonts.label, text_font=fonts.digits)
     with SessionLocal() as db:
         saved = db.get(Project, project_id)
         saved.output_path, saved.status = str(folder), "COMPLETED"
@@ -507,7 +557,8 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     if result.returncode != 0 or not output.is_file():
         return f"Short no fet: {(result.stderr or '')[-200:]}"
     title, description, tags = short_texts(main.title, main.description, main.tags, video_id)
-    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None))
+    short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None,
+                                              localized_short(main.localizations, video_id) if main.localizations else {}))
     _update(run_id, short_video_id=short_id)
     return "; ".join(share_reels(run_id, output)) or None
 
