@@ -1295,3 +1295,11 @@ def test_text_backdrops_darken_only_where_the_text_goes(tmp_path):
     assert sum(short.getpixel((540, 40))) < sum(short.getpixel((540, 960))) > sum(short.getpixel((540, 1900)))
     video = tmp_path / "v.mp4"
     assert timer_backdrop(video, tmp_path / "x.png") == video  # els fons en vídeo no es toquen
+
+
+def test_new_cozy_themes_replace_the_bunker():
+    from app.services.fonts import THEME_FONTS
+    from app.services.translations import THEME_NAMES
+    assert "Búnquer postapocalíptic" not in AUTO_THEMES
+    for theme in ("Llibreria acollidora", "Golfa amb pluja", "Far en la tempesta", "Casa de te japonesa"):
+        assert theme in AUTO_THEMES and theme in THEME_FONTS and THEMES[theme] in THEME_NAMES, theme
