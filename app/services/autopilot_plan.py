@@ -21,6 +21,7 @@ from app.services.renderer import (
     SUPPORTED_VIDEO_SUFFIXES, _bell, ambience_filter, noise_filter, noise_source,
 )
 from app.services.timer import format_timestamp
+from app.services.text_variants import INTROS, OUTROS, TITLE_DETAILS, USES, new_seed, pick
 
 CHANNEL_NAME = "The Amber Window"
 CHANNEL_URL = "https://www.youtube.com/@TheAmberWindow"
@@ -736,17 +737,22 @@ def _hashtags(*words: str) -> str:
     return " ".join(dict.fromkeys(_hashtag(w) for w in words if w))
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None, screen: str = "color") -> AutoTexts:
+def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None, screen: str = "color", seed: int | None = None) -> AutoTexts:
+    """Textos del vídeo. `seed` (l'identificador del vídeo) tria les frases: vídeos seguits no les repeteixen."""
+    seed = new_seed() if seed is None else seed
     music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1]
     if fmt == "pomodoro":
-        return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime, music_text=music_text)
+        return _pomodoro_texts(public_theme=public_theme, environment=environment, duration=duration, focus=focus, pause=pause, chapters=chapters, credits=credits, compact_credits=compact_credits, music=music, chime=chime, music_text=music_text, seed=seed)
     if fmt not in FORMATS:
         raise ValueError("Format no vàlid")
     label = duration_label(duration)
     cozy = cozy_name(public_theme)
     dark_title = " · Dark Screen" if dim else ""
     dark_line = f"The screen slowly fades to black after {DIM_AFTER_SECONDS // 60} minutes, so it won't light up your room." if dim else ""
-    outro = f"Original ambience created for {CHANNEL_NAME}. New cozy videos every week: subscribe and leave the light on."
+    outro = pick(OUTROS, seed, 2).format(channel=CHANNEL_NAME)
+    detail = pick(TITLE_DETAILS.get(fmt, ("",)), seed)
+    intro = lambda **values: pick(INTROS[fmt], seed).format(label=label, label_l=label.lower(), label_c=label.lower().capitalize(), **values)
+    uses_text = lambda: pick(USES[fmt], seed, 1)
     if fmt == "soroll":
         if noise not in NOISE_COLORS:
             raise ValueError("Color de soroll no vàlid")
@@ -754,6 +760,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
         black = screen == "negre"
         screen_title = " · Black Screen" if black else dark_title
         title = _fit_title([
+            f"{color} Noise {detail} | {label}{screen_title}",
             f"{color} Noise for Sleep, Focus & Relaxation | {label}{screen_title}",
             f"{label} {color} Noise{screen_title}",
         ])
@@ -763,8 +770,8 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             screen_line = f"Just continuous {color.lower()} noise over a calm {color.lower()} screen. {dark_line}"
         uses = {"Brown": "Deep and soft, like a distant waterfall.", "Pink": "Balanced and gentle, like steady rain.", "White": "Even and bright, great for masking noises."}[color]
         compose = lambda credit_text: _join_blocks(
-            f"{label} of smooth {color.lower()} noise for sleeping, studying, focusing, relaxing or calming a baby. {uses}",
-            f"No music, no voices, no ads in the middle from us. {screen_line}",
+            intro(color_l=color.lower(), uses=uses),
+            f"{uses_text()} {screen_line}",
             f"Chapters:\n{chapters}",
             "The noise is generated for this video; no third-party audio is used.",
             credit_text,
@@ -785,13 +792,14 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
         sound_tags = [f"{env.public_label.lower()} sounds", f"{env.public_label.lower()} ambience"]
         if fmt == "dormir":
             title = _fit_title([
+                f"{cozy} Ambience | {sounds} {detail} | {label}{dark_title}",
                 f"{cozy} Ambience | {sounds} for Sleep & Relaxation | {label}{dark_title}",
                 f"{cozy} Ambience | {sounds} for Sleep | {label}{dark_title}",
                 f"{label} {sounds} for Sleep{dark_title}",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"{cozy} ambience with {sound} to fall asleep, rest and relax. {label.lower().capitalize()} with no timer, no alarms and no interruptions from us.",
-                f"Close your eyes and let the cozy ambience carry you to sleep. Also lovely as calm background sound for reading or a quiet evening. {dark_line}",
+                intro(cozy=cozy, sound=sound),
+                f"{uses_text()} {dark_line}",
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
@@ -806,12 +814,13 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             pattern = PATTERNS[breath]
             minutes = f"{duration} Minute"
             title = _fit_title([
+                f"{minutes} {pattern.public} | Guided Breathing Exercise {detail} | {cozy}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise to Calm Down | {cozy}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise | {public_theme}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"A {duration} minute guided breathing exercise ({pattern.public.lower()}) to calm down, ease stress and anxiety, focus before studying or unwind before sleep.",
+                intro(minutes=duration, pattern_l=pattern.public.lower()),
                 f"Take 15 seconds to get comfortable, then follow the circle: breathe in as it grows, hold when it stops, and breathe out as it shrinks. {pattern.how}",
                 f"Scene: {cozy.lower()} with {sound}. No talking.",
                 "Breathe gently and never force it. If you feel dizzy, stop and breathe normally.",
@@ -823,13 +832,14 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             thumbnail = f"{pattern.public.upper()} · {duration} MIN"
         elif fmt == "ambient":
             title = _fit_title([
+                f"{cozy} Ambience | {detail.format(sounds=sounds)} | {label}",
                 f"{cozy} Ambience | {sounds}, No Music | {label}",
                 f"{cozy} Ambience | {sounds} | {label}",
                 f"{label} {sounds}, No Music",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"{cozy} ambience with pure {env.public_label.lower()} sounds: {label.lower()} with no music, no talking and no timer.",
-                "Cozy background ambience for studying, working, reading, relaxing or sleeping. Turn it up, turn it down, and let the place do the rest.",
+                intro(cozy=cozy, env_l=env.public_label.lower()),
+                uses_text(),
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
@@ -840,13 +850,14 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
         elif fmt == "llegir":
             reading = cozy if "reading" in cozy.casefold() else f"{cozy} Reading"
             title = _fit_title([
+                f"{reading} Ambience | {sounds} {detail} | {label}",
                 f"{reading} Ambience | {sounds} for Reading & Relaxing | {label}",
                 f"{reading} Ambience | {sounds} | {label}",
                 f"{label} Reading Ambience | {public_theme}",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"{reading} ambience with {sound}. Grab a book and get comfortable for {label.lower()}.",
-                "No timer, no alarms, no talking: just a cozy, quiet place to read, write in your journal or simply unwind.",
+                intro(reading=reading, sound=sound),
+                uses_text(),
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
@@ -856,13 +867,14 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             thumbnail = f"READING · {label.upper()}"
         else:  # rol
             title = _fit_title([
+                f"{public_theme} Ambience | {sounds} | {detail} · {label}",
                 f"{public_theme} Ambience | {sounds} | Tabletop RPG & Fantasy Background · {label}",
                 f"{public_theme} Ambience | {sounds} | Tabletop RPG Ambience",
                 f"{public_theme} | Tabletop RPG Ambience",
             ])
             compose = lambda credit_text: _join_blocks(
-                f"{public_theme} ambience for your tabletop RPG and fantasy sessions, with {sound}. {label.lower().capitalize()} without interruptions, so you can leave it playing while your party explores.",
-                "Made for game masters and players of fantasy roleplaying games, and for fantasy reading or writing. No timer, no narration.",
+                intro(theme=public_theme, sound=sound),
+                uses_text(),
                 f"Chapters:\n{chapters}",
                 credit_text,
                 outro,
@@ -874,7 +886,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     return AutoTexts(title, description, ", ".join(t for t in dict.fromkeys(tags) if t), thumbnail)
 
 
-def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, music_text: str = "calm instrumental music") -> AutoTexts:
+def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, music_text: str = "calm instrumental music", seed: int = 0) -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
     cozy = cozy_name(public_theme)
@@ -882,6 +894,7 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
     method = f"Deep Work {focus}/{pause}" if deep else f"Pomodoro {focus}/{pause}"
     sounds = f"{env.public_label} Sounds" if env.layers or env.noise else "Calm Music"
     title = _fit_title([
+        f"{cozy} Ambience | {label} {method} {pick(TITLE_DETAILS['pomodoro'], seed)} | {sounds}",
         f"{cozy} Ambience | {label} {method} Study With Me | {sounds}",
         f"{cozy} Ambience | {label} {method} | {sounds}",
         f"{cozy} Ambience | {label} {method}",
@@ -898,12 +911,12 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
         timer_line += " A soft chime marks the end of every focus session and every break."
     def compose(credit_text: str) -> str:
         return _join_blocks(
-            f"{cozy} ambience to study and focus with me for {label.lower()}, with {sound}.\n"
+            pick(INTROS["pomodoro"], seed).format(cozy=cozy, label_l=label.lower(), sound=sound) + "\n"
             f"{'Deep work timer' if deep else 'Pomodoro timer'}: {focus} minutes of focus, {pause} minutes of break. {timer_line}",
-            "Cozy study ambience for exams, homework, reading, writing or deep work. Put your phone away, make yourself something warm and start the first session.",
+            pick(USES["pomodoro"], seed, 1),
             f"Chapters:\n{chapters}",
             credit_text,
-            f"Original ambience created for {CHANNEL_NAME}. New study and focus sessions every week: subscribe and leave the light on.",
+            pick(OUTROS, seed, 2).format(channel=CHANNEL_NAME),
             _hashtags("study with me", "pomodoro" if not deep else "deep work", "cozy ambience"),
         )
 
