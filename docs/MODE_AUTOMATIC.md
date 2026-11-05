@@ -39,6 +39,10 @@ Si **Publicar també un Short** està marcat (ho està per defecte), després de
 
 Amb el format **Només un Short** no es fa cap vídeo llarg: tries tema, entorn i fons, i es fa i es puja un Short de 45 segons amb els sons de l'entorn (i música si la marques) que convida a anar al canal. La descripció porta l'enllaç del canal.
 
+### Continents
+
+En el quadre **🌍 Món** hi ha un tema per continent (Àfrica, Àsia, Sud-amèrica, Europa i Nord-amèrica). Com les estacions, cada tema usa tots els fons de les seues escenes (tenda de safari, riad del Marroc, casa a l'arbre de la jungla, xalet als Alps, cabana a Alaska…), i cada escena porta el seu efecte. Entorns nous amb sons de Freesound amb llicència CC0: **Selva i ocells**, **Selva de nit**, **Pluja a la selva**, **Riu de la selva**, **Sabana de nit**, **Vent del desert** i **Pluja del monsó** (executa `python3 scripts/descarregar-sons.py` per a baixar-los). En **Preparar la setmana** es pot triar un continent sol.
+
 ### Calendari, comprovació i estadístiques
 
 - **Calendari**: en **Quan es publica** (només en vídeos públics) tria «El pròxim dia lliure» o «Un dia i una hora concrets». El vídeo es fa i es puja de seguida, però YouTube el manté privat fins a eixe moment (per defecte, el primer dia lliure a les 18:00 (hora de València; es pot canviar amb `PUBLISH_HOUR` en `.env`). Si en demanes uns quants seguits, cadascun va a un dia diferent. El primer Short es publica a la mateixa hora que el vídeo i els altres dos, els dies següents. Dalt de la pàgina es veu el calendari. Com que Instagram no deixa programar, els reels es publiquen quan el vídeo ja és públic, sempre que Pomodoro estiga obert (si no, en obrir-lo).

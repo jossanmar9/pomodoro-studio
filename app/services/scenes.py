@@ -15,7 +15,7 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", normal).strip("-")
 
 
-# Tema → (nom públic en anglés, icona, efecte per defecte, descripció visual per a prompts)
+# Tema (estació, festa o continent) → (nom públic en anglés, icona, efecte per defecte, descripció visual per a prompts)
 SEASONS: dict[str, tuple[str, str, str, tuple[str, str, str]]] = {
     "Estiu": ("Summer", "☀️", "pols", ("cozy summer scene", "warm golden summer light, open windows, sea, fields and warm evenings", "cozy")),
     "Tardor": ("Autumn", "🍂", "pols", ("cozy autumn scene", "red and golden trees, falling leaves, soft rain and warm lamps", "cozy")),
@@ -24,6 +24,12 @@ SEASONS: dict[str, tuple[str, str, str, tuple[str, str, str]]] = {
     "Nadal": ("Christmas", "🎄", "pols", ("cozy christmas scene", "christmas trees with warm lights, garlands, candles and snow outside", "cozy")),
     "Halloween": ("Halloween", "🎃", "boira", ("cozy halloween scene", "carved pumpkins with candlelight, autumn leaves, a full moon and light fog", "cozy")),
     "Pasqua": ("Easter", "🐣", "pols", ("cozy easter scene", "pastel painted eggs, spring flowers and soft morning sunlight", "cozy")),
+    # Continents: un tema per continent amb diverses escenes (igual que les estacions).
+    "Àfrica": ("Africa", "🌍", "pols", ("cozy african scene", "safari lodges, desert camps, riads and the savanna under warm light", "timeless")),
+    "Àsia": ("Asia", "🌏", "pols", ("cozy asian scene", "jungle treehouses, rainy tropical villas, tea estates and river houses", "timeless")),
+    "Sud-amèrica": ("South America", "🌎", "pols", ("cozy south american scene", "amazon lodges, andean huts, tropical terraces and colonial houses", "timeless")),
+    "Europa": ("Europe", "🏰", "pols", ("cozy european scene", "alpine chalets, scottish cottages, nordic cabins and tuscan villas", "timeless")),
+    "Nord-amèrica": ("North America", "🍁", "pols", ("cozy north american scene", "canadian lake cabins, new england houses, rocky mountain lodges and alaskan cabins", "timeless")),
 }
 
 # Escena → (tema, efecte, a l'aire lliure)
@@ -74,6 +80,31 @@ SCENES: dict[str, tuple[str, str, bool]] = {
     "Hivernacle de Pasqua": ("Pasqua", "pols", False),
     "Cabana de Pasqua": ("Pasqua", "pols", False),
     "Casa del Pare Noel": ("Nadal", "pols", False),
+    "Tenda de safari": ("Àfrica", "pols", False),
+    "Lodge a la sabana": ("Àfrica", "pols", False),
+    "Riad del Marroc": ("Àfrica", "pols", False),
+    "Campament al desert": ("Àfrica", "guspires", True),
+    "Casa a Zanzíbar": ("Àfrica", "pols", False),
+    "Casa a l'arbre de la jungla": ("Àsia", "pols", False),
+    "Vila de Bali": ("Àsia", "pols", False),
+    "Casa de te a l'Índia": ("Àsia", "pols", False),
+    "Casa flotant al Mekong": ("Àsia", "pols", False),
+    "Temple a la jungla": ("Àsia", "pols", True),
+    "Refugi a l'Amazones": ("Sud-amèrica", "pols", False),
+    "Cabana als Andes": ("Sud-amèrica", "pols", False),
+    "Terrassa tropical": ("Sud-amèrica", "pols", True),
+    "Casa colonial a Cartagena": ("Sud-amèrica", "pols", False),
+    "Refugi a la Patagònia": ("Sud-amèrica", "pols", False),
+    "Xalet als Alps": ("Europa", "pols", False),
+    "Cottage a Escòcia": ("Europa", "pols", False),
+    "Cabana nòrdica": ("Europa", "pols", False),
+    "Vila a la Toscana": ("Europa", "pols", False),
+    "Casa de pescadors a Irlanda": ("Europa", "pols", False),
+    "Cabana al Canadà": ("Nord-amèrica", "pols", False),
+    "Casa a Nova Anglaterra": ("Nord-amèrica", "fulles", False),
+    "Lodge a les Rocalloses": ("Nord-amèrica", "pols", False),
+    "Cabana a Alaska": ("Nord-amèrica", "neu", True),
+    "Casa del far a Maine": ("Nord-amèrica", "pols", False),
     "Taller del Pare Noel": ("Nadal", "pols", False),
     "Poble del Pol Nord": ("Nadal", "neu", True),
     "Estable dels rens": ("Nadal", "pols", False),

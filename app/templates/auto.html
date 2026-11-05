@@ -79,7 +79,8 @@
         <label>Temàtica
           <select name="theme">
             <option value="">Variada (de tot)</option>
-            {% for group in theme_groups %}<option value="grup:{{ group.name }}" {% if not group.backgrounds %}disabled{% endif %}>{{ group.icon }} {{ group.name }}{% if not group.direct %} (tots){% endif %} · {{ group.backgrounds }} fons</option>{% endfor %}
+            {% for group in theme_groups %}<option value="grup:{{ group.name }}" {% if not group.backgrounds %}disabled{% endif %}>{{ group.icon }} {{ group.name }}{% if not group.direct %} (tots){% endif %} · {{ group.backgrounds }} fons</option>
+            {% if not group.direct %}{% for t in group.themes %}<option value="{{ t.name }}" {% if not t.backgrounds %}disabled{% endif %}>&nbsp;&nbsp;&nbsp;{{ t.name }} · {{ t.backgrounds }} fons</option>{% endfor %}{% endif %}{% endfor %}
           </select>
         </label>
         <label>Quants vídeos

@@ -45,6 +45,11 @@ THEME_NAMES: dict[str, dict[str, str]] = {
     "Christmas": {"es": "Navidad", "pt": "Natal", "de": "Weihnachten", "fr": "Noël"},
     "Halloween": {"es": "Halloween", "pt": "Halloween", "de": "Halloween", "fr": "Halloween"},
     "Easter": {"es": "Pascua", "pt": "Páscoa", "de": "Ostern", "fr": "Pâques"},
+    "Africa": {"es": "África", "pt": "África", "de": "Afrika", "fr": "Afrique"},
+    "Asia": {"es": "Asia", "pt": "Ásia", "de": "Asien", "fr": "Asie"},
+    "South America": {"es": "Sudamérica", "pt": "América do Sul", "de": "Südamerika", "fr": "Amérique du Sud"},
+    "Europe": {"es": "Europa", "pt": "Europa", "de": "Europa", "fr": "Europe"},
+    "North America": {"es": "Norteamérica", "pt": "América do Norte", "de": "Nordamerika", "fr": "Amérique du Nord"},
     "Airplane Window Seat": {"es": "Ventanilla de avión", "pt": "Janela do avião", "de": "Fensterplatz im Flugzeug", "fr": "Hublot d'avion"},
     "Night Train": {"es": "Tren nocturno", "pt": "Trem noturno", "de": "Nachtzug", "fr": "Train de nuit"},
     "Peaceful Beach": {"es": "Playa tranquila", "pt": "Praia tranquila", "de": "Ruhiger Strand", "fr": "Plage paisible"},
@@ -99,6 +104,13 @@ SOUND_NAMES: dict[str, dict[str, str]] = {
     "Ticking Clock & Fireplace": {"es": "Reloj y chimenea", "pt": "Relógio e lareira", "de": "Tickende Uhr und Kamin", "fr": "Horloge et cheminée"},
     "Winter Wind & Fireplace": {"es": "Viento de invierno y chimenea", "pt": "Vento de inverno e lareira", "de": "Winterwind und Kamin", "fr": "Vent d'hiver et cheminée"},
     "Noise": {"es": "Ruido", "pt": "Ruído", "de": "Rauschen", "fr": "Bruit"},
+    "Jungle Birdsong": {"es": "Pájaros de la selva", "pt": "Pássaros da selva", "de": "Vogelgesang im Dschungel", "fr": "Oiseaux de la jungle"},
+    "Jungle Night": {"es": "Noche en la selva", "pt": "Noite na selva", "de": "Dschungelnacht", "fr": "Nuit dans la jungle"},
+    "Rainforest Rain": {"es": "Lluvia en la selva", "pt": "Chuva na floresta tropical", "de": "Regen im Regenwald", "fr": "Pluie dans la forêt tropicale"},
+    "Jungle River": {"es": "Río de la selva", "pt": "Rio da selva", "de": "Dschungelfluss", "fr": "Rivière de la jungle"},
+    "African Savanna Night": {"es": "Noche en la sabana africana", "pt": "Noite na savana africana", "de": "Nacht in der afrikanischen Savanne", "fr": "Nuit dans la savane africaine"},
+    "Desert Wind": {"es": "Viento del desierto", "pt": "Vento do deserto", "de": "Wüstenwind", "fr": "Vent du désert"},
+    "Monsoon Rain": {"es": "Lluvia monzónica", "pt": "Chuva de monção", "de": "Monsunregen", "fr": "Pluie de mousson"},
 }
 
 NOISE_NAMES = {
