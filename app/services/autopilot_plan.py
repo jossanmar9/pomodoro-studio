@@ -262,7 +262,6 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Roma antiga": ("ancient roman scholar's villa study", "marble columns, scrolls, oil lamps, mosaic floor and an atrium view", "ancient rome"),
     "Grècia antiga": ("ancient greek philosopher's study overlooking the sea", "white marble, scrolls, olive trees, clay amphorae and oil lamps", "ancient greece"),
     "Japó feudal": ("traditional japanese study room", "tatami floor, shoji screens, low writing desk, paper lanterns and a zen garden view", "feudal japan"),
-    "Búnquer postapocalíptic": ("cozy underground survival bunker workspace", "salvaged furniture, warm work lamps, shelves of supplies, maps and old books", "post-apocalyptic"),
     "Bosc": ("small study nook in an ancient tranquil forest", "moss, giant tree roots, a wooden desk, lanterns and layered vegetation", "timeless"),
     "Observatori": ("old astronomy observatory", "large brass telescope, star charts, open dome showing the night sky and a desk", "timeless"),
     "Cafeteria acollidora": ("cozy coffee shop corner", "warm wooden tables, plants, books, steaming coffee and a large window", "modern"),
@@ -288,15 +287,19 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Nadal": ("cozy christmas scene", "christmas trees with warm lights, garlands, candles and snow outside", "cozy"),
     "Halloween": ("cozy halloween scene", "carved pumpkins with candlelight, autumn leaves, a full moon and light fog", "cozy"),
     "Pasqua": ("cozy easter scene", "pastel painted eggs, spring flowers and soft morning sunlight", "cozy"),
+    "Llibreria acollidora": ("cozy old bookstore", "floor-to-ceiling shelves of second-hand books, a rolling ladder, warm hanging lamps, a worn armchair and rain on the shop window", "cozy"),
+    "Golfa amb pluja": ("cozy attic room under a sloped wooden roof", "rain on the skylight, old trunks, a small bed with a patchwork quilt, stacks of books and a warm lamp", "cozy"),
+    "Far en la tempesta": ("lighthouse keeper's room during a storm", "round stone room with a brass oil lamp, logbooks and sea charts, a kettle on a small iron stove, rain and huge waves seen through the window", "timeless"),
+    "Casa de te japonesa": ("traditional japanese tea house room", "tatami floor, a low table with a steaming tea set, paper lanterns and sliding doors open onto a rainy moss garden", "japanese"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
 
 AUTO_THEMES = tuple(THEME_VISUALS)
 # Quadres de la pàgina: primer per tipus de lloc, després estacions i festes. Cada tema va en un sol quadre.
 THEME_GROUPS: dict[str, tuple[str, tuple[str, ...]]] = {
-    "Biblioteques i lectura": ("📚", ("Biblioteca medieval", "Biblioteca màgica", "Biblioteca èlfica", "Biblioteca victoriana", "Racó de lectura", "Observatori")),
+    "Biblioteques i lectura": ("📚", ("Biblioteca medieval", "Biblioteca màgica", "Biblioteca èlfica", "Biblioteca victoriana", "Racó de lectura", "Llibreria acollidora", "Observatori")),
     "Cafeteries i ciutat": ("☕", ("Cafeteria acollidora", "Cafeteria moderna", "Cafeteria a Nova York", "Cafeteria a Tòquio", "Cafeteria a París", "Apartament a la ciutat", "Parc a la ciutat")),
-    "Cases i refugis": ("🏡", ("Cabana amb pluja", "Hivernacle", "Búnquer postapocalíptic")),
+    "Cases i refugis": ("🏡", ("Cabana amb pluja", "Golfa amb pluja", "Far en la tempesta", "Casa de te japonesa", "Hivernacle")),
     "Natura": ("🌲", ("Bosc", "Platja", "Riu", "Port")),
     "Viatges": ("🚆", ("Tren", "Avió", "Vaixell pirata")),
     "Història": ("🏛️", ("Roma antiga", "Grècia antiga", "Japó feudal", "Castell gòtic")),
