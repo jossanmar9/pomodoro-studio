@@ -426,7 +426,7 @@ def test_noise_backgrounds_and_pulse_render(tmp_path):
 
 def test_natural_overlay_replaces_camera_motion_and_can_be_turned_off(env):
     touch(auto.settings.assets_dir / "ambience" / "foc-llar.mp3")
-    run_id = make_run(env.session, environment="llar")
+    run_id = make_run(env.session)
     auto.execute(run_id, rng=random.Random(0))
     spec = env.rendered["spec"]
     assert spec.motion is False and spec.flicker is False and spec.overlay.name == "pols.mp4" and spec.overlay_opacity > 0
@@ -1134,7 +1134,7 @@ ANY_TEXT = _AnyText("")
 
 def test_old_youtube_connection_asks_to_reconnect_for_playlists(env, monkeypatch):
     monkeypatch.setattr(auto, "can_manage_playlists", lambda: False)
-    run_id = make_run(env.session, environment="llar")
+    run_id = make_run(env.session)
     auto.execute(run_id, rng=random.Random(0))
     with env.session() as db:
         run = db.get(AutoRun, run_id)
