@@ -184,7 +184,7 @@ def test_level_and_listened_sample_are_reused(tmp_path):
     for seed in range(5):
         layers = choose_ambience(tmp_path, "pluja-llar", random.Random(seed), level=-6, preferred=["pluja-pedra.mp3", "foc-llar-04.mp3"])
         assert [l.path.stem for l in layers] == ["pluja-pedra", "foc-llar-04"]
-    assert layers[0].loudness == -36 and layers[1].loudness == -42
+    assert layers[0].loudness == -40 and layers[1].loudness == -47
     with pytest.raises(ValueError):
         choose_ambience(tmp_path, "pluja", random.Random(0), level=99)
 

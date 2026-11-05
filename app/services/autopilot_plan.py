@@ -18,7 +18,7 @@ from app.services.ambience_prompt import AmbiencePromptSpec
 from app.services.scenes import SCENES, SEASONS, season_slugs
 from app.services.renderer import (
     CHIME_BREAK_END, CHIME_FOCUS_END, SUPPORTED_AUDIO_SUFFIXES, SUPPORTED_IMAGE_SUFFIXES,
-    SUPPORTED_VIDEO_SUFFIXES, _bell, noise_filter, noise_source,
+    SUPPORTED_VIDEO_SUFFIXES, _bell, ambience_filter, noise_filter, noise_source,
 )
 from app.services.timer import format_timestamp
 
@@ -28,8 +28,10 @@ CHANNEL_URL = "https://www.youtube.com/@TheAmberWindow"
 # Sonoritat objectiu (LUFS). La música i els efectes es normalitzen perquè cap
 # pista tape les altres, independentment de com s'haja gravat cada fitxer.
 MUSIC_LOUDNESS = -22.0
-PRIMARY_AMBIENCE_LOUDNESS = -30.0
-SECONDARY_AMBIENCE_LOUDNESS = -36.0
+PRIMARY_AMBIENCE_LOUDNESS = -34.0
+SECONDARY_AMBIENCE_LOUDNESS = -41.0
+# Els vídeos de soroll de color mantenen el seu volum (el soroll és el protagonista).
+NOISE_LOUDNESS = -30.0
 MUSIC_CROSSFADE_SECONDS = 6
 
 
@@ -911,7 +913,7 @@ def build_preview_command(ambience: list[AmbienceLayer], music: Path | None, chi
         mix.append(f"[a{index}]"); index += 1
     for layer in ambience:
         command += ["-stream_loop", "-1", "-i", str(layer.path)]
-        parts.append(f"[{index}:a]loudnorm=I={layer.loudness:g}:TP=-2:LRA=11,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1[a{index}]")
+        parts.append(f"[{index}:a]{ambience_filter(layer.loudness)},aformat=channel_layouts=stereo,afade=t=in:d=1[a{index}]")
         mix.append(f"[a{index}]"); index += 1
     if music is not None:
         command += ["-stream_loop", "-1"] + (["-ss", str(music_start)] if music_start > 0 else []) + ["-i", str(music)]
