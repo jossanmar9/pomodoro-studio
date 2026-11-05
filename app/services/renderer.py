@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.services.encoding import EncodingOptions, EncodingPlan, select_encoding
 from app.services.noise_screen import pulse_filter
+from app.services.channel_intro import SECONDS as CHANNEL_INTRO_SECONDS, TIMER_FROM as CHANNEL_INTRO_TIMER_FROM, intro_filters
 from app.services.fonts import ResolvedFonts
 from app.services.timer import TimelineSummary
 
@@ -61,6 +62,8 @@ class RenderSpec:
     pulse: bool = False
     # Text que es veu al començament i s'esvaïx (p. ex. el nom del soroll amb pantalla negra).
     intro_text: str | None = None
+    # Intro del canal (clip de channel_intro.py) que es barreja amb els primers segons.
+    channel_intro: Path | None = None
     intro_seconds: int = 12
 
 
@@ -157,7 +160,7 @@ def font_option(path: Path | None) -> str:
 SHADOW = "shadowcolor=black@0.6:shadowx=2:shadowy=3"
 
 
-def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: ResolvedFonts | None = None) -> str:
+def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: ResolvedFonts | None = None, appear_at: float = 0) -> str:
     if language not in TIMER_LABELS: raise ValueError("Idioma del comptador no compatible")
     focus_label, break_label, session_label = TIMER_LABELS[language]
     if fonts and not fonts.uppercase_labels:
@@ -165,6 +168,8 @@ def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: 
     label_font = font_option(fonts.label if fonts else None)
     digits_font = font_option(fonts.digits if fonts else None)
     filters = []
+    # Amb la intro del canal, el comptador apareix a poc a poc quan el nom ja s'ha esvaït.
+    fade = f":alpha='min(1\\,max(0\\,(t-{appear_at:g})/1.2))'" if appear_at > 0 else ""
     # Els minuts s'ancoren a l'esquerra dels dos punts i els segons a la dreta,
     # i la línia base és fixa: així el comptador no balla encara que la
     # tipografia tinga números d'amplària o altura diferents.
@@ -177,13 +182,13 @@ def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: 
         phase = focus_label if segment.kind.value == "FOCUS" else break_label
         enable = f"between(t\\,{start}\\,{max(start, end-.001)})"
         filters += [
-            f"drawtext={label_font}:text='{_escape_drawtext(phase)}':fontcolor=0xFFF3DE:fontsize=h/21:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.32:enable='{enable}'",
-            f"drawtext={digits_font}:text='%{{eif\\:{minutes}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2-{gap}-text_w:{baseline}:enable='{enable}'",
-            f"drawtext={digits_font}:text='%{{eif\\:{seconds}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2+{gap}:{baseline}:enable='{enable}'",
-            f"drawtext={label_font}:text='{_escape_drawtext(session_label)} {segment.session}':fontcolor=0xF3C47A:fontsize=h/30:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.62:enable='{enable}'",
+            f"drawtext={label_font}:text='{_escape_drawtext(phase)}':fontcolor=0xFFF3DE:fontsize=h/21:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.32:enable='{enable}'{fade}",
+            f"drawtext={digits_font}:text='%{{eif\\:{minutes}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2-{gap}-text_w:{baseline}:enable='{enable}'{fade}",
+            f"drawtext={digits_font}:text='%{{eif\\:{seconds}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2+{gap}:{baseline}:enable='{enable}'{fade}",
+            f"drawtext={label_font}:text='{_escape_drawtext(session_label)} {segment.session}':fontcolor=0xF3C47A:fontsize=h/30:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.62:enable='{enable}'{fade}",
         ]
     if timeline.segments:
-        filters.append(f"drawtext={digits_font}:text='\\:':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}")
+        filters.append(f"drawtext={digits_font}:text='\\:':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}{fade}")
     return ",".join(filters)
 
 
@@ -265,7 +270,8 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     else:
         source = "[0:v]"
     if spec.show_timer:
-        timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts)
+        with_intro = spec.channel_intro is not None and spec.timeline.total_seconds > CHANNEL_INTRO_SECONDS + 5
+        timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts, CHANNEL_INTRO_TIMER_FROM if with_intro else 0)
         if timer:
             video.append(timer)
     if spec.intro_text:
@@ -278,9 +284,18 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     if spec.dim_after is not None and spec.dim_after < spec.timeline.total_seconds:
         fade = min(DIM_FADE_SECONDS, spec.timeline.total_seconds - spec.dim_after)
         video.append(f"fade=t=out:st={spec.dim_after}:d={fade}:color=black")
-    parts.append(f"{source}{','.join(video) or 'null'}[vout]")
+    video_out = "[vout]"
+    if spec.channel_intro is not None and spec.timeline.total_seconds > CHANNEL_INTRO_SECONDS + 5:
+        command += ["-i", str(spec.channel_intro)]
+        parts.append(f"{source}{','.join(video) or 'null'}[vbody]")
+        parts.extend(intro_filters("[vbody]", f"[{next_input}:v]", "vout", spec.fps, width, height))
+        next_input += 1
+    else:
+        parts.append(f"{source}{','.join(video) or 'null'}[vout]")
     fade_out = max(0, spec.timeline.total_seconds - 2)
-    edges = f"afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2"
+    # Amb la intro del canal, el so puja a poc a poc mentre apareix l'escena.
+    fade_in = "afade=t=in:st=2:d=2.5" if video_out == "[vout]" and spec.channel_intro is not None and spec.timeline.total_seconds > CHANNEL_INTRO_SECONDS + 5 else "afade=t=in:st=0:d=2"
+    edges = f"{fade_in},afade=t=out:st={fade_out}:d=2"
     mix: list[str] = []
     for i, track in enumerate(audio_tracks, 1):
         normalize = f"{ambience_filter(track.loudness)}," if track.loudness is not None else ""

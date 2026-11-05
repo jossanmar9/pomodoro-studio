@@ -83,6 +83,7 @@ ADDED_COLUMNS = {
         "extra_short_ids": "VARCHAR(80)",
         "scheduled_for": "DATETIME",
         "reels_due": "INTEGER NOT NULL DEFAULT 0",
+        "intro": "INTEGER NOT NULL DEFAULT 0",
         "facebook": "INTEGER NOT NULL DEFAULT 0",
         "instagram_media_id": "VARCHAR(40)",
         "facebook_video_id": "VARCHAR(40)",

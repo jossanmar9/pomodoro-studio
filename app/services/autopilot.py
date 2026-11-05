@@ -33,6 +33,7 @@ from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECOND
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.backdrops import short_backdrop, timer_backdrop
+from app.services.channel_intro import ensure_channel_intro
 from app.services.quality import check_video
 from app.services.schedule import label as schedule_label, publish_at as schedule_publish_at
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
@@ -200,6 +201,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
         noise_screen = run.noise_screen if run.noise_screen in NOISE_SCREENS else "color"
         noise_pulse = bool(run.noise_pulse) and noise_screen == "color"
+        with_intro = bool(run.intro) and fmt not in {"respiracio", "short"}
         if fmt != "pomodoro":
             # Sense comptador: una sola «sessió» de tota la duració.
             focus, pause, with_chime = duration, 0, False
@@ -311,6 +313,15 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
 
         _update(run_id, step="RENDERING", message="Renderitzant el vídeo…")
         render_background = _backdrop(timer_backdrop, background, folder / "fons-video.png") if fmt == "pomodoro" else background
+        channel_intro = None
+        if with_intro:
+            try:
+                font = settings.assets_dir / "fonts" / "cinzel" / "Cinzel-SemiBold.ttf"
+                channel_intro = ensure_channel_intro(cache_dir=settings.overlays_dir, width=int(RESOLUTION.split("x")[0]),
+                                                     height=int(RESOLUTION.split("x")[1]), fps=RenderSpec.fps, font=font if font.is_file() else None)
+            except Exception as exc:  # sense intro, el vídeo es fa igual
+                logger.exception("No s'ha pogut fer la intro del canal")
+                notes.append(f"Sense intro: {exc}"[:200])
         render_queue.enqueue(project_id, RenderSpec(
             render_background, folder / "video.mp4", RESOLUTION, timeline,
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
@@ -319,6 +330,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_intro=overlay_intro,
             overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None and fmt != "respiracio" else "screen",
             pulse=fmt == "soroll" and noise_pulse,
+            channel_intro=channel_intro,
             intro_text=f"{NOISE_COLORS[run_noise][1]} Noise" if fmt == "soroll" and noise_screen == "negre" else None,
         ))
         _wait_for_render(project_id)
