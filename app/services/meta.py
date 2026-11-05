@@ -108,8 +108,19 @@ def _instagram_token() -> str:
     return settings.instagram_access_token
 
 
+def _is_facebook_token(token: str) -> bool:
+    """Les claus de Facebook (p. ex. d'usuari del sistema, que no caduquen) comencen per «EAA»; les d'Instagram, per «IG»."""
+    return token.startswith("EAA")
+
+
+def _instagram_graph(token: str) -> str:
+    return FACEBOOK_GRAPH if _is_facebook_token(token) else INSTAGRAM_GRAPH
+
+
 def refresh_instagram_token(request: Requester = _request, now: datetime | None = None) -> None:
-    """Allarga 60 dies la clau d'Instagram (com a molt una vegada al dia)."""
+    """Allarga 60 dies la clau d'Instagram (com a molt una vegada al dia). Les claus de Facebook no cal renovar-les."""
+    if _is_facebook_token(_instagram_token()):
+        return
     now = now or datetime.utcnow()
     saved = _token_file()
     if saved.get("source") == settings.instagram_access_token and saved.get("refreshed"):
@@ -137,7 +148,8 @@ def publish_instagram_reel(video: Path, caption: str, *, request: Requester = _r
     except MetaError as exc:  # la clau actual encara pot servir
         logger.warning("%s", exc)
     token, user = _instagram_token(), settings.instagram_user_id
-    container = _check(request("POST", f"{INSTAGRAM_GRAPH}/{user}/media", {
+    graph = _instagram_graph(token)
+    container = _check(request("POST", f"{graph}/{user}/media", {
         "media_type": "REELS", "upload_type": "resumable", "caption": caption[:2200], "share_to_feed": "true", "access_token": token,
     }, None, None), "Instagram no ha acceptat el reel")["id"]
     size = video.stat().st_size
@@ -146,7 +158,7 @@ def publish_instagram_reel(video: Path, caption: str, *, request: Requester = _r
            "No s'ha pogut pujar el vídeo a Instagram")
     waited = 0
     while True:
-        status = _check(request("GET", f"{INSTAGRAM_GRAPH}/{container}", {"fields": "status_code,status", "access_token": token}, None, None),
+        status = _check(request("GET", f"{graph}/{container}", {"fields": "status_code,status", "access_token": token}, None, None),
                         "No s'ha pogut consultar el reel")
         code = status.get("status_code")
         if code == "FINISHED":
@@ -157,7 +169,7 @@ def publish_instagram_reel(video: Path, caption: str, *, request: Requester = _r
             raise MetaError("Instagram tarda massa a processar el vídeo")
         sleep(POLL_SECONDS)
         waited += POLL_SECONDS
-    published = _check(request("POST", f"{INSTAGRAM_GRAPH}/{user}/media_publish", {"creation_id": container, "access_token": token}, None, None),
+    published = _check(request("POST", f"{graph}/{user}/media_publish", {"creation_id": container, "access_token": token}, None, None),
                        "Instagram no ha publicat el reel")
     return str(published["id"])
 
