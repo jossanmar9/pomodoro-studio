@@ -19,7 +19,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import AUTO_ACTIVE_STEPS, AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
-    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_LEVELS, MUSIC_STYLES, music_style, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
+    DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_LEVELS, MUSIC_STYLES, music_style, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
     CHANNEL_URL, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
 )
 from app.services.encoding import EncodingOptions
@@ -302,7 +302,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             background, folder / "video.mp4", RESOLUTION, timeline,
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
-            noise_loudness=PRIMARY_AMBIENCE_LOUDNESS + level,
+            noise_loudness=(NOISE_LOUDNESS if fmt == "soroll" else PRIMARY_AMBIENCE_LOUDNESS) + level,
             overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_intro=overlay_intro,
             overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None and fmt != "respiracio" else "screen",
             pulse=fmt == "soroll" and noise_pulse,

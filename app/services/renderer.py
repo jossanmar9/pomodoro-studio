@@ -99,6 +99,15 @@ def noise_source(color: str, seconds: int | None = None) -> str:
     return f"anoisesrc=c={color}:r=48000:a=0.5{duration}"
 
 
+# Efectes de so suaus: menys salts de volum (pics com trons o tasses retallats) i aguts arredonits.
+AMBIENCE_SOFTEN = "acompressor=threshold=-34dB:ratio=3:attack=40:release=500,highshelf=f=4500:g=-5"
+
+
+def ambience_filter(loudness: float) -> str:
+    """Normalitza i suavitza un efecte de so de fons."""
+    return f"loudnorm=I={loudness:g}:TP=-6:LRA=6,{AMBIENCE_SOFTEN},aresample=48000"
+
+
 def noise_filter(loudness: float) -> str:
     # Sense subgreus inaudibles i sense aguts aspres; després s'iguala la sonoritat.
     return f"highpass=f=25,lowpass=f=16000,loudnorm=I={loudness:g}:TP=-2:LRA=7,aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo"
@@ -274,7 +283,7 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     edges = f"afade=t=in:st=0:d=2,afade=t=out:st={fade_out}:d=2"
     mix: list[str] = []
     for i, track in enumerate(audio_tracks, 1):
-        normalize = f"loudnorm=I={track.loudness:g}:TP=-2:LRA=11,aresample=48000," if track.loudness is not None else ""
+        normalize = f"{ambience_filter(track.loudness)}," if track.loudness is not None else ""
         parts.append(f"[{i}:a]{normalize}volume={track.volume},{edges}[a{i}]")
         mix.append(f"[a{i}]")
     if noise_input is not None:

@@ -31,7 +31,7 @@ from app.services.meta import facebook_configured, instagram_configured
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.noise_screen import NOISE_SCREENS
-from app.services.autopilot_plan import MUSIC_LEVELS, NOISE_THEME, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
+from app.services.autopilot_plan import MUSIC_LEVELS, NOISE_THEME, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -396,7 +396,7 @@ def auto_preview(theme:str=Form(""),environment:str=Form(""),ambience_level:int=
     folder=_preview_dir()
     for old in sorted(folder.glob("preview-*.mp3"),key=lambda p:p.stat().st_mtime)[:-5]: old.unlink(missing_ok=True)
     output=folder/f"preview-{uuid4().hex}.mp3"
-    try: command=build_preview_command(layers,track,bool(chime),output,noise=noise_color,noise_loudness=PRIMARY_AMBIENCE_LOUDNESS+ambience_level,music_level=music_level if music_level in MUSIC_LEVELS else 0,music_start=_music_start(track))
+    try: command=build_preview_command(layers,track,bool(chime),output,noise=noise_color,noise_loudness=(NOISE_LOUDNESS if format=="soroll" else PRIMARY_AMBIENCE_LOUDNESS)+ambience_level,music_level=music_level if music_level in MUSIC_LEVELS else 0,music_start=_music_start(track))
     except ValueError as exc: raise HTTPException(409,str(exc)) from exc
     result=subprocess.run(command,capture_output=True,text=True,timeout=120,check=False)
     if result.returncode!=0 or not output.is_file(): raise HTTPException(500,"No s'ha pogut preparar la mostra: "+(result.stderr or "")[-300:])
