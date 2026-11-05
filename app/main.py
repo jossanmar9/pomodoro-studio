@@ -7,6 +7,7 @@ import json
 import logging
 import shutil
 import subprocess
+import time
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -58,6 +59,9 @@ async def lifespan(_):
     init_db()
     try: cleanup_published_videos()
     except Exception: logging.getLogger(__name__).exception("Ha fallat la neteja de vídeos publicats")
+    # En obrir Pomodoro: es publiquen els reels que falten (els dels vídeos programats, quan ja són públics).
+    try: autopilot.submit_pending_reels()
+    except Exception: logging.getLogger(__name__).exception("No s'han pogut revisar els reels pendents")
     yield
 app=FastAPI(title=settings.app_name,lifespan=lifespan); app.mount("/static",StaticFiles(directory="app/static"),name="static"); templates=Jinja2Templates(directory="app/templates")
 @app.get("/health")
@@ -278,6 +282,14 @@ def stats_refresh():
     return RedirectResponse("/estadistiques",303)
 
 
+def _skip_reels(instagram:str,facebook:str,publish:str)->str|None:
+    """Recorda les xarxes on NO es vol el reel (si estan configurades i s'ha desmarcat la casella)."""
+    skip={}
+    if publish and instagram_configured() and not instagram: skip["skip_ig"]=True
+    if publish and facebook_configured() and not facebook: skip["skip_fb"]=True
+    return json.dumps(skip) if skip else None
+
+
 def _scheduled_for(schedule:str,publish_date:str,publish_time:str):
     """Quan es publica: «» en acabar, «next» (o «1») el pròxim dia lliure, «date» el dia i l'hora triats."""
     if schedule in {"next","1"}:
@@ -463,7 +475,7 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     scheduled_for=_scheduled_for(schedule,publish_date,publish_time) if publish and privacy=="public" else None
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,scheduled_for=scheduled_for,intro=1 if intro and format not in {"respiracio","short"} else 0,
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,scheduled_for=scheduled_for,reels_json=_skip_reels(instagram,facebook,publish),intro=1 if intro and format not in {"respiracio","short"} else 0,
                  instagram=1 if instagram and publish and (shorts_count or format=="short") and instagram_configured() else 0,
                  facebook=1 if facebook and publish and (shorts_count or format=="short") and facebook_configured() else 0)
         db.add(run); db.commit(); run_id=run.id
@@ -471,10 +483,16 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     return RedirectResponse("/",303)
 
 
+_last_reel_check=0.0
+
+
 @app.get("/api/auto")
 def auto_status():
-    try: autopilot.submit_due_reels()
-    except Exception: logging.getLogger(__name__).exception("No s'han pogut revisar els reels pendents")
+    global _last_reel_check
+    if time.monotonic()-_last_reel_check>600:  # com a molt cada 10 minuts
+        _last_reel_check=time.monotonic()
+        try: autopilot.submit_pending_reels()
+        except Exception: logging.getLogger(__name__).exception("No s'han pogut revisar els reels pendents")
     return {"runs":_recent_runs(),"youtube_connected":youtube_connected(),"shutdown":power.status()}
 
 
