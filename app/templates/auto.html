@@ -36,7 +36,9 @@
     <div class="pill {{ 'ok' if youtube_connected else 'warn' }}">
       <strong>YouTube</strong>
       {% if youtube_connected %}
-        <span>Canal connectat</span>
+        {% if youtube_playlists %}<span>Canal connectat</span>{% else %}
+        <span>Canal connectat. Per a les llistes de reproducció cal donar un permís nou:</span>
+        <form action="/youtube/reconnect" method="post"><button type="submit" class="mini">Tornar a connectar</button></form>{% endif %}
       {% elif youtube_configured %}
         <form action="/youtube/connect" method="post"><button type="submit" class="mini">Connectar el canal</button></form>
       {% else %}
