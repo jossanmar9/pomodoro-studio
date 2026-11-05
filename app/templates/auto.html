@@ -76,6 +76,12 @@
     <form action="/auto/setmana" method="post" class="batch-form">
       <p class="muted">Pomodoro tria vídeos variats amb els fons que tens (temes diferents i formats alternats: pomodoro, per a dormir, per a llegir, so ambiental), els fa i els puja seguits, i YouTube en publica un cada dia a l'hora triada. Ideal per a deixar-los preparant el diumenge.</p>
       <div class="batch-fields">
+        <label>Temàtica
+          <select name="theme">
+            <option value="">Variada (de tot)</option>
+            {% for group in theme_groups %}<option value="grup:{{ group.name }}" {% if not group.backgrounds %}disabled{% endif %}>{{ group.icon }} {{ group.name }}{% if not group.direct %} (tots){% endif %} · {{ group.backgrounds }} fons</option>{% endfor %}
+          </select>
+        </label>
         <label>Quants vídeos
           <select name="count">{% for n in range(1, 8) %}<option value="{{ n }}" {% if n == 7 %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
         </label>

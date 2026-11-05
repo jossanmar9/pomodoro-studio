@@ -1473,3 +1473,23 @@ def test_week_batch_uses_the_chosen_volumes_and_music(env, monkeypatch):
     with env.session() as db:
         runs = db.query(AutoRun).filter(AutoRun.id.in_(submitted)).all()
     assert len(runs) == 3 and all(r.ambience_level == -6 and r.music == 0 and r.music_level == -8 for r in runs)
+
+
+def test_week_batch_can_stick_to_one_theme(env, monkeypatch):
+    from datetime import datetime, timedelta
+    nadal = [{"name": n, "url": "", "format": "", "environment": ""} for n in (
+        "cabana-de-nadal-llar-nadal.png", "sala-de-nadal-llar-nadal.png", "poble-nevat-hivern-nadal.png", "mercat-de-nadal-cafeteria-carrer-nadal.png")]
+    groups = [{"theme": "Nadal", "items": nadal}, {"theme": "Bosc", "items": [{"name": "bosc-bosc-pomodoro.png", "url": "", "format": "pomodoro", "environment": "bosc"}]}]
+    monkeypatch.setattr(main, "background_library", lambda: groups)
+    submitted = []
+    monkeypatch.setattr(main.autopilot, "submit", submitted.append)
+    day = (datetime.utcnow() + timedelta(days=2)).date().isoformat()
+    with TestClient(main.app) as client:
+        assert 'value="grup:Nadal"' in client.get("/").text
+        client.post("/auto/setmana", data={"count": "6", "first_day": day, "theme": "grup:Nadal"}, follow_redirects=False)
+        assert client.post("/auto/setmana", data={"count": "2", "first_day": day, "theme": "grup:Inventat"}).status_code == 400
+    with env.session() as db:
+        runs = db.query(AutoRun).filter(AutoRun.id.in_(submitted)).order_by(AutoRun.id).all()
+    assert len(runs) == 6 and {r.theme for r in runs} == {"Nadal"}
+    assert len({r.background for r in runs[:4]}) == 4  # primer tots els fons diferents
+    assert {r.environment for r in runs} <= {"llar", "hivern", "cafeteria-carrer"} and len({r.format for r in runs}) >= 3
