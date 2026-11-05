@@ -1493,3 +1493,15 @@ def test_week_batch_can_stick_to_one_theme(env, monkeypatch):
     assert len(runs) == 6 and {r.theme for r in runs} == {"Nadal"}
     assert len({r.background for r in runs[:4]}) == 4  # primer tots els fons diferents
     assert {r.environment for r in runs} <= {"llar", "hivern", "cafeteria-carrer"} and len({r.format for r in runs}) >= 3
+
+
+def test_every_scene_belongs_only_to_its_season(tmp_path):
+    from app.services.scenes import SCENES, slugify
+    for scene in SCENES:
+        touch(tmp_path / f"{slugify(scene)}-llar-temporada.png")
+    owners = {}
+    for theme in AUTO_THEMES:
+        for path in find_backgrounds(tmp_path, theme):
+            owners.setdefault(path.name, []).append(theme)
+    for scene, (season, _, _) in SCENES.items():
+        assert owners.get(f"{slugify(scene)}-llar-temporada.png") == [season], scene
