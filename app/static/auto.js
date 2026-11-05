@@ -22,9 +22,36 @@
     }).join("")}</div>`;
   }
 
+  // Vídeos de 6 en 6, amb fletxes per a passar pàgina.
+  const PER_PAGE = 6;
+  let page = 0;
+  let allRuns = [];
+  const pager = document.querySelector("#pager");
+  const pageInfo = document.querySelector("#page-info");
+  const prev = document.querySelector("#page-prev");
+  const next = document.querySelector("#page-next");
+  const pages = () => Math.max(1, Math.ceil(allRuns.length / PER_PAGE));
+  prev?.addEventListener("click", () => { if (page > 0) { page -= 1; draw(); } });
+  next?.addEventListener("click", () => { if (page < pages() - 1) { page += 1; draw(); } });
+  const day = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
+
   function render(runs) {
+    allRuns = runs || [];
+    draw();
+  }
+
+  function draw() {
+    const runs = allRuns;
     if (!runs.length) return;
-    box.innerHTML = runs.map((run) => {
+    page = Math.min(page, pages() - 1);
+    const first = page * PER_PAGE;
+    if (pager) {
+      pager.hidden = runs.length <= PER_PAGE;
+      pageInfo.textContent = `${first + 1}–${Math.min(first + PER_PAGE, runs.length)} de ${runs.length}`;
+      prev.disabled = page === 0;
+      next.disabled = page >= pages() - 1;
+    }
+    box.innerHTML = runs.slice(first, first + PER_PAGE).map((run) => {
       let detail = "";
       if (run.step === "RENDERING" && run.progress != null) {
         detail = `${run.progress}%${run.eta ? ` · queden uns ${clock(run.eta)}` : ""}`;
@@ -44,15 +71,20 @@
       if (run.video_id && run.step === "DONE" && run.video_available) {
         actions.push(`<form action="/auto/${run.id}/publish" method="post" onsubmit="return confirm('Tornar a pujar este vídeo? Fes-ho només si YouTube l\\'ha eliminat.')"><input type="hidden" name="again" value="1"><button type="submit" class="mini secondary">Tornar a pujar</button></form>`);
       }
+      const thumb = run.thumbnail_url ? `<img class="run-thumb" src="${esc(run.thumbnail_url)}" alt="" loading="lazy">` : `<div class="run-thumb empty"></div>`;
       return `<article class="run">
+        ${thumb}
+        <div class="run-body">
         <div class="run-head">
-          <strong>#${run.id} · ${esc(run.theme)} · ${esc(run.environment_label)} · ${hours(run.duration_minutes)} · ${esc(run.pomodoro)}</strong>
+          <strong>${esc(run.theme)} <span class="muted">· ${esc(run.environment_label)} · ${hours(run.duration_minutes)} · ${esc(run.pomodoro)}</span></strong>
           <span class="run-step ${esc(run.step)}">${esc(run.step_label)}${detail ? ` · ${detail}` : ""}</span>
         </div>
+        <small class="muted">#${run.id}${run.published_at ? ` · publicat el ${day(run.published_at)}` : ""}</small>
         ${stepBar(run)}
         ${run.message && !ACTIVE.has(run.step) ? `<span class="muted">${esc(run.message)}</span>` : ""}
         ${run.error ? `<span class="error">${esc(run.error)}</span>` : ""}
         ${actions.length ? `<div class="run-actions">${actions.join("")}</div>` : ""}
+        </div>
       </article>`;
     }).join("");
   }

@@ -1272,3 +1272,12 @@ def test_home_shows_suggestions_and_shorts_choice(env, monkeypatch):
         page = client.get("/").text
     assert 'name="shorts"' in page and '<option value="3" selected>' in page
     assert "Suggeriments" in page and "data-suggest-environment" in page
+
+
+def test_video_list_has_pager_and_thumbnails(env, monkeypatch):
+    for _ in range(8):
+        make_run(env.session, step="DONE", video_id="v")
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+        runs = client.get("/api/auto").json()["runs"]
+    assert 'id="pager"' in page and len(runs) == 8 and "thumbnail_url" in runs[0]

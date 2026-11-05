@@ -821,6 +821,11 @@ def _video_available(run: AutoRun) -> bool:
     return bool(path and path.is_file())
 
 
+def _thumbnail_url(run: AutoRun) -> str | None:
+    path = _video_path(run.project_id)
+    return f"/projects/{run.project_id}/files/thumbnail.jpg" if path and (path.parent / "thumbnail.jpg").is_file() else None
+
+
 def _delete_on(run: AutoRun) -> str | None:
     if not (run.delete_after and run.published_at and run.step == "DONE"):
         return None
@@ -883,6 +888,8 @@ def run_summary(run: AutoRun) -> dict:
         "video_available": _video_available(run),
         "short_missing": short_missing(run),
         "reel_missing": reel_missing(run),
+        "thumbnail_url": _thumbnail_url(run),
+        "published_at": run.published_at.date().isoformat() if run.published_at else None,
         "instagram_media_id": run.instagram_media_id, "facebook_video_id": run.facebook_video_id,
         "delete_on": _delete_on(run),
         "created_at": run.created_at.isoformat() if run.created_at else None,
