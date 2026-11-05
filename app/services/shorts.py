@@ -21,15 +21,9 @@ def short_start(total_seconds: int, seconds: int = SECONDS, part: int = 1) -> in
     return max(0, min(wanted, latest))
 
 
-# Frase de dalt i títol de cada Short (el primer usa la duració i el so).
-SHORT_VARIANTS = {
-    2: ("Close your eyes and listen", "Close your eyes · {theme} with {sound} #shorts"),
-    3: ("Stay a while", "Stay a while · {theme} · {sound} #shorts"),
-}
-
-
-def variant_title(part: int, theme: str, sound: str) -> str:
-    title = SHORT_VARIANTS[part][1].format(theme=theme, sound=sound)
+def variant_title(phrase: str, theme: str, sound: str) -> str:
+    """Títol dels Shorts 2 i 3: la frase de dalt, el lloc i el so."""
+    title = f"{phrase.rstrip('.')} · {theme} · {sound} #shorts"
     return title if len(title) <= 100 else f"{theme} #shorts"[:100]
 
 

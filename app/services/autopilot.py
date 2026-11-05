@@ -29,7 +29,8 @@ from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip, ensure_breath_intro
 from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity, overlay_style
-from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, SHORT_VARIANTS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts, variant_title
+from app.services.text_variants import short_phrase
+from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts, variant_title
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.backdrops import short_backdrop, timer_backdrop
@@ -277,7 +278,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             credits=build_credits(playlist, ambience_paths, catalog),
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
             music=bool(playlist), chime=with_chime, style=style, breath=breath,
-            fmt=fmt, noise=run_noise, dim=dim_after is not None, screen=noise_screen,
+            fmt=fmt, noise=run_noise, dim=dim_after is not None, screen=noise_screen, seed=project_id,
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
@@ -623,14 +624,14 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         for part in (2, 3):
             extra = folder / f"short-{part}.mp4"
             try:
-                command = build_short_command(background, main.video, extra, title=public_name, subtitle=SHORT_VARIANTS[part][0],
+                command = build_short_command(background, main.video, extra, title=public_name, subtitle=short_phrase(run_id, part),
                                               start=short_start(total, part=part), label_font=fonts.label, text_font=fonts.digits,
                                               overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)
                 result = subprocess.run(command, capture_output=True, text=True, check=False)
                 if result.returncode != 0 or not extra.is_file():
                     raise AutopilotError((result.stderr or "")[-200:])
                 when = (start_time + timedelta(days=part - 1)).replace(microsecond=0).isoformat() + "Z" if main.privacy == "public" else None
-                made.append(upload_video(YouTubeUploadSpec(extra, variant_title(part, public_name, sound or "Ambience"), description, tags,
+                made.append(upload_video(YouTubeUploadSpec(extra, variant_title(short_phrase(run_id, part), public_name, sound or "Ambience"), description, tags,
                                                            main.category_id, main.language, main.privacy, None, localized, when)))
                 _update(run_id, extra_short_ids=",".join(made))
             except Exception as exc:

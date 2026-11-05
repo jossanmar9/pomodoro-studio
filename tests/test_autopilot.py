@@ -13,6 +13,7 @@ from app import main
 from app.database import Base
 from app.models import AutoRun, Project, YouTubePublication
 from app.services import autopilot as auto
+from app.services.text_variants import SHORT_PHRASES
 from app.services.autopilot_plan import (
     AUTO_THEMES, ENVIRONMENTS, MAX_DESCRIPTION_BYTES, build_credits, build_music_mix_command, build_playlist,
     build_texts, choose_ambience, find_backgrounds, prompt_spec,
@@ -1222,7 +1223,7 @@ def test_three_shorts_are_made_and_the_last_two_scheduled(env, monkeypatch):
     assert [u.video.name for u in (first, second, third)] == ["short.mp4", "short-2.mp4", "short-3.mp4"]
     assert len({u.title for u in (first, second, third)}) == 3 and all(u.title.endswith("#shorts") for u in (first, second, third))
     starts = [kw["start"] for kw in commands]
-    assert len(set(starts)) == 3 and commands[1]["subtitle"] == "Close your eyes and listen"
+    assert len(set(starts)) == 3 and commands[1]["subtitle"] != commands[2]["subtitle"] and commands[1]["subtitle"] in SHORT_PHRASES
     assert "2 Shorts més programats" in run.message
 
 
@@ -1603,3 +1604,30 @@ def test_videos_are_kept_until_the_last_short_is_public(env):
     with env.session() as db:
         run = db.get(AutoRun, run_id)
         assert auto._delete_on(run) == (now + timedelta(days=1 + 2 + 3)).date().isoformat()
+
+
+def test_texts_vary_between_videos_but_keep_search_words():
+    from app.services.autopilot_plan import NOISE_COLORS
+    from app.services.text_variants import SHORT_PHRASES, short_phrase
+    chapters = "00:00:00 Hour 1"
+    for fmt in ("pomodoro", "dormir", "llegir", "ambient", "rol"):
+        seen = set()
+        for seed in range(8):
+            texts = build_texts(public_theme="Christmas Library", environment="llar", duration=480, focus=25, pause=5, chapters=chapters,
+                                credits="", fmt=fmt, seed=seed)
+            assert len(texts.title) <= 100 and "8 Hours" in texts.title and "The Amber Window" in texts.description
+            if fmt != "rol":
+                assert texts.title.startswith("Cozy Christmas Library") and texts.description.startswith("Cozy Christmas Library")
+            seen.add(texts.description.split("\n\n")[0])
+        assert len(seen) == 8, fmt
+        first, second = (build_texts(public_theme="Christmas Library", environment="llar", duration=120, focus=25, pause=5,
+                                     chapters=chapters, credits="", fmt=fmt, seed=s).description for s in (5, 6))
+        assert first.split("\n\n")[:2] != second.split("\n\n")[:2]
+    for noise in NOISE_COLORS:
+        for seed in range(8):
+            texts = build_texts(public_theme="x", environment="soroll", duration=600, focus=600, pause=0, chapters=chapters, credits="",
+                                fmt="soroll", noise=noise, seed=seed)
+            assert len(texts.title) <= 100 and "Noise" in texts.title
+    phrases = [short_phrase(seed, part) for seed in range(15) for part in (2, 3)]
+    assert len(set(phrases)) == len(SHORT_PHRASES) == 30
+    assert all("," not in p and "'" not in p for p in SHORT_PHRASES)
