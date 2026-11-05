@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ca-valencia">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pomodoro Studio · Estadístiques</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/auto.css">
+</head>
+<body>
+<main class="shell auto stats">
+  <header class="auto-header">
+    <div>
+      <p class="eyebrow">THE AMBER WINDOW · ESTADÍSTIQUES</p>
+      <h1>Què funciona millor</h1>
+      <p class="muted">Visualitzacions de YouTube per tema, format i so.
+        {% if stats.fetched %}Dades del {{ stats.fetched[8:10] }}/{{ stats.fetched[5:7] }} a les {{ stats.fetched[11:16] }} (UTC).{% endif %}
+        S'actualitzen soles cada 12 hores quan obris Pomodoro.</p>
+    </div>
+    <nav class="header-links"><a class="back" href="/">← Tornar</a></nav>
+  </header>
+
+  {% if error %}<div class="warning">{{ error }}</div>{% endif %}
+  {% if not can_read %}
+  <div class="warning">Per a llegir les visualitzacions cal que el canal estiga connectat amb el permís nou. Ves a la pàgina principal i prem <strong>Tornar a connectar</strong>.</div>
+  {% endif %}
+
+  <section class="status-bar">
+    <div class="pill ok"><strong>{{ stats.total_videos }}</strong><span>vídeos publicats</span></div>
+    <div class="pill ok"><strong>{{ "{:,}".format(stats.total_views).replace(",", ".") }}</strong><span>visualitzacions dels vídeos</span></div>
+    <div class="pill ok"><strong>{{ "{:,}".format(stats.total_short_views).replace(",", ".") }}</strong><span>visualitzacions dels Shorts</span></div>
+  </section>
+
+  {% if can_read %}
+  <form action="/estadistiques/actualitzar" method="post"><button type="submit" class="mini secondary">🔄 Actualitzar ara</button></form>
+  {% endif %}
+
+  {% if not stats.has_views %}
+  <section class="card"><p class="muted">Encara no hi ha dades de visualitzacions. {% if can_read %}Prem «Actualitzar ara».{% endif %}</p></section>
+  {% else %}
+  {% for title, rows in (("Per tema", stats.themes), ("Per format", stats.formats), ("Per so", stats.environments)) %}
+  <section class="card">
+    <h2>{{ title }}</h2>
+    <div class="table-wrap">
+    <table class="stats-table">
+      <thead><tr><th></th><th>Vídeos</th><th>Visualitzacions</th><th>Mitjana per vídeo</th><th>Dels Shorts</th></tr></thead>
+      <tbody>
+        {% set best = rows[0].average if rows else 0 %}
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.name }}</td><td>{{ row.videos }}</td><td>{{ row.views }}</td>
+          <td><span class="bar" style="--w: {{ ((100 * row.average / best) | round | int) if best else 0 }}"></span>{{ row.average }}</td>
+          <td>{{ row.short_views }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  {% endfor %}
+
+  <section class="card">
+    <h2>Els 10 vídeos amb més visualitzacions</h2>
+    <ol class="top-videos">
+      {% for v in stats.top %}
+      <li><a href="{{ v.url }}" target="_blank" rel="noopener">{{ v.theme }}</a> <span class="muted">· {{ v.format }} · {{ v.environment }} · {{ v.date }}</span> <strong>{{ v.views }}</strong></li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>

@@ -39,6 +39,12 @@ Si **Publicar també un Short** està marcat (ho està per defecte), després de
 
 Amb el format **Només un Short** no es fa cap vídeo llarg: tries tema, entorn i fons, i es fa i es puja un Short de 45 segons amb els sons de l'entorn (i música si la marques) que convida a anar al canal. La descripció porta l'enllaç del canal.
 
+### Calendari, comprovació i estadístiques
+
+- **Calendari**: amb **Programar-lo al calendari** (només en vídeos públics), el vídeo es fa i es puja de seguida, però YouTube el manté privat fins al primer dia lliure a les 18:00 (hora de València; es pot canviar amb `PUBLISH_HOUR` en `.env`). Si en demanes uns quants seguits, cadascun va a un dia diferent. El primer Short es publica a la mateixa hora que el vídeo i els altres dos, els dies següents. Dalt de la pàgina es veu el calendari. Com que Instagram no deixa programar, els reels es publiquen quan el vídeo ja és públic, sempre que Pomodoro estiga obert (si no, en obrir-lo).
+- **Comprovació**: abans de pujar-lo, Pomodoro comprova que el vídeo dura el que toca, que té imatge i so, que no té trossos llargs en silenci i que la imatge no és negra (menys quan s'enfosquix a posta). Si hi troba algun problema, no el puja i ho explica; si mires el vídeo i està bé, **Publicar igualment** el puja.
+- **Estadístiques**: en **Estadístiques →** es veuen les visualitzacions per tema, per format i per so (amb la mitjana per vídeo), les dels Shorts i els 10 vídeos més vistos. Les dades es llegixen de YouTube cada 12 hores o amb **Actualitzar ara**.
+
 ### Tres Shorts i suggeriments
 
 - **Shorts**: per defecte es fan **3 Shorts** de cada vídeo, de moments diferents (als 2 minuts, a un terç i a dos terços) i amb frases diferents a dalt. El primer es publica en acabar; el segon i el tercer es pugen ja programats per a l'endemà i l'altre dia a la mateixa hora (YouTube els fa públics sols, encara que l'ordinador estiga apagat). Si el vídeo no és públic, es pugen amb la mateixa visibilitat i sense programar. Es pot triar 1 Short o cap. Els reels d'Instagram i Facebook es fan només del primer.

@@ -60,8 +60,9 @@
       if (ACTIVE.has(run.step) && run.step !== "PUBLISHING") actions.push(`<button type="button" class="mini secondary" data-cancel="${run.id}">Cancel·lar</button>`);
       if (run.video_url) actions.push(`<a href="${esc(run.video_url)}" target="_blank" rel="noopener">Veure a YouTube ↗</a>`);
       if (run.project_id) actions.push(`<a href="/projects/${run.project_id}">Fitxa del vídeo</a>`);
-      if (!run.video_id && run.project_id && run.video_available && (run.step === "DONE_LOCAL" || (run.step === "FAILED" && /YouTube/.test(run.error || "")))) {
-        actions.push(`<form action="/auto/${run.id}/publish" method="post"><button type="submit" class="mini">Publicar ara</button></form>`);
+      if (!run.video_id && run.project_id && run.video_available && (run.step === "DONE_LOCAL" || (run.step === "FAILED" && /YouTube|Comprovació/.test(run.error || "")))) {
+        const anyway = /^Comprovació/.test(run.error || "");
+        actions.push(`<form action="/auto/${run.id}/publish" method="post"><button type="submit" class="mini">${anyway ? "Publicar igualment" : "Publicar ara"}</button></form>`);
       }
       if (run.short_missing && run.video_available) actions.push(`<form action="/auto/${run.id}/short" method="post"><button type="submit" class="mini">Fer el Short</button></form>`);
       if (run.reel_missing) actions.push(`<form action="/auto/${run.id}/reel" method="post"><button type="submit" class="mini">Fer el reel</button></form>`);
