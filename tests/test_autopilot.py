@@ -1281,3 +1281,17 @@ def test_video_list_has_pager_and_thumbnails(env, monkeypatch):
         page = client.get("/").text
         runs = client.get("/api/auto").json()["runs"]
     assert 'id="pager"' in page and len(runs) == 8 and "thumbnail_url" in runs[0]
+
+
+def test_text_backdrops_darken_only_where_the_text_goes(tmp_path):
+    from PIL import Image
+    from app.services.backdrops import short_backdrop, timer_backdrop
+    background = tmp_path / "bg.png"
+    Image.new("RGB", (1920, 1080), (200, 200, 200)).save(background)
+    timer = Image.open(timer_backdrop(background, tmp_path / "t.png"))
+    assert sum(timer.getpixel((960, 500))) < sum(timer.getpixel((60, 60))) == 600
+    short = Image.open(short_backdrop(background, tmp_path / "s.png"))
+    assert short.size == (1080, 1920)
+    assert sum(short.getpixel((540, 40))) < sum(short.getpixel((540, 960))) > sum(short.getpixel((540, 1900)))
+    video = tmp_path / "v.mp4"
+    assert timer_backdrop(video, tmp_path / "x.png") == video  # els fons en vídeo no es toquen

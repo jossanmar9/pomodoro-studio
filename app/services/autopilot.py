@@ -32,6 +32,7 @@ from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity,
 from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, SHORT_VARIANTS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts, variant_title
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
+from app.services.backdrops import short_backdrop, timer_backdrop
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail
 from app.services.timer import build_chapters, build_timeline
@@ -84,6 +85,15 @@ def _update(run_id: int, **fields) -> None:
 
 
 # --- Pas 1: fons -----------------------------------------------------------
+
+def _backdrop(make, background: Path, output: Path) -> Path:
+    """Fons amb l'ombra per al text; si no es pot fer, el fons original."""
+    try:
+        return make(background, output)
+    except Exception:
+        logger.warning("No s'ha pogut preparar l'ombra del text; s'usa el fons original", exc_info=True)
+        return background
+
 
 def noise_background(noise: str, screen: str, *, with_name: bool = True) -> Path:
     """Fons generat per al soroll de color (es guarda i es reutilitza)."""
@@ -298,8 +308,9 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
                 notes.append(f"Sense efectes de moviment: {exc}"[:200])
 
         _update(run_id, step="RENDERING", message="Renderitzant el vídeo…")
+        render_background = _backdrop(timer_backdrop, background, folder / "fons-video.png") if fmt == "pomodoro" else background
         render_queue.enqueue(project_id, RenderSpec(
-            background, folder / "video.mp4", RESOLUTION, timeline,
+            render_background, folder / "video.mp4", RESOLUTION, timeline,
             ambience=ambience_tracks, music=music_track, encoding=EncodingOptions("auto", "balanced"), timer_language="en", fonts=fonts, chime=with_chime,
             show_timer=fmt == "pomodoro", dim_after=dim_after, noise=noise_color,
             noise_loudness=(NOISE_LOUDNESS if fmt == "soroll" else PRIMARY_AMBIENCE_LOUDNESS) + level,
@@ -476,7 +487,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
             notes.append(f"Sense efectes de moviment: {exc}"[:200])
     public_theme = publication_theme(theme)
     output = folder / "short.mp4"
-    command = build_short_command(background, audio, output, title=public_theme, subtitle=env.public_label, start=0,
+    command = build_short_command(_backdrop(short_backdrop, background, folder / "fons-short.png"), audio, output, title=public_theme, subtitle=env.public_label, start=0,
                                   label_font=fonts.label, text_font=fonts.digits, overlay=overlay, overlay_opacity=opacity,
                                   footer="More cozy ambience on the channel",
                                   overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None else "screen")
@@ -551,6 +562,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
             opacity, mode = overlay_opacity(style), overlay_mode(style)
     output = folder / "short.mp4"
     title = f"{NOISE_COLORS[noise][1]} Noise" if noise else publication_theme(theme)
+    background = _backdrop(short_backdrop, background, folder / "fons-short.png")
     command = build_short_command(background, main.video, output, title=title, subtitle=subtitle,
                                   start=short_start(total), label_font=fonts.label, text_font=fonts.digits,
                                   overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)

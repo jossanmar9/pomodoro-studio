@@ -33,6 +33,11 @@ def variant_title(part: int, theme: str, sound: str) -> str:
     return title if len(title) <= 100 else f"{theme} #shorts"[:100]
 
 
+def title_size(title: str) -> int:
+    """Títol tan gran com càpia en l'amplària del Short (els noms llargs es fan més xicotets)."""
+    return max(64, min(112, int(1000 / (0.62 * max(1, len(title))))))
+
+
 def build_short_command(background: Path, video: Path, output: Path, *, title: str, subtitle: str, start: int,
                         seconds: int = SECONDS, label_font: Path | None = None, text_font: Path | None = None,
                         overlay: Path | None = None, overlay_opacity: float = 0.6, darken: float = 0.0,
@@ -53,9 +58,9 @@ def build_short_command(background: Path, video: Path, output: Path, *, title: s
         parts.append(f"[0:v]{','.join(base)},format=yuv420p[pic]")
         source = "[pic]"
     texts = [
-        f"drawtext={font_option(label_font)}:text='{_escape_drawtext(title)}':fontsize=84:fontcolor=white:x=(w-text_w)/2:y=h*0.11:{SHADOW}",
-        f"drawtext={font_option(text_font)}:text='{_escape_drawtext(subtitle)}':fontsize=50:fontcolor=white@0.92:x=(w-text_w)/2:y=h*0.11+120:{SHADOW}",
-        f"drawtext={font_option(text_font)}:text='{_escape_drawtext(footer)}':fontsize=46:fontcolor=white@0.9:x=(w-text_w)/2:y=h*0.86:{SHADOW}",
+        f"drawtext={font_option(label_font)}:text='{_escape_drawtext(title)}':fontsize={title_size(title)}:fontcolor=0xFFF7E8:x=(w-text_w)/2:y=h*0.09:borderw=2:bordercolor=black@0.3:{SHADOW}",
+        f"drawtext={font_option(text_font)}:text='{_escape_drawtext(subtitle)}':fontsize=60:fontcolor=0xF3C47A:x=(w-text_w)/2:y=h*0.09+{title_size(title) + 40}:{SHADOW}",
+        f"drawtext={font_option(text_font)}:text='{_escape_drawtext(footer)}':fontsize=58:fontcolor=0xFFF7E8:x=(w-text_w)/2:y=h*0.87:{SHADOW}",
         "fade=t=in:st=0:d=0.6",
         f"fade=t=out:st={seconds - 1}:d=1",
     ]

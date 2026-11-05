@@ -154,7 +154,7 @@ def font_option(path: Path | None) -> str:
     return f"fontfile='{_escape_drawtext(str(path))}'"
 
 
-SHADOW = "shadowcolor=black@0.45:shadowx=2:shadowy=2"
+SHADOW = "shadowcolor=black@0.6:shadowx=2:shadowy=3"
 
 
 def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: ResolvedFonts | None = None) -> str:
@@ -177,10 +177,10 @@ def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: 
         phase = focus_label if segment.kind.value == "FOCUS" else break_label
         enable = f"between(t\\,{start}\\,{max(start, end-.001)})"
         filters += [
-            f"drawtext={label_font}:text='{_escape_drawtext(phase)}':fontcolor=white@0.9:fontsize=h/28:{SHADOW}:x=(w-text_w)/2:y=h*0.34:enable='{enable}'",
+            f"drawtext={label_font}:text='{_escape_drawtext(phase)}':fontcolor=0xFFF3DE:fontsize=h/21:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.32:enable='{enable}'",
             f"drawtext={digits_font}:text='%{{eif\\:{minutes}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2-{gap}-text_w:{baseline}:enable='{enable}'",
             f"drawtext={digits_font}:text='%{{eif\\:{seconds}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2+{gap}:{baseline}:enable='{enable}'",
-            f"drawtext={label_font}:text='{_escape_drawtext(session_label)} {segment.session}':fontcolor=white@0.78:fontsize=h/40:{SHADOW}:x=(w-text_w)/2:y=h*0.62:enable='{enable}'",
+            f"drawtext={label_font}:text='{_escape_drawtext(session_label)} {segment.session}':fontcolor=0xF3C47A:fontsize=h/30:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.62:enable='{enable}'",
         ]
     if timeline.segments:
         filters.append(f"drawtext={digits_font}:text='\\:':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}")
