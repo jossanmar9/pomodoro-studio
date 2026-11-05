@@ -869,6 +869,8 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             title = _fit_title([
                 f"{public_theme} Ambience | {sounds} | {detail} · {label}",
                 f"{public_theme} Ambience | {sounds} | Tabletop RPG & Fantasy Background · {label}",
+                f"{public_theme} Ambience | {sounds} | Tabletop RPG · {label}",
+                f"{public_theme} Ambience | Tabletop RPG · {label}",
                 f"{public_theme} Ambience | {sounds} | Tabletop RPG Ambience",
                 f"{public_theme} | Tabletop RPG Ambience",
             ])
