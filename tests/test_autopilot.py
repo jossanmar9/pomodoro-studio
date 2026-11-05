@@ -328,6 +328,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "view_counts", lambda ids: {})
     monkeypatch.setattr(auto, "check_video", lambda video, seconds, **kw: [])
     monkeypatch.setattr(main, "refresh_views_in_background", lambda *a, **k: None)
+    monkeypatch.setattr(main.autopilot, "submit_pending_reels", lambda: None)
     monkeypatch.setattr(main.settings, "youtube_stats_file", tmp_path / "stats.json")
     monkeypatch.setattr(auto, "youtube_connected", lambda: True)
     monkeypatch.setattr(main, "youtube_connected", lambda: True)
@@ -1357,12 +1358,17 @@ def test_scheduled_video_is_uploaded_with_publish_time_and_reels_wait(env, monke
     assert second_short.publish_at == (when + timedelta(days=1)).isoformat() + "Z"
     with env.session() as db:
         run = db.get(AutoRun, run_id)
-        assert run.reels_due == 1 and shared == [] and run_summary_label(run).startswith("Programat")
-    assert auto.due_reel_runs() == [] and auto.due_reel_runs(now=when + timedelta(minutes=1)) == [run_id]
-    auto._share_due_reels(run_id)
+        assert shared == [] and run_summary_label(run).startswith("Programat")
+        assert auto.pending_reels(run) == {} and auto.runs_with_pending_reels() == []
+        assert auto.pending_reels(run, when + timedelta(minutes=1)) == {"short.mp4": {"ig"}}
+        assert set(auto.pending_reels(run, when + timedelta(days=1, minutes=1))) == {"short.mp4", "short-2.mp4"}
+        db.get(AutoRun, run_id).scheduled_for = datetime.utcnow() - timedelta(minutes=1)  # ja és l'hora
+        db.commit()
+    assert auto.runs_with_pending_reels() == [run_id]
+    auto._make_missing_reel(run_id)
     with env.session() as db:
         run = db.get(AutoRun, run_id)
-    assert shared == ["short.mp4"] and run.reels_due == 0 and run.instagram_media_id == "IG1"
+    assert shared == ["short.mp4"] and run.instagram_media_id == "IG1" and auto.pending_reels(run) == {}
 
 
 def run_summary_label(run):
@@ -1541,3 +1547,59 @@ def test_freesound_preview_is_found_in_the_page():
         def __exit__(self, *a): return False
     module.urllib.request.urlopen = lambda request, timeout=60: _Ctx(html.encode())
     assert module.freesound_url("https://freesound.org/x") == "https://cdn.freesound.org/previews/676/676675_98765-hq.mp3"
+
+
+def test_every_short_gets_its_reel_on_its_day_and_failures_are_retried(env, monkeypatch):
+    from datetime import datetime, timedelta
+    from app.services import meta
+    touch(env.tmp / "assets" / "backgrounds" / "biblioteca-medieval-01.png")
+    monkeypatch.setattr(auto, "build_short_command", lambda bg, video, output, **kw: ["bash", "-c", f"touch '{output}'"])
+    monkeypatch.setattr(auto, "instagram_configured", lambda: True)
+    ids = iter(["video1", "short1", "short2", "short3"])
+    monkeypatch.setattr(auto, "upload_video", lambda spec: env.uploads.append(spec) or next(ids))
+    calls = []
+    def flaky(video, caption):
+        calls.append(video.name)
+        if video.name == "short-2.mp4":
+            raise meta.MetaError("temps d'espera")
+        return f"IG-{video.name}"
+    monkeypatch.setattr(auto, "publish_instagram_reel", flaky)
+    run_id = make_run(env.session, shorts=3, instagram=1)
+    auto.execute(run_id, rng=random.Random(0))
+    assert calls == ["short.mp4"]
+    later = datetime.utcnow() + timedelta(days=2, minutes=1)
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        assert set(auto.pending_reels(run, later)) == {"short-2.mp4", "short-3.mp4"}
+        run.published_at -= timedelta(days=2, minutes=2)  # han passat dos dies
+        db.commit()
+    for _ in range(4):
+        auto._make_missing_reel(run_id)
+    assert calls.count("short-3.mp4") == 1 and calls.count("short-2.mp4") == 3  # com a molt 3 intents
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        assert auto.pending_reels(run) == {}
+        assert '"short-3.mp4": {"ig": "IG-short-3.mp4"}' in run.reels_json
+
+
+def test_unticked_reels_are_never_posted(env, monkeypatch):
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    monkeypatch.setattr(main, "instagram_configured", lambda: True)
+    with TestClient(main.app) as client:
+        client.post("/auto", data={"theme": "Bosc", "environment": "bosc", "duration_minutes": "60", "publish": "1", "shorts": "1"}, follow_redirects=False)
+    with env.session() as db:
+        run = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+        assert run.instagram == 0 and '"skip_ig": true' in run.reels_json
+        run.step, run.video_id, run.short_video_id, run.published_at = "DONE", "v", "s", __import__("datetime").datetime.utcnow()
+        db.commit()
+        monkeypatch.setattr(auto, "instagram_configured", lambda: True)
+        assert auto.pending_reels(db.get(AutoRun, run.id)) == {}
+
+
+def test_videos_are_kept_until_the_last_short_is_public(env):
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    run_id = make_run(env.session, step="DONE", video_id="v", delete_after=1, shorts=3, published_at=now - timedelta(days=4), scheduled_for=now + timedelta(days=1))
+    with env.session() as db:
+        run = db.get(AutoRun, run_id)
+        assert auto._delete_on(run) == (now + timedelta(days=1 + 2 + 3)).date().isoformat()

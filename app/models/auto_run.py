@@ -64,6 +64,8 @@ class AutoRun(Base):
     # Calendari: hora (UTC) a la qual YouTube farà públic el vídeo; reels pendents per a eixa hora.
     scheduled_for: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     reels_due: Mapped[int] = mapped_column(Integer, default=0)
+    # Reels de cada Short a Instagram i Facebook (JSON: identificadors, errors i xarxes que no es volen).
+    reels_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Intro del canal (espurnes i nom) al començament del vídeo.
     intro: Mapped[int] = mapped_column(Integer, default=0)
     # Fons triat a mà en el formulari; després de fer el vídeo, el fons que s'ha usat.

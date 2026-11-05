@@ -553,7 +553,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
     except Exception as exc:
         raise AutopilotError(f"El Short està fet, però YouTube ha fallat: {exc}") from exc
     _update(run_id, step="DONE", video_id=short_id, short_video_id=short_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
-    reel_notes = share_reels(run_id, output)
+    reel_notes = share_reels(run_id)
     _update(run_id, message="; ".join(notes + reel_notes) or None)
 
 
@@ -610,16 +610,10 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     short_id = upload_video(YouTubeUploadSpec(output, title, description, tags, main.category_id, main.language, main.privacy, None, localized,
                                               main.publish_at))
     _update(run_id, short_video_id=short_id)
-    if main.publish_at:
-        # Vídeo programat: els reels es publiquen quan el vídeo ja siga públic (Instagram no deixa programar).
-        with SessionLocal() as db:
-            saved = db.get(AutoRun, run_id)
-            pending = bool(saved.instagram or saved.facebook)
-            saved.reels_due = 1 if pending else 0
-            db.commit()
-        notes = ["Els reels es publicaran quan el vídeo siga públic (cal que Pomodoro estiga obert)"] if pending else []
-    else:
-        notes = share_reels(run_id, output)
+    # Els reels es publiquen quan el vídeo ja és públic: ara mateix si no està programat, o el dia programat.
+    notes = [] if main.publish_at else share_reels(run_id)
+    if main.publish_at and (instagram_configured() or facebook_configured()):
+        notes.append("Els reels es publicaran quan el vídeo siga públic (cal que Pomodoro estiga obert)")
     start_time = datetime.fromisoformat(main.publish_at.rstrip("Z")) if main.publish_at else datetime.utcnow()
     if count >= 3:
         # Shorts 2 i 3: altres moments del vídeo i altres frases, programats per a demà i passat demà.
@@ -657,88 +651,126 @@ def _reel_names(run: AutoRun) -> tuple[str, str]:
     return publication_theme(run.theme), _short_subtitle(run)
 
 
-def share_reels(run_id: int, video: Path, *, every: bool = False) -> list[str]:
-    """Publica el Short com a reel a Instagram i a Facebook (si s'ha demanat i està configurat).
+REEL_FILES = ("short.mp4", "short-2.mp4", "short-3.mp4")
+MAX_REEL_ATTEMPTS = 3
 
-    Torna notes per a l'usuari. Si falla, la resta continua publicada.
-    `every`: per als vídeos d'abans, a totes les xarxes configurades encara que no s'haguera marcat.
+
+def _reel_state(run: AutoRun) -> dict:
+    """Estat dels reels de cada Short: {"short.mp4": {"ig": id, "fb": id, "ig_errors": n, ...}, "skip_ig": bool, ...}."""
+    try:
+        state = json.loads(run.reels_json) if run.reels_json else {}
+    except ValueError:
+        state = {}
+    first = state.setdefault("short.mp4", {})
+    if run.instagram_media_id:
+        first.setdefault("ig", run.instagram_media_id)
+    if run.facebook_video_id:
+        first.setdefault("fb", run.facebook_video_id)
+    return state
+
+
+def _save_reel_state(run_id: int, state: dict) -> None:
+    first = state.get("short.mp4", {})
+    _update(run_id, reels_json=json.dumps(state), instagram_media_id=first.get("ig"), facebook_video_id=first.get("fb"))
+
+
+def _reel_due(run: AutoRun, filename: str) -> datetime | None:
+    """Quan es pot publicar el reel: quan el vídeo (o eixe Short) ja és públic a YouTube."""
+    base = run.scheduled_for or run.published_at
+    return base + timedelta(days=REEL_FILES.index(filename)) if base else None
+
+
+def _short_folder(run: AutoRun) -> Path | None:
+    with SessionLocal() as db:
+        project = db.get(Project, run.project_id) if run.project_id else None
+        return Path(project.output_path) if project and project.output_path else None
+
+
+def _short_file(run: AutoRun) -> Path | None:
+    folder = _short_folder(run)
+    return folder / "short.mp4" if folder else None
+
+
+def pending_reels(run: AutoRun, now: datetime | None = None) -> dict[str, set[str]]:
+    """Shorts d'este vídeo que ja tocaria tindre a Instagram o Facebook i encara no hi són: {fitxer: {"ig", "fb"}}."""
+    now = now or datetime.utcnow()
+    if run.step != "DONE" or not run.short_video_id or (run.short_video_id == run.video_id and run.format != "short"):
+        return {}
+    networks = {name for name, ok in (("ig", instagram_configured()), ("fb", facebook_configured())) if ok}
+    if not networks:
+        return {}
+    state = _reel_state(run)
+    networks -= {n for n in networks if state.get(f"skip_{n}")}
+    folder = _short_folder(run)
+    result: dict[str, set[str]] = {}
+    for filename in REEL_FILES:
+        due = _reel_due(run, filename)
+        if not folder or not (folder / filename).is_file() or due is None or due > now:
+            continue
+        info = state.get(filename, {})
+        missing = {n for n in networks if not info.get(n) and info.get(f"{n}_errors", 0) < MAX_REEL_ATTEMPTS}
+        if missing:
+            result[filename] = missing
+    return result
+
+
+def runs_with_pending_reels(now: datetime | None = None) -> list[int]:
+    with SessionLocal() as db:
+        runs = db.query(AutoRun).filter(AutoRun.step == "DONE", AutoRun.short_video_id.isnot(None)).all()
+        return [run.id for run in runs if pending_reels(run, now)]
+
+
+def share_reels(run_id: int, video: Path | None = None, *, every: bool = False) -> list[str]:
+    """Publica com a reels els Shorts d'este vídeo que ja toquen (a Instagram i a Facebook, si estan configurats).
+
+    Torna notes per a l'usuari. Si una xarxa falla, la resta continua publicada i es torna a provar més tard
+    (com a molt 3 vegades). `video` i `every` es mantenen per compatibilitat.
     """
     with SessionLocal() as db:
         run = db.get(AutoRun, run_id)
         if not run:
             return []
-        to_instagram = (run.instagram or every) and not run.instagram_media_id and instagram_configured()
-        to_facebook = (run.facebook or every) and not run.facebook_video_id and facebook_configured()
+        todo = pending_reels(run)
+        state = _reel_state(run)
         public, subtitle = _reel_names(run)
         theme, fmt = run.theme, run.format or "pomodoro"
+    folder = _short_folder(run)
     notes: list[str] = []
-    if to_instagram:
-        _update(run_id, message="Publicant el reel a Instagram…")
-        try:
-            media_id = publish_instagram_reel(video, reel_caption(public, subtitle, theme=theme, fmt=fmt))
-            _update(run_id, instagram_media_id=media_id)
-            notes.append("Reel publicat a Instagram")
-        except Exception as exc:  # el vídeo i el Short ja estan publicats
-            logger.exception("No s'ha pogut publicar el reel a Instagram")
-            notes.append(f"Instagram ha fallat: {exc}"[:300])
-    if to_facebook:
-        _update(run_id, message="Publicant el reel a Facebook…")
-        try:
-            facebook_id = publish_facebook_reel(video, reel_caption(public, subtitle, theme=theme, fmt=fmt, channel_url=CHANNEL_URL, facebook=True))
-            _update(run_id, facebook_video_id=facebook_id)
-            notes.append("Reel publicat a Facebook")
-        except Exception as exc:
-            logger.exception("No s'ha pogut publicar el reel a Facebook")
-            notes.append(f"Facebook ha fallat: {exc}"[:300])
+    labels = {"ig": "Instagram", "fb": "Facebook"}
+    for filename, networks in todo.items():
+        path = folder / filename
+        info = state.setdefault(filename, {})
+        part = "" if filename == "short.mp4" else f" ({REEL_FILES.index(filename) + 1}r Short)"
+        for network in sorted(networks):
+            _update(run_id, message=f"Publicant el reel a {labels[network]}{part}…")
+            try:
+                if network == "ig":
+                    info["ig"] = publish_instagram_reel(path, reel_caption(public, subtitle, theme=theme, fmt=fmt))
+                else:
+                    info["fb"] = publish_facebook_reel(path, reel_caption(public, subtitle, theme=theme, fmt=fmt, channel_url=CHANNEL_URL, facebook=True))
+                notes.append(f"Reel publicat a {labels[network]}{part}")
+            except Exception as exc:  # el vídeo i el Short ja estan publicats
+                logger.exception("No s'ha pogut publicar el reel a %s", labels[network])
+                info[f"{network}_errors"] = info.get(f"{network}_errors", 0) + 1
+                notes.append(f"{labels[network]} ha fallat{part}: {exc}"[:300])
+            _save_reel_state(run_id, state)
     return notes
 
 
-def due_reel_runs(now: datetime | None = None) -> list[int]:
-    """Vídeos programats que ja són públics i tenen els reels pendents."""
-    now = now or datetime.utcnow()
-    with SessionLocal() as db:
-        rows = db.query(AutoRun.id).filter(AutoRun.reels_due == 1, AutoRun.step == "DONE", AutoRun.scheduled_for.isnot(None),
-                                           AutoRun.scheduled_for <= now).all()
-    return [row[0] for row in rows]
-
-
-def _share_due_reels(run_id: int) -> None:
-    with SessionLocal() as db:
-        run = db.get(AutoRun, run_id)
-        if not run or not run.reels_due:
-            return
-        run.reels_due = 0
-        db.commit()
-        previous = run.message
-    path = _short_file(run)
-    notes = share_reels(run_id, path) if path and path.is_file() else ["Reel no fet: no es troba el Short"]
-    _update(run_id, message="; ".join(([previous] if previous else []) + notes) or None)
-
-
-def _short_file(run: AutoRun) -> Path | None:
-    with SessionLocal() as db:
-        project = db.get(Project, run.project_id) if run.project_id else None
-        return Path(project.output_path) / "short.mp4" if project and project.output_path else None
-
-
 def reel_missing(run: AutoRun) -> bool:
-    """Hi ha un Short publicat que encara no s'ha passat a Instagram o Facebook (i estan configurats)."""
-    if run.step != "DONE" or not run.short_video_id or run.short_video_id == run.video_id and run.format != "short":
-        return False
-    pending = (instagram_configured() and not run.instagram_media_id) or (facebook_configured() and not run.facebook_video_id)
-    path = _short_file(run) if pending else None
-    return bool(path and path.is_file())
+    """Hi ha algun Short publicat que ja tocaria tindre a Instagram o Facebook i no hi és."""
+    return bool(pending_reels(run))
 
 
 def _make_missing_reel(run_id: int) -> None:
     with SessionLocal() as db:
         run = db.get(AutoRun, run_id)
-        if not run or not reel_missing(run):
+        if not run:
             return
         previous = run.message
-    path = _short_file(run)
-    notes = share_reels(run_id, path, every=True)
-    _update(run_id, message="; ".join(([previous] if previous else []) + notes) or None)
+    notes = share_reels(run_id)
+    if notes:
+        _update(run_id, message="; ".join(([previous] if previous else []) + notes))
 
 
 class AutopilotRunner:
@@ -784,17 +816,20 @@ class AutopilotRunner:
     def submit_reel(self, run_id: int) -> None:
         self._push(("reel", run_id))
 
-    def submit_due_reels(self) -> None:
-        """Posa en cua els reels dels vídeos programats que ja s'han fet públics."""
-        for run_id in due_reel_runs():
+    def submit_pending_reels(self) -> None:
+        """Posa en cua els reels que falten (també els dels vídeos programats que ja s'han fet públics)."""
+        for run_id in runs_with_pending_reels():
             with self._lock:
-                if ("reel_due", run_id) in self._queue:
+                if ("reel", run_id) in self._queue or self._current == run_id:
                     continue
-            self._push(("reel_due", run_id))
+            self._push(("reel", run_id), keep_shutdown=True)
 
-    def _push(self, item: tuple[str, int]) -> None:
+    submit_due_reels = submit_pending_reels
+
+    def _push(self, item: tuple[str, int], *, keep_shutdown: bool = False) -> None:
         # Si hi havia una apagada pendent i es demana més faena, ja no toca apagar.
-        power.cancel()
+        if not keep_shutdown:
+            power.cancel()
         with self._lock:
             self._queue.append(item)
             if not self._worker or not self._worker.is_alive():
@@ -815,8 +850,6 @@ class AutopilotRunner:
                     _make_missing_short(run_id)
                 elif kind == "reel":
                     _make_missing_reel(run_id)
-                elif kind == "reel_due":
-                    _share_due_reels(run_id)
                 else:
                     _publish_existing(run_id)
             except RunCancelled:
@@ -917,10 +950,17 @@ def _thumbnail_url(run: AutoRun) -> str | None:
     return f"/projects/{run.project_id}/files/thumbnail.jpg" if path and (path.parent / "thumbnail.jpg").is_file() else None
 
 
-def _delete_on(run: AutoRun) -> str | None:
+def _delete_after_date(run: AutoRun) -> datetime | None:
+    """Quan es pot esborrar el vídeo: uns dies després que l'últim Short ja siga públic (i tinga el seu reel)."""
     if not (run.delete_after and run.published_at and run.step == "DONE"):
         return None
-    return (run.published_at + timedelta(days=settings.keep_published_days)).date().isoformat()
+    last_public = max(run.published_at, run.scheduled_for or run.published_at) + timedelta(days=len(REEL_FILES) - 1 if run.shorts and run.shorts >= 3 else 0)
+    return last_public + timedelta(days=settings.keep_published_days)
+
+
+def _delete_on(run: AutoRun) -> str | None:
+    when = _delete_after_date(run)
+    return when.date().isoformat() if when else None
 
 
 def cleanup_published_videos(now: datetime | None = None) -> int:
@@ -937,6 +977,9 @@ def cleanup_published_videos(now: datetime | None = None) -> int:
             AutoRun.published_at.isnot(None), AutoRun.published_at <= limit,
         ).all()
         for run in runs:
+            when = _delete_after_date(run)
+            if when is None or when > now or pending_reels(run, now):
+                continue  # encara s'ha de fer públic algun Short o falta algun reel
             project = db.get(Project, run.project_id) if run.project_id else None
             if not project or not project.output_path:
                 continue
@@ -947,7 +990,8 @@ def cleanup_published_videos(now: datetime | None = None) -> int:
             try:
                 video.unlink()
                 (folder / "publication-package.zip").unlink(missing_ok=True)
-                (folder / "short.mp4").unlink(missing_ok=True)
+                for name in REEL_FILES:
+                    (folder / name).unlink(missing_ok=True)
             except OSError:
                 logger.exception("No s'ha pogut esborrar %s", video)
                 continue
