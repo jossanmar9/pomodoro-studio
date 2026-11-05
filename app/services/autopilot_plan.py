@@ -704,10 +704,13 @@ class AutoTexts:
 
 
 MAX_DESCRIPTION_BYTES = 4900
+NO_MUSIC = " (No Music)"  # al final del títol quan el vídeo no porta música
 
 
-def _fit_title(options: list[str]) -> str:
-    return next((t for t in options if len(t) <= 100), options[-1][:100])
+def _fit_title(options: list[str], suffix: str = "") -> str:
+    """El primer títol que càpia en 100 caràcters; si hi ha `suffix` (p. ex. « (No Music)»), es prova primer amb ell."""
+    candidates = [f"{t}{suffix}" for t in options] + options if suffix else options
+    return next((t for t in candidates if len(t) <= 100), options[-1][:100])
 
 
 def _finish_description(compose, credits: str, compact_credits: str) -> str:
@@ -750,6 +753,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     dark_title = " · Dark Screen" if dim else ""
     dark_line = f"The screen slowly fades to black after {DIM_AFTER_SECONDS // 60} minutes, so it won't light up your room." if dim else ""
     outro = pick(OUTROS, seed, 2).format(channel=CHANNEL_NAME)
+    no_music = "" if music or fmt == "ambient" else NO_MUSIC
     detail = pick(TITLE_DETAILS.get(fmt, ("",)), seed)
     intro = lambda **values: pick(INTROS[fmt], seed).format(label=label, label_l=label.lower(), label_c=label.lower().capitalize(), **values)
     uses_text = lambda: pick(USES[fmt], seed, 1)
@@ -763,7 +767,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
             f"{color} Noise {detail} | {label}{screen_title}",
             f"{color} Noise for Sleep, Focus & Relaxation | {label}{screen_title}",
             f"{label} {color} Noise{screen_title}",
-        ])
+        ], no_music)
         if black:
             screen_line = "The screen stays black the whole time, so it won't light up your room."
         else:
@@ -796,7 +800,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
                 f"{cozy} Ambience | {sounds} for Sleep & Relaxation | {label}{dark_title}",
                 f"{cozy} Ambience | {sounds} for Sleep | {label}{dark_title}",
                 f"{label} {sounds} for Sleep{dark_title}",
-            ])
+            ], no_music)
             compose = lambda credit_text: _join_blocks(
                 intro(cozy=cozy, sound=sound),
                 f"{uses_text()} {dark_line}",
@@ -818,7 +822,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
                 f"{minutes} {pattern.public} | Guided Breathing Exercise to Calm Down | {cozy}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise | {public_theme}",
                 f"{minutes} {pattern.public} | Guided Breathing Exercise",
-            ])
+            ], no_music)
             compose = lambda credit_text: _join_blocks(
                 intro(minutes=duration, pattern_l=pattern.public.lower()),
                 f"Take 15 seconds to get comfortable, then follow the circle: breathe in as it grows, hold when it stops, and breathe out as it shrinks. {pattern.how}",
@@ -836,7 +840,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
                 f"{cozy} Ambience | {sounds}, No Music | {label}",
                 f"{cozy} Ambience | {sounds} | {label}",
                 f"{label} {sounds}, No Music",
-            ])
+            ], no_music)
             compose = lambda credit_text: _join_blocks(
                 intro(cozy=cozy, env_l=env.public_label.lower()),
                 uses_text(),
@@ -854,7 +858,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
                 f"{reading} Ambience | {sounds} for Reading & Relaxing | {label}",
                 f"{reading} Ambience | {sounds} | {label}",
                 f"{label} Reading Ambience | {public_theme}",
-            ])
+            ], no_music)
             compose = lambda credit_text: _join_blocks(
                 intro(reading=reading, sound=sound),
                 uses_text(),
@@ -873,7 +877,7 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
                 f"{public_theme} Ambience | Tabletop RPG · {label}",
                 f"{public_theme} Ambience | {sounds} | Tabletop RPG Ambience",
                 f"{public_theme} | Tabletop RPG Ambience",
-            ])
+            ], no_music)
             compose = lambda credit_text: _join_blocks(
                 intro(theme=public_theme, sound=sound),
                 uses_text(),
@@ -895,13 +899,14 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
     deep = focus >= DEEP_WORK_MIN_FOCUS
     method = f"Deep Work {focus}/{pause}" if deep else f"Pomodoro {focus}/{pause}"
     sounds = f"{env.public_label} Sounds" if env.layers or env.noise else "Calm Music"
+    no_music = "" if music else NO_MUSIC
     title = _fit_title([
         f"{cozy} Ambience | {label} {method} {pick(TITLE_DETAILS['pomodoro'], seed)} | {sounds}",
         f"{cozy} Ambience | {label} {method} Study With Me | {sounds}",
         f"{cozy} Ambience | {label} {method} | {sounds}",
         f"{cozy} Ambience | {label} {method}",
         f"{label} {method} | {public_theme}",
-    ])
+    ], no_music)
     if not env.layers and not env.noise:
         sound = music_text
     elif music and env.music:

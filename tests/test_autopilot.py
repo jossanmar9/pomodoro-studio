@@ -1631,3 +1631,18 @@ def test_texts_vary_between_videos_but_keep_search_words():
     phrases = [short_phrase(seed, part) for seed in range(15) for part in (2, 3)]
     assert len(set(phrases)) == len(SHORT_PHRASES) == 30
     assert all("," not in p and "'" not in p for p in SHORT_PHRASES)
+
+
+def test_title_says_no_music_when_there_is_none():
+    from app.services.translations import localized_texts
+    for fmt in ("pomodoro", "dormir", "llegir", "rol"):
+        silent = build_texts(public_theme="Rainy Library", environment="pluja", duration=180, focus=25, pause=5, chapters="", credits="",
+                             fmt=fmt, music=False, seed=1)
+        assert silent.title.endswith("(No Music)") and len(silent.title) <= 100, silent.title
+        assert "(No Music)" not in build_texts(public_theme="Rainy Library", environment="pluja", duration=180, focus=25, pause=5,
+                                               chapters="", credits="", fmt=fmt, music=True, seed=1).title
+    ambient = build_texts(public_theme="Rainy Library", environment="pluja", duration=180, focus=180, pause=0, chapters="", credits="",
+                          fmt="ambient", music=False, seed=1)
+    assert "(No Music)" not in ambient.title and "No Music" in ambient.title
+    es = localized_texts(fmt="dormir", public_theme="Rainy Library", sound="Rain", duration_minutes=180, english_description="x", music=False)
+    assert es["es"]["title"].endswith("(Sin música)") and es["de"]["title"].endswith("(Ohne Musik)")
