@@ -295,28 +295,48 @@ BATCH_DURATIONS={"pomodoro":120,"dormir":480,"llegir":180,"ambient":180}
 BATCH_FORMATS=["pomodoro","dormir","llegir","pomodoro","ambient","dormir","llegir"]
 
 
-def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None)->list[dict]:
-    """Tria vídeos variats (temes diferents, formats alternats) per a publicar un cada dia."""
+def _guess_environment(name:str)->str|None:
+    """Entorn d'un fons pel nom del fitxer (per als que no el tenen guardat en la fitxa)."""
+    stem="-"+Path(name).stem+"-"
+    found=[k for k in ENVIRONMENTS if f"-{k}-" in stem]
+    return max(found,key=len) if found else None
+
+
+def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,themes:list[str]|None=None)->list[dict]:
+    """Tria vídeos variats per a publicar un cada dia.
+
+    Sense `themes`, temes diferents cada dia; amb una temàtica (p. ex. Nadal), fons diferents
+    d'eixa temàtica. Els formats s'alternen (pomodoro, dormir, llegir, so ambiental).
+    """
     rng=rng or random.Random()
-    items=[{"theme":g["theme"],**item} for g in background_library() for item in g["items"]]
-    items=[i for i in items if i["theme"] in AUTO_THEMES and i.get("format") in BATCH_DURATIONS and i.get("environment") in ENVIRONMENTS]
+    items=[]
+    for g in background_library():
+        if g["theme"] not in AUTO_THEMES or (themes and g["theme"] not in themes): continue
+        for item in g["items"]:
+            env=item.get("environment") if item.get("environment") in ENVIRONMENTS else _guess_environment(item["name"])
+            if env: items.append({**item,"theme":g["theme"],"environment":env})
     with SessionLocal() as db:
-        recent={r[0] for r in db.query(AutoRun.theme).order_by(AutoRun.id.desc()).limit(10).all()}
+        recent_rows=db.query(AutoRun.theme,AutoRun.background).order_by(AutoRun.id.desc()).limit(15).all()
+    recent_themes={r[0] for r in recent_rows}; recent_bgs={r[1] for r in recent_rows}
     rng.shuffle(items)
-    items.sort(key=lambda i:i["theme"] in recent)  # primer els temes que fa temps que no es fan
+    items.sort(key=lambda i:(i["name"] in recent_bgs,i["theme"] in recent_themes))  # primer el que fa temps que no es fa
+    distinct_themes=len({i["theme"] for i in items})>=count
     chosen,used=[],set()
     for n in range(count):
         wanted=BATCH_FORMATS[n%len(BATCH_FORMATS)]
-        pick=next((i for i in items if i["theme"] not in used and i["format"]==wanted),None) or next((i for i in items if i["theme"] not in used),None) or (items[n%len(items)] if items else None)
+        key=(lambda i:i["theme"]) if distinct_themes else (lambda i:i["name"])
+        fresh=[i for i in items if key(i) not in used] or items
+        pick=next((i for i in fresh if i.get("format")==wanted),None) or (fresh[0] if fresh else None)
         if pick is None: break
-        used.add(pick["theme"])
-        chosen.append({"theme":pick["theme"],"environment":pick["environment"],"format":pick["format"],"background":pick["name"],
-                       "duration_minutes":BATCH_DURATIONS[pick["format"]],"scheduled_for":first_day_utc+timedelta(days=n)})
+        used.add(key(pick))
+        fmt=pick.get("format") if pick.get("format") in BATCH_DURATIONS and pick.get("format")==wanted else wanted
+        chosen.append({"theme":pick["theme"],"environment":pick["environment"],"format":fmt,"background":pick["name"],
+                       "duration_minutes":BATCH_DURATIONS[fmt],"scheduled_for":first_day_utc+timedelta(days=n)})
     return chosen
 
 
 @app.post("/auto/setmana")
-def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0)):
+def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),theme:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0)):
     """Prepara diversos vídeos d'una vegada: es fan i es pugen seguits i es publica un cada dia."""
     if not 1<=count<=7: raise HTTPException(400,"Han de ser d'1 a 7 vídeos")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
@@ -325,8 +345,12 @@ def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("
     try: first=from_local(first_day,publish_time or f"{settings.publish_hour:02d}:00",settings.timezone)
     except ValueError: raise HTTPException(400,"Dia o hora no vàlids") from None
     if first<datetime.utcnow(): raise HTTPException(400,"El primer dia ja ha passat")
-    plan=plan_batch(count,first)
-    if not plan: raise HTTPException(409,"No hi ha fons guardats per a triar els vídeos")
+    chosen_themes=None
+    if theme:
+        chosen_themes=group_themes(theme) if theme.startswith("grup:") else ([theme] if theme in AUTO_THEMES else None)
+        if not chosen_themes: raise HTTPException(400,"Temàtica no vàlida")
+    plan=plan_batch(count,first,themes=chosen_themes)
+    if not plan: raise HTTPException(409,"No hi ha fons guardats d'eixa temàtica per a triar els vídeos")
     ids=[]
     with SessionLocal() as db:
         for p in plan:
