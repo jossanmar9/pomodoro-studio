@@ -29,7 +29,8 @@ from app.services.power import power
 from app.services.metadata import PublicationDraft, create_output_dir, write_metadata
 from app.services.breathing import DARKEN as BREATH_DARKEN, OPACITY as BREATH_OPACITY, PATTERNS as BREATH_PATTERNS, ensure_breath_clip, ensure_breath_intro
 from app.services.overlays import ensure_overlay, overlay_mode, overlay_opacity, overlay_style
-from app.services.text_variants import short_phrase
+from app.services.encoding import run_encode
+from app.services.text_variants import first_comment, short_phrase
 from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECONDS as SHORT_SECONDS, WIDTH as SHORT_WIDTH, build_short_command, channel_short_texts, short_start, short_texts, variant_title
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
@@ -40,7 +41,7 @@ from app.services.schedule import label as schedule_label, publish_at as schedul
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail
 from app.services.timer import build_chapters, build_timeline
-from app.services.youtube import YouTubeUploadSpec, add_to_playlists, can_manage_playlists, upload_video
+from app.services.youtube import YouTubeUploadSpec, add_to_playlists, can_comment, can_manage_playlists, post_comment, upload_video
 from app.services.translations import localized_short, localized_texts
 from app.themes import publication_theme
 
@@ -476,6 +477,8 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
         record.status, record.video_id, record.error = "PUBLISHED", video_id, None
         db.commit()
     playlist_note = _add_to_playlists(run_id, video_id)
+    if privacy == "public":
+        _want_comment(run_id)
     if playlist_note:
         notes.append(playlist_note)
     if spec.publish_at:
@@ -483,6 +486,9 @@ def publish_project(run_id: int, project_id: int, privacy: str, notes: list[str]
             when = db.get(AutoRun, run_id).scheduled_for
         notes.append(f"Programat: es farà públic el {schedule_label(when, settings.timezone)}")
     _update(run_id, step="DONE", video_id=video_id, message="; ".join(notes) or None, published_at=datetime.utcnow())
+    comment_note = post_first_comment(run_id)  # només si ja és públic; si està programat, es fa el dia que toca
+    if comment_note:
+        notes.append(comment_note)
     try:
         short_note = publish_short(run_id, root, spec, video_id)
     except Exception as exc:  # el vídeo llarg ja està publicat: el Short és un extra
@@ -528,7 +534,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
                                   label_font=fonts.label, text_font=fonts.digits, overlay=overlay, overlay_opacity=opacity,
                                   footer="More cozy ambience on the channel",
                                   overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None else "screen")
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    result = run_encode(command)
     audio.unlink(missing_ok=True)
     if result.returncode != 0 or not output.is_file():
         raise AutopilotError(f"No s'ha pogut fer el Short: {(result.stderr or '')[-300:]}")
@@ -603,7 +609,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
     command = build_short_command(background, main.video, output, title=title, subtitle=subtitle,
                                   start=short_start(total), label_font=fonts.label, text_font=fonts.digits,
                                   overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    result = run_encode(command)
     if result.returncode != 0 or not output.is_file():
         return f"Short no fet: {(result.stderr or '')[-200:]}"
     title, description, tags = short_texts(main.title, main.description, main.tags, video_id)
@@ -627,7 +633,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
                 command = build_short_command(background, main.video, extra, title=public_name, subtitle=short_phrase(run_id, part),
                                               start=short_start(total, part=part), label_font=fonts.label, text_font=fonts.digits,
                                               overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_mode=mode)
-                result = subprocess.run(command, capture_output=True, text=True, check=False)
+                result = run_encode(command)
                 if result.returncode != 0 or not extra.is_file():
                     raise AutopilotError((result.stderr or "")[-200:])
                 when = (start_time + timedelta(days=part - 1)).replace(microsecond=0).isoformat() + "Z" if main.privacy == "public" else None
@@ -715,10 +721,52 @@ def pending_reels(run: AutoRun, now: datetime | None = None) -> dict[str, set[st
     return result
 
 
-def runs_with_pending_reels(now: datetime | None = None) -> list[int]:
+MAX_COMMENT_ATTEMPTS = 3
+
+
+def _want_comment(run_id: int) -> None:
+    """Marca que este vídeo ha de rebre el primer comentari del canal quan siga públic."""
     with SessionLocal() as db:
-        runs = db.query(AutoRun).filter(AutoRun.step == "DONE", AutoRun.short_video_id.isnot(None)).all()
-        return [run.id for run in runs if pending_reels(run, now)]
+        run = db.get(AutoRun, run_id)
+        if not run or run.format == "short":
+            return
+        state = _reel_state(run)
+    state["comment_wanted"] = True
+    _save_reel_state(run_id, state)
+
+
+def comment_due(run: AutoRun, now: datetime | None = None) -> bool:
+    """El vídeo ja és públic i encara no té el comentari del canal (YouTube no deixa comentar vídeos privats)."""
+    if run.step != "DONE" or not run.video_id or not can_comment():
+        return False
+    state = _reel_state(run)
+    base = run.scheduled_for or run.published_at
+    return bool(state.get("comment_wanted") and not state.get("comment_id") and state.get("comment_errors", 0) < MAX_COMMENT_ATTEMPTS
+                and base and base <= (now or datetime.utcnow()))
+
+
+def post_first_comment(run_id: int) -> str | None:
+    with SessionLocal() as db:
+        run = db.get(AutoRun, run_id)
+        if not run or not comment_due(run):
+            return None
+        state, video_id, fmt = _reel_state(run), run.video_id, run.format or "pomodoro"
+    try:
+        state["comment_id"] = post_comment(video_id, first_comment(fmt, run_id))
+        note = "Comentari publicat a YouTube (fixa'l des de YouTube Studio si vols)"
+    except Exception as exc:  # el vídeo ja està publicat: el comentari és un extra
+        logger.exception("No s'ha pogut escriure el comentari")
+        state["comment_errors"] = state.get("comment_errors", 0) + 1
+        note = f"El comentari de YouTube ha fallat: {exc}"[:300]
+    _save_reel_state(run_id, state)
+    return note
+
+
+def runs_with_pending_reels(now: datetime | None = None) -> list[int]:
+    """Vídeos amb reels o amb el comentari del canal pendents."""
+    with SessionLocal() as db:
+        runs = db.query(AutoRun).filter(AutoRun.step == "DONE", AutoRun.video_id.isnot(None)).all()
+        return [run.id for run in runs if (run.short_video_id and pending_reels(run, now)) or comment_due(run, now)]
 
 
 def share_reels(run_id: int, video: Path | None = None, *, every: bool = False) -> list[str]:
@@ -770,6 +818,9 @@ def _make_missing_reel(run_id: int) -> None:
             return
         previous = run.message
     notes = share_reels(run_id)
+    comment = post_first_comment(run_id)
+    if comment:
+        notes.append(comment)
     if notes:
         _update(run_id, message="; ".join(([previous] if previous else []) + notes))
 

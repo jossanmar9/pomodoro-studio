@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.services.encoding import short_video_args
 from app.services.renderer import _escape_drawtext, font_option, overlay_parts
 
 WIDTH, HEIGHT, FPS = 1080, 1920, 30
@@ -61,7 +62,7 @@ def build_short_command(background: Path, video: Path, output: Path, *, title: s
     parts.append(f"{source}{','.join(texts)}[vout]")
     parts.append(f"[1:a]afade=t=in:st=0:d=1.5,afade=t=out:st={seconds - 2}:d=2[aout]")
     command += ["-filter_complex", ";".join(parts), "-map", "[vout]", "-map", "[aout]",
-                "-t", str(seconds), "-r", str(FPS), "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                "-t", str(seconds), "-r", str(FPS), *short_video_args(),
                 "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(output)]
     return command
 

@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 # Permís complet del canal: cal per a crear llistes de reproducció i afegir-hi vídeos.
 YOUTUBE_MANAGE_SCOPE = "https://www.googleapis.com/auth/youtube"
-SCOPES = [YOUTUBE_UPLOAD_SCOPE, YOUTUBE_MANAGE_SCOPE]
+# Permís per a escriure comentaris (el primer comentari de cada vídeo).
+YOUTUBE_COMMENT_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
+SCOPES = [YOUTUBE_UPLOAD_SCOPE, YOUTUBE_MANAGE_SCOPE, YOUTUBE_COMMENT_SCOPE]
 VALID_PRIVACY = {"private", "unlisted", "public"}
 TRANSIENT_HTTP_STATUS = {429, 500, 502, 503, 504}
 UPLOAD_MARKER = ".youtube-video-id"
@@ -104,6 +106,15 @@ def granted_scopes() -> set[str]:
 def can_manage_playlists() -> bool:
     """El canal està connectat amb el permís per a gestionar llistes (cal tornar a connectar els tokens antics)."""
     return YOUTUBE_MANAGE_SCOPE in granted_scopes()
+
+
+def can_comment() -> bool:
+    """El canal està connectat amb el permís per a comentar (cal tornar a connectar els tokens d'abans)."""
+    return YOUTUBE_COMMENT_SCOPE in granted_scopes()
+
+
+def has_all_permissions() -> bool:
+    return can_manage_playlists() and can_comment()
 
 
 def reconnect() -> None:
@@ -273,3 +284,19 @@ def view_counts(video_ids: list[str], service=None) -> dict[str, int]:
         for item in response.get("items", []):
             counts[item["id"]] = int(item.get("statistics", {}).get("viewCount", 0))
     return counts
+
+
+# ---------------------------------------------------------------- comentaris
+
+def post_comment(video_id: str, text: str, service=None) -> str:
+    """Escriu un comentari del canal en el vídeo. Torna l'identificador del comentari.
+
+    L'API de YouTube no permet fixar-lo: si es vol fixat, cal fer-ho a mà des de YouTube Studio.
+    """
+    if service is None:
+        _, _, _, build, _ = google_libraries()
+        service = build("youtube", "v3", credentials=credentials(), cache_discovery=False)
+    response = service.commentThreads().insert(part="snippet", body={
+        "snippet": {"videoId": video_id, "topLevelComment": {"snippet": {"textOriginal": text}}},
+    }).execute()
+    return str(response["id"])

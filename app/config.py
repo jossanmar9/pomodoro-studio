@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     facebook_page_id: str = ""
     facebook_page_token: str = ""
 
+    # Còpia de seguretat setmanal (base de dades, .env i claus). Millor si és un disc extern o una carpeta sincronitzada.
+    backup_dir: Path = Path.home() / "pomodoro-copies"
+    backup_every_days: int = 7
+    backup_keep: int = 8
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

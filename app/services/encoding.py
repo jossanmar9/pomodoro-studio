@@ -59,3 +59,22 @@ def select_encoding(options: EncodingOptions, *, has_nvenc: bool | None = None) 
     else:
         args = {"fast": ("-c:v", "libx264", "-preset", "fast", "-crf", "23"), "balanced": ("-c:v", "libx264", "-preset", "medium", "-crf", "20"), "quality": ("-c:v", "libx264", "-preset", "slow", "-crf", "18")}[options.quality]
     return EncodingPlan(options.engine, engine, options.quality, args)
+
+
+CPU_SHORT_ARGS = ("-c:v", "libx264", "-preset", "veryfast", "-crf", "20")
+NVENC_SHORT_ARGS = ("-c:v", "h264_nvenc", "-preset", "p5", "-cq", "21")
+
+
+def short_video_args() -> tuple[str, ...]:
+    """Codificador per a les peces curtes (Shorts): la GPU si n'hi ha, si no la CPU."""
+    return NVENC_SHORT_ARGS if nvenc_available() else CPU_SHORT_ARGS
+
+
+def run_encode(command: list[str]) -> subprocess.CompletedProcess:
+    """Executa FFmpeg; si ha fallat amb la GPU, ho torna a provar amb la CPU."""
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0 and "h264_nvenc" in command:
+        start = command.index("-c:v")
+        cpu = [*command[:start], *CPU_SHORT_ARGS, *command[start + len(NVENC_SHORT_ARGS):]]
+        result = subprocess.run(cpu, capture_output=True, text=True, check=False)
+    return result
