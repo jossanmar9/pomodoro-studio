@@ -211,36 +211,52 @@
       </div>
     </fieldset>
 
-    <div class="go">
-      <div class="publish-options">
+    <div class="options">
+      <fieldset class="option-group">
+        <legend>Vídeo</legend>
         <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>
         <label class="check" data-hide-for="respiracio soroll"><input type="checkbox" name="motion" value="1" checked> Efectes naturals (pluja, neu, pols en la llum o guspires, segons l'escena)</label>
+      </fieldset>
+      <fieldset class="option-group">
+        <legend>Publicació</legend>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
-        <label data-hide-for="short">Shorts (45 s en vertical) que enllacen amb el vídeo
+        <label>Visibilitat
+          <select name="privacy">
+            {% for key, label in privacy_choices.items() %}<option value="{{ key }}" {% if key == default_privacy %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label data-hide-for="short">Shorts verticals que porten al vídeo
           <select name="shorts">
-            <option value="3" selected>3 Shorts: un hui i els altres demà i passat demà</option>
+            <option value="3" selected>3 Shorts, un per dia</option>
             <option value="1">1 Short</option>
             <option value="0">Cap Short</option>
           </select>
         </label>
         {% if instagram_ready %}<label class="check"><input type="checkbox" name="instagram" value="1" checked> Publicar el Short també com a reel a Instagram</label>{% endif %}
         {% if facebook_ready %}<label class="check"><input type="checkbox" name="facebook" value="1" checked> Publicar el Short també com a reel a Facebook</label>{% endif %}
+      </fieldset>
+      <fieldset class="option-group">
+        <legend>Després</legend>
         <label class="check"><input type="checkbox" name="delete_after" value="1" checked> Esborrar el vídeo de l'ordinador {{ keep_days }} dies després de publicar-lo</label>
         <label class="check"><input type="checkbox" name="shutdown" value="1"> Apagar l'ordinador en acabar</label>
-        <label>Visibilitat
-          <select name="privacy">
-            {% for key, label in privacy_choices.items() %}<option value="{{ key }}" {% if key == default_privacy %}selected{% endif %}>{{ label }}</option>{% endfor %}
-          </select>
-        </label>
-        <button type="button" class="secondary" id="random">🎲 A l'atzar</button>
-      </div>
+      </fieldset>
+    </div>
+    <div class="go">
+      <button type="button" class="secondary" id="random">🎲 A l'atzar</button>
       <button type="submit" class="big" id="go">Generar i publicar</button>
     </div>
   </form>
 
   <section class="card">
-    <h2>Vídeos</h2>
+    <div class="runs-head">
+      <h2>Vídeos</h2>
+      <div class="pager" id="pager" hidden>
+        <button type="button" class="mini secondary" id="page-prev" aria-label="Vídeos més nous">‹</button>
+        <span id="page-info" class="muted"></span>
+        <button type="button" class="mini secondary" id="page-next" aria-label="Vídeos més antics">›</button>
+      </div>
+    </div>
     <div id="runs" class="runs">
       {% if not runs %}<p class="muted">Encara no hi ha cap vídeo. Tria les opcions i prem el botó.</p>{% endif %}
     </div>

@@ -50,7 +50,7 @@ button.big:hover{background:#f0b862}
 .sound-check audio{height:40px;flex:1 1 260px}
 .sound-check small{flex-basis:100%}
 [hidden]{display:none!important}
-.formats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.choices.formats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 .header-links{display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:8px}
 .pill a.back{color:#e3a54a}
 .shutdown-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -89,3 +89,48 @@ button.big:hover{background:#f0b862}
 .suggestions ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .suggestions li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .suggestions li button{align-self:center}
+.choices:not(.compact):not(.themes){grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.choices:not(.compact):not(.themes) .choice span{padding:8px 10px;font-size:.92rem}
+.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;border-top:1px solid #253042;padding-top:18px}
+.option-group{grid-column:auto;border:1px solid #253042;border-radius:12px;padding:12px 14px;margin:0;display:flex;flex-direction:column;gap:8px}
+.option-group legend{padding:0 6px;font-weight:800;color:#eef2f7;font-size:.95rem}
+.option-group .check{margin:0}
+.option-group select{width:100%}
+.go{justify-content:flex-end;align-items:center;border-top:none;padding-top:4px}
+.runs-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.runs-head h2{margin:0}
+.pager{display:flex;align-items:center;gap:10px}
+.pager button{font-size:1.1rem;line-height:1;padding:6px 12px}
+.pager[hidden]{display:none!important}
+.run{grid-template-columns:160px 1fr;align-items:start;gap:14px}
+.run-thumb{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #263244;background:#0a0e14}
+.run-thumb.empty{background:linear-gradient(135deg,#141b26,#0a0e14)}
+.run-body{display:grid;gap:6px;min-width:0}
+.run-head strong .muted{font-weight:500}
+@media(max-width:700px){.run{grid-template-columns:1fr}.run-thumb{width:100%}}
+
+/* ---------- Tipografia i llegibilitat ---------- */
+@font-face{font-family:"Lora";src:url("/static/fonts/Lora-Variable.ttf") format("truetype");font-weight:400 700;font-display:swap}
+:root{--text:#eef2f7;--soft:#c3cdd8;--muted:#a3afbd;--amber:#e3a54a;--line:#2a3648}
+.auto{line-height:1.5;font-size:1rem}
+.auto h1,.auto h2,.auto .choice-block legend,.auto .option-group legend{font-family:"Lora",Georgia,serif;letter-spacing:0}
+.auto h1{font-weight:600;font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.05}
+.auto h2{font-weight:600;font-size:1.35rem}
+.auto .eyebrow{color:var(--amber);letter-spacing:.2em;font-weight:600}
+.auto .muted,.auto .pill span{color:var(--muted)}
+.auto .choice-block legend{font-size:1.2rem;font-weight:600;margin-bottom:6px}
+.auto .option-group legend{font-size:1.05rem;font-weight:600}
+.auto label{color:var(--soft);font-size:.95rem}
+.auto .check{color:var(--text)}
+.auto select{background:#0f1620;border-color:#3a4a62;min-height:44px}
+.auto .choice span,.auto .group-tile{color:var(--text)}
+.auto .group-tile small,.auto .choice small{font-size:.8rem}
+.auto .group-tile small.muted,.auto .choice small.muted{color:var(--muted)}
+.auto .theme-group{font-size:.82rem;letter-spacing:.1em}
+.auto .suggestions li span{color:var(--text)}
+.auto .run{border-color:var(--line)}
+.auto .run .muted{font-size:.88rem;line-height:1.45}
+.auto .run-actions a,.auto a.back{color:var(--amber);text-underline-offset:3px}
+.auto #music-advice{font-size:.85rem;color:var(--muted)}
+.auto input[type=checkbox]{accent-color:var(--amber);width:18px;height:18px}
+.auto :focus-visible{outline:2px solid var(--amber);outline-offset:2px}

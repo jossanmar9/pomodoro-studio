@@ -210,7 +210,7 @@ app.include_router(library_router)
 
 # --- Mode automàtic: una pàgina, un botó ------------------------------------
 
-def _recent_runs(limit:int=12)->list[dict]:
+def _recent_runs(limit:int=60)->list[dict]:
     with SessionLocal() as db:
         return [run_summary(r) for r in db.query(AutoRun).order_by(AutoRun.id.desc()).limit(limit).all()]
 
