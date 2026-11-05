@@ -1456,3 +1456,20 @@ def test_video_can_be_scheduled_for_a_chosen_day(env, monkeypatch):
     from app.services.schedule import to_local
     local = to_local(run.scheduled_for, "Europe/Madrid")
     assert local.date().isoformat() == day and (local.hour, local.minute) == (9, 30)
+
+
+def test_week_batch_uses_the_chosen_volumes_and_music(env, monkeypatch):
+    from datetime import datetime, timedelta
+    groups = [{"theme": t, "items": [{"name": f"{t}-p.png", "url": "", "format": "pomodoro", "environment": "pluja"}]} for t in ("Bosc", "Riu", "Port")]
+    monkeypatch.setattr(main, "background_library", lambda: groups)
+    submitted = []
+    monkeypatch.setattr(main.autopilot, "submit", submitted.append)
+    day = (datetime.utcnow() + timedelta(days=2)).date().isoformat()
+    with TestClient(main.app) as client:
+        page = client.get("/").text
+        assert 'name="music_mode"' in page
+        client.post("/auto/setmana", data={"count": "3", "first_day": day, "ambience_level": "-6", "music_mode": "no", "music_level": "-8"}, follow_redirects=False)
+        assert client.post("/auto/setmana", data={"count": "3", "first_day": day, "music_level": "9"}).status_code == 400
+    with env.session() as db:
+        runs = db.query(AutoRun).filter(AutoRun.id.in_(submitted)).all()
+    assert len(runs) == 3 and all(r.ambience_level == -6 and r.music == 0 and r.music_level == -8 for r in runs)
