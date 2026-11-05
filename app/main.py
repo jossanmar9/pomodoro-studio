@@ -28,7 +28,7 @@ from app.services.thumbnail import generate_thumbnail
 from app.services.timer import build_chapters, build_timeline, format_timestamp
 from app.services.youtube import YouTubeUnavailable, YouTubeUploadSpec, can_manage_playlists, credentials, forget_upload, reconnect as reconnect_youtube, upload_video, view_counts, youtube_configured
 from app.services.suggestions import build_suggestions, cached_views, refresh_views_in_background
-from app.services.schedule import label as schedule_label, next_slot
+from app.services.schedule import from_local, label as schedule_label, local_day, next_slot
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
 from app.services.meta import facebook_configured, instagram_configured
@@ -278,6 +278,66 @@ def stats_refresh():
     return RedirectResponse("/estadistiques",303)
 
 
+def _scheduled_for(schedule:str,publish_date:str,publish_time:str):
+    """Quan es publica: «» en acabar, «next» (o «1») el pròxim dia lliure, «date» el dia i l'hora triats."""
+    if schedule in {"next","1"}:
+        return next_slot(datetime.utcnow(),_taken_slots(),hour=settings.publish_hour,zone=settings.timezone)
+    if schedule=="date":
+        try: when=from_local(publish_date,publish_time or f"{settings.publish_hour:02d}:00",settings.timezone)
+        except ValueError: raise HTTPException(400,"Dia o hora de publicació no vàlids") from None
+        if when<datetime.utcnow(): raise HTTPException(400,"El dia de publicació ja ha passat")
+        return when
+    return None
+
+
+# Duració per defecte de cada format quan Pomodoro tria els vídeos de la setmana.
+BATCH_DURATIONS={"pomodoro":120,"dormir":480,"llegir":180,"ambient":180}
+BATCH_FORMATS=["pomodoro","dormir","llegir","pomodoro","ambient","dormir","llegir"]
+
+
+def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None)->list[dict]:
+    """Tria vídeos variats (temes diferents, formats alternats) per a publicar un cada dia."""
+    rng=rng or random.Random()
+    items=[{"theme":g["theme"],**item} for g in background_library() for item in g["items"]]
+    items=[i for i in items if i["theme"] in AUTO_THEMES and i.get("format") in BATCH_DURATIONS and i.get("environment") in ENVIRONMENTS]
+    with SessionLocal() as db:
+        recent={r[0] for r in db.query(AutoRun.theme).order_by(AutoRun.id.desc()).limit(10).all()}
+    rng.shuffle(items)
+    items.sort(key=lambda i:i["theme"] in recent)  # primer els temes que fa temps que no es fan
+    chosen,used=[],set()
+    for n in range(count):
+        wanted=BATCH_FORMATS[n%len(BATCH_FORMATS)]
+        pick=next((i for i in items if i["theme"] not in used and i["format"]==wanted),None) or next((i for i in items if i["theme"] not in used),None) or (items[n%len(items)] if items else None)
+        if pick is None: break
+        used.add(pick["theme"])
+        chosen.append({"theme":pick["theme"],"environment":pick["environment"],"format":pick["format"],"background":pick["name"],
+                       "duration_minutes":BATCH_DURATIONS[pick["format"]],"scheduled_for":first_day_utc+timedelta(days=n)})
+    return chosen
+
+
+@app.post("/auto/setmana")
+def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("")):
+    """Prepara diversos vídeos d'una vegada: es fan i es pugen seguits i es publica un cada dia."""
+    if not 1<=count<=7: raise HTTPException(400,"Han de ser d'1 a 7 vídeos")
+    try: first=from_local(first_day,publish_time or f"{settings.publish_hour:02d}:00",settings.timezone)
+    except ValueError: raise HTTPException(400,"Dia o hora no vàlids") from None
+    if first<datetime.utcnow(): raise HTTPException(400,"El primer dia ja ha passat")
+    plan=plan_batch(count,first)
+    if not plan: raise HTTPException(409,"No hi ha fons guardats per a triar els vídeos")
+    ids=[]
+    with SessionLocal() as db:
+        for p in plan:
+            fmt=p["format"]
+            advice=music_advice(fmt,p["environment"],p["theme"])
+            run=AutoRun(theme=p["theme"],environment=p["environment"],duration_minutes=p["duration_minutes"],focus_minutes=25,break_minutes=5,privacy="public",publish=1,
+                        music=1 if advice.get("recommended") else 0,music_level=0,chime=1 if fmt=="pomodoro" else 0,ambience_level=0,format=fmt,dim=1 if fmt=="dormir" else 0,
+                        motion=1,shorts=3,background=p["background"],delete_after=1,intro=1,scheduled_for=p["scheduled_for"],
+                        instagram=1 if instagram_configured() else 0,facebook=1 if facebook_configured() else 0)
+            db.add(run); db.commit(); ids.append(run.id)
+    for run_id in ids: autopilot.submit(run_id)
+    return RedirectResponse("/",303)
+
+
 def _taken_slots()->list:
     """Hores ja reservades en el calendari (vídeos programats que no han fallat)."""
     with SessionLocal() as db:
@@ -319,7 +379,7 @@ def auto_home(request:Request,error:str=Query("")):
     counts={"ambience":len(catalog().ambience),"music":len(catalog().music)}
     tips=_suggestions({t["name"] for t in themes if t["backgrounds"]})
     slot=next_slot(datetime.utcnow(),_taken_slots(),hour=settings.publish_hour,zone=settings.timezone)
-    return templates.TemplateResponse(request,"auto.html",{"suggestions":tips,"calendar":_calendar(),"next_slot":schedule_label(slot,settings.timezone),
+    return templates.TemplateResponse(request,"auto.html",{"suggestions":tips,"calendar":_calendar(),"next_slot":schedule_label(slot,settings.timezone),"next_slot_day":local_day(slot,settings.timezone),"publish_hour":f"{settings.publish_hour:02d}:00",
         "themes":themes,"theme_groups":theme_groups,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
@@ -330,7 +390,7 @@ def auto_home(request:Request,error:str=Query("")):
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form(""),schedule:str=Form(""),intro:str=Form("")):
+def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form(""),schedule:str=Form(""),intro:str=Form(""),publish_date:str=Form(""),publish_time:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if format=="soroll":
         # El soroll de color no usa cap tema ni foto: el fons es genera del color del soroll.
@@ -372,7 +432,7 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     if music_style and music_style not in MUSIC_STYLES: raise HTTPException(400,"Estil de música no vàlid")
     files=[n for n in ambience_files.split(",") if n and Path(n).name==n and len(n)<=120][:4]
     shorts_count=int(shorts) if shorts in {"1","3"} and publish else 0
-    scheduled_for=next_slot(datetime.utcnow(),_taken_slots(),hour=settings.publish_hour,zone=settings.timezone) if schedule and publish and privacy=="public" else None
+    scheduled_for=_scheduled_for(schedule,publish_date,publish_time) if publish and privacy=="public" else None
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
         run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,scheduled_for=scheduled_for,intro=1 if intro and format not in {"respiracio","short"} else 0,

@@ -42,3 +42,13 @@ def publish_at(scheduled_utc: datetime | None, now_utc: datetime) -> str | None:
 def label(when_utc: datetime, zone: str) -> str:
     local = to_local(when_utc, zone)
     return f"{DAYS[local.weekday()]} {local.day}/{local.month} a les {local:%H:%M}"
+
+
+def from_local(day: str, clock: str, zone: str) -> datetime:
+    """«2026-11-09» i «18:00» en hora local → UTC (sense zona)."""
+    local = datetime.combine(date.fromisoformat(day), time.fromisoformat(clock), ZoneInfo(zone))
+    return to_utc(local)
+
+
+def local_day(when_utc: datetime, zone: str) -> str:
+    return to_local(when_utc, zone).date().isoformat()

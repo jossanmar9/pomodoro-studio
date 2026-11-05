@@ -1420,3 +1420,39 @@ def test_intro_is_requested_from_the_form(env, monkeypatch):
         assert db.get(AutoRun, run_id).intro == 1
     auto.execute(run_id, rng=random.Random(0))
     assert env.rendered["spec"].channel_intro.name == "intro.mp4"
+
+
+def test_week_batch_makes_varied_videos_one_per_day(env, monkeypatch):
+    from datetime import datetime, timedelta
+    groups = [{"theme": t, "items": [{"name": f"{t}-{f}.png", "url": "", "format": f, "environment": e} for f, e in (("pomodoro", "pluja"), ("dormir", "llar"), ("llegir", "pluja-finestra"))]}
+              for t in ("Biblioteca victoriana", "Cabana amb pluja", "Golfa amb pluja", "Llibreria acollidora", "Far en la tempesta", "Bosc", "Riu", "Port")]
+    monkeypatch.setattr(main, "background_library", lambda: groups)
+    submitted = []
+    monkeypatch.setattr(main.autopilot, "submit", submitted.append)
+    day = (datetime.utcnow() + timedelta(days=3)).date().isoformat()
+    with TestClient(main.app) as client:
+        assert "Preparar la setmana" in client.get("/").text
+        assert client.post("/auto/setmana", data={"count": "7", "first_day": day, "publish_time": "18:00"}, follow_redirects=False).status_code == 303
+        assert client.post("/auto/setmana", data={"count": "9", "first_day": day}).status_code == 400
+        assert client.post("/auto/setmana", data={"count": "3", "first_day": "2020-01-01"}).status_code == 400
+    with env.session() as db:
+        runs = db.query(AutoRun).filter(AutoRun.id.in_(submitted)).order_by(AutoRun.id).all()
+    assert len(runs) == 7 and len({r.theme for r in runs}) == 7
+    assert [(b.scheduled_for - a.scheduled_for).days for a, b in zip(runs, runs[1:])] == [1] * 6
+    assert {r.format for r in runs} >= {"pomodoro", "dormir", "llegir"} and all(r.publish and r.privacy == "public" and r.shorts == 3 for r in runs)
+    assert all(r.background.startswith(r.theme) for r in runs) and runs[1].duration_minutes == 480 and runs[1].dim == 1
+
+
+def test_video_can_be_scheduled_for_a_chosen_day(env, monkeypatch):
+    from datetime import datetime, timedelta
+    monkeypatch.setattr(main.autopilot, "submit", lambda run_id: None)
+    day = (datetime.utcnow() + timedelta(days=4)).date().isoformat()
+    with TestClient(main.app) as client:
+        base = {"theme": "Bosc", "environment": "bosc", "duration_minutes": "60", "publish": "1", "privacy": "public"}
+        assert client.post("/auto", data=base | {"schedule": "date", "publish_date": day, "publish_time": "09:30"}, follow_redirects=False).status_code == 303
+        assert client.post("/auto", data=base | {"schedule": "date", "publish_date": "2020-01-01"}).status_code == 400
+    with env.session() as db:
+        run = db.query(AutoRun).order_by(AutoRun.id.desc()).first()
+    from app.services.schedule import to_local
+    local = to_local(run.scheduled_for, "Europe/Madrid")
+    assert local.date().isoformat() == day and (local.hour, local.minute) == (9, 30)

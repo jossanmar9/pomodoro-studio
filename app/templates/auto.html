@@ -71,6 +71,22 @@
   </section>
   {% endif %}
 
+  <details class="card batch">
+    <summary>🗓️ Preparar la setmana: diversos vídeos d'una vegada, un per dia</summary>
+    <form action="/auto/setmana" method="post" class="batch-form">
+      <p class="muted">Pomodoro tria vídeos variats amb els fons que tens (temes diferents i formats alternats: pomodoro, per a dormir, per a llegir, so ambiental), els fa i els puja seguits, i YouTube en publica un cada dia a l'hora triada. Ideal per a deixar-los preparant el diumenge.</p>
+      <div class="batch-fields">
+        <label>Quants vídeos
+          <select name="count">{% for n in range(1, 8) %}<option value="{{ n }}" {% if n == 7 %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+        </label>
+        <label>Primer dia <input type="date" name="first_day" value="{{ next_slot_day }}" required></label>
+        <label>Hora <input type="time" name="publish_time" value="{{ publish_hour }}"></label>
+        <button type="submit" class="big">Preparar-los</button>
+      </div>
+      <small class="muted">Si vols triar tu cada vídeo, fes-los un a un amb el formulari de davall i, en «Quan es publica», tria el dia.</small>
+    </form>
+  </details>
+
   <form action="/auto" method="post" class="card auto-form" id="auto-form">
     <fieldset class="choice-block">
       <legend>Format</legend>
@@ -233,7 +249,17 @@
       <fieldset class="option-group">
         <legend>Publicació</legend>
         <label class="check"><input type="checkbox" name="publish" value="1" checked> Publicar a YouTube en acabar</label>
-        <label class="check" title="Només per a vídeos públics"><input type="checkbox" name="schedule" value="1"> Programar-lo al calendari (pròxim dia lliure: {{ next_slot }})</label>
+        <label>Quan es publica (només vídeos públics)
+          <select name="schedule" id="schedule">
+            <option value="">En acabar de fer-se</option>
+            <option value="next">El pròxim dia lliure: {{ next_slot }}</option>
+            <option value="date">Un dia i una hora concrets…</option>
+          </select>
+        </label>
+        <div class="schedule-date" id="schedule-date" hidden>
+          <input type="date" name="publish_date" value="{{ next_slot_day }}" aria-label="Dia de publicació">
+          <input type="time" name="publish_time" value="{{ publish_hour }}" aria-label="Hora de publicació">
+        </div>
         <label>Visibilitat
           <select name="privacy">
             {% for key, label in privacy_choices.items() %}<option value="{{ key }}" {% if key == default_privacy %}selected{% endif %}>{{ label }}</option>{% endfor %}
