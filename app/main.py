@@ -37,7 +37,7 @@ from app.services.meta import facebook_configured, instagram_configured
 from app.services.background_library import library as background_library
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.noise_screen import NOISE_SCREENS
-from app.services.autopilot_plan import MUSIC_LEVELS, NOISE_THEME, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
+from app.services.autopilot_plan import VISUAL_STYLES, MUSIC_LEVELS, NOISE_THEME, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
 from app.themes import THEMES, publication_theme
 
 RESOLUTIONS={"1920x1080","2560x1440"}; STATUSES={"DRAFT","QUEUED","GENERATING","COMPLETED","FAILED","CANCELLED"}; OUTPUT_FILES={"video.mp4","thumbnail.jpg","title.txt","description.txt","chapters.txt","tags.txt","metadata.json","publication-package.zip"}
@@ -248,7 +248,7 @@ def _stats()->dict:
             shorts=[i for i in ([r.short_video_id] if r.short_video_id and r.short_video_id!=r.video_id else [])+(r.extra_short_ids or "").split(",") if i]
             videos.append({"id":r.id,"theme":r.theme,"format":FORMATS.get(r.format or "pomodoro",r.format),"environment":ENVIRONMENTS[r.environment].label if r.environment in ENVIRONMENTS else r.environment,
                            "hours":r.duration_minutes/60,"url":f"https://youtu.be/{r.video_id}","views":views.get(r.video_id),
-                           "short_views":sum(views.get(i,0) for i in shorts),"date":(r.published_at or r.created_at).strftime("%d/%m/%Y"),"is_short":r.format=="short"})
+                           "short_views":sum(views.get(i,0) for i in shorts),"style":VISUAL_STYLES.get(r.visual_style or "realista","Realista"),"date":(r.published_at or r.created_at).strftime("%d/%m/%Y"),"is_short":r.format=="short"})
     def group(key):
         out={}
         for v in videos:
@@ -260,7 +260,7 @@ def _stats()->dict:
     long_videos=[v for v in videos if not v["is_short"]]
     try: fetched=json.loads(settings.youtube_stats_file.read_text(encoding="utf-8")).get("fetched")
     except (OSError,ValueError): fetched=None
-    return {"themes":group("theme"),"formats":group("format"),"environments":group("environment"),
+    return {"styles":group("style"),"themes":group("theme"),"formats":group("format"),"environments":group("environment"),
             "top":sorted([v for v in long_videos if v["views"] is not None],key=lambda v:-v["views"])[:10],
             "total_videos":len(long_videos),"total_views":sum(v["views"] or 0 for v in long_videos),
             "total_short_views":sum(v["short_views"] for v in videos)+sum(v["views"] or 0 for v in videos if v["is_short"]),
@@ -316,7 +316,7 @@ def _guess_environment(name:str)->str|None:
     return max(found,key=len) if found else None
 
 
-def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,themes:list[str]|None=None)->list[dict]:
+def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,themes:list[str]|None=None,visual_style:str|None=None)->list[dict]:
     """Tria vídeos variats per a publicar un cada dia.
 
     Sense `themes`, temes diferents cada dia; amb una temàtica (p. ex. Nadal), fons diferents
@@ -327,6 +327,7 @@ def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,them
     for g in background_library():
         if g["theme"] not in AUTO_THEMES or (themes and g["theme"] not in themes): continue
         for item in g["items"]:
+            if visual_style in VISUAL_STYLES and item.get("style","realista")!=visual_style: continue
             env=item.get("environment") if item.get("environment") in ENVIRONMENTS else _guess_environment(item["name"])
             if env: items.append({**item,"theme":g["theme"],"environment":env})
     with SessionLocal() as db:
@@ -350,7 +351,7 @@ def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,them
 
 
 @app.post("/auto/setmana")
-def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),theme:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0)):
+def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),theme:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0),visual_style:str=Form("")):
     """Prepara diversos vídeos d'una vegada: es fan i es pugen seguits i es publica un cada dia."""
     if not 1<=count<=7: raise HTTPException(400,"Han de ser d'1 a 7 vídeos")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
@@ -363,8 +364,9 @@ def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("
     if theme:
         chosen_themes=group_themes(theme) if theme.startswith("grup:") else ([theme] if theme in AUTO_THEMES else None)
         if not chosen_themes: raise HTTPException(400,"Temàtica no vàlida")
-    plan=plan_batch(count,first,themes=chosen_themes)
-    if not plan: raise HTTPException(409,"No hi ha fons guardats d'eixa temàtica per a triar els vídeos")
+    style=visual_style if visual_style in VISUAL_STYLES else None
+    plan=plan_batch(count,first,themes=chosen_themes,visual_style=style)
+    if not plan: raise HTTPException(409,"No hi ha fons guardats d'eixa temàtica"+(f" d'estil {VISUAL_STYLES[style].lower()}" if style else "")+" per a triar els vídeos")
     ids=[]
     with SessionLocal() as db:
         for p in plan:
@@ -374,7 +376,7 @@ def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("
                         music=(1 if advice.get("recommended") else 0) if music_mode=="auto" else (1 if music_mode=="si" and fmt!="ambient" else 0),
                         music_level=music_level,chime=1 if fmt=="pomodoro" else 0,ambience_level=ambience_level,format=fmt,dim=1 if fmt=="dormir" else 0,
                         motion=1,shorts=3,background=p["background"],delete_after=1,intro=1,scheduled_for=p["scheduled_for"],
-                        instagram=1 if instagram_configured() else 0,facebook=1 if facebook_configured() else 0)
+                        instagram=1 if instagram_configured() else 0,facebook=1 if facebook_configured() else 0,visual_style=style)
             db.add(run); db.commit(); ids.append(run.id)
     for run_id in ids: autopilot.submit(run_id)
     return RedirectResponse("/",303)
@@ -414,7 +416,8 @@ def _suggestions(available:set[str])->list:
 def auto_home(request:Request,error:str=Query("")):
     try: cleanup_published_videos()
     except Exception: logging.getLogger(__name__).exception("Ha fallat la neteja de vídeos publicats")
-    gallery={group["theme"]:[{k:item[k] for k in ("name","url","format","environment")} for item in group["items"]] for group in background_library()}
+    gallery={group["theme"]:[{**{k:item[k] for k in ("name","url","format","environment")},"style":item.get("style","realista")} for item in group["items"]] for group in background_library()}
+    style_counts={s:sum(1 for items in gallery.values() for i in items if i["style"]==s) for s in VISUAL_STYLES}
     themes=[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in AUTO_THEMES]
     theme_groups=[{"name":g,"icon":icon,"direct":ts==[g],"backgrounds":sum(len(gallery.get(t,[])) for t in ts),"themes":[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in ts]} for g,icon,ts in grouped_themes()]
     environments=[{"key":k,"label":e.label} for k,e in environments_by_label()]
@@ -427,12 +430,12 @@ def auto_home(request:Request,error:str=Query("")):
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
         "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
-        "instagram_ready":instagram_configured(),"youtube_playlists":has_all_permissions(),"facebook_ready":facebook_configured(),
+        "visual_styles":VISUAL_STYLES,"style_counts":style_counts,"instagram_ready":instagram_configured(),"youtube_playlists":has_all_permissions(),"facebook_ready":facebook_configured(),
     })
 
 
 @app.post("/auto")
-def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form(""),schedule:str=Form(""),intro:str=Form(""),publish_date:str=Form(""),publish_time:str=Form("")):
+def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int=Form(...),pomodoro:str=Form("25/5"),privacy:str=Form("public"),publish:str=Form(""),music:str=Form(""),music_style:str=Form(""),music_level:int=Form(0),chime:str=Form(""),ambience_level:int=Form(0),ambience_files:str=Form(""),format:str=Form("pomodoro"),noise:str=Form(""),dim:str=Form(""),motion:str=Form(""),breath:str=Form(""),shorts:str=Form(""),background:str=Form(""),shutdown:str=Form(""),delete_after:str=Form(""),noise_screen:str=Form("color"),noise_pulse:str=Form(""),instagram:str=Form(""),facebook:str=Form(""),schedule:str=Form(""),intro:str=Form(""),publish_date:str=Form(""),publish_time:str=Form(""),visual_style:str=Form("")):
     if format not in FORMATS: raise HTTPException(400,"Format no vàlid")
     if format=="soroll":
         # El soroll de color no usa cap tema ni foto: el fons es genera del color del soroll.
@@ -477,7 +480,7 @@ def auto_create(theme:str=Form(""),environment:str=Form(""),duration_minutes:int
     scheduled_for=_scheduled_for(schedule,publish_date,publish_time) if publish and privacy=="public" else None
     focus,pause=POMODORO_CHOICES[pomodoro]
     with SessionLocal() as db:
-        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,scheduled_for=scheduled_for,reels_json=_skip_reels(instagram,facebook,publish),intro=1 if intro and format not in {"respiracio","short"} else 0,
+        run=AutoRun(theme=theme,environment=environment,duration_minutes=duration_minutes,focus_minutes=focus,break_minutes=pause,privacy=privacy,publish=1 if publish else 0,music=1 if music else 0,music_style=music_style or None,music_level=music_level,chime=1 if chime else 0,ambience_level=ambience_level,ambience_files=",".join(files) or None,format=format,noise=noise or None,dim=1 if dim else 0,motion=1 if motion else 0,breath=breath or None,shorts=shorts_count,background=background or None,shutdown=1 if shutdown else 0,delete_after=1 if delete_after else 0,noise_screen=noise_screen or None,noise_pulse=1 if noise_pulse else 0,scheduled_for=scheduled_for,reels_json=_skip_reels(instagram,facebook,publish),intro=1 if intro and format not in {"respiracio","short"} else 0,visual_style=visual_style if visual_style in VISUAL_STYLES else None,
                  instagram=1 if instagram and publish and (shorts_count or format=="short") and instagram_configured() else 0,
                  facebook=1 if facebook and publish and (shorts_count or format=="short") and facebook_configured() else 0)
         db.add(run); db.commit(); run_id=run.id

@@ -20,7 +20,7 @@ from app.database import SessionLocal
 from app.models import AUTO_ACTIVE_STEPS, AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_LEVELS, MUSIC_STYLES, music_style, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
-    CHANNEL_URL, playlists_for, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
+    CHANNEL_URL, VISUAL_STYLES, anime_title, background_style, playlists_for, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
@@ -111,9 +111,17 @@ def noise_background(noise: str, screen: str, *, with_name: bool = True) -> Path
     return path
 
 
-def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro", *, chosen: str | None = None, recent: set[str] | None = None) -> tuple[Path, str]:
-    """Usa el fons triat a mà o, si no se n'ha triat cap, un de la biblioteca a l'atzar."""
+def choose_background(theme: str, environment: str, rng: random.Random, fmt: str = "pomodoro", *, chosen: str | None = None, recent: set[str] | None = None,
+                      visual_style: str | None = None) -> tuple[Path, str]:
+    """Usa el fons triat a mà o, si no se n'ha triat cap, un de la biblioteca a l'atzar (de l'estil demanat, si n'hi ha)."""
     library = find_backgrounds(settings.assets_dir / "backgrounds", theme)
+    style_note = None
+    if visual_style in VISUAL_STYLES and not chosen:
+        same = [path for path in library if background_style(path) == visual_style]
+        if same:
+            library = same
+        elif library:
+            style_note = f"No hi ha fons {VISUAL_STYLES[visual_style].lower()} de «{theme}»; se n'ha usat un altre"
     if chosen:
         for path in library:
             if path.name == chosen:
@@ -124,7 +132,7 @@ def choose_background(theme: str, environment: str, rng: random.Random, fmt: str
             f"Afig-ne en «Biblioteca de fons» o copia una imatge en assets/backgrounds amb un nom que comence per «{slugify(theme)}»."
         )
     fresh = [path for path in library if path.name not in (recent or set())] or library
-    note = "Fons de la biblioteca" if not chosen else "El fons triat ja no existeix; se n'ha usat un altre de la biblioteca"
+    note = style_note or ("Fons de la biblioteca" if not chosen else "El fons triat ja no existeix; se n'ha usat un altre de la biblioteca")
     return rng.choice(best_matches(fresh, environment, fmt)), note
 
 
@@ -197,6 +205,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         run_noise = run.noise
         with_motion = bool(run.motion)
         chosen_background = run.background
+        wanted_style = run.visual_style if run.visual_style in VISUAL_STYLES else None
         breath = run.breath
         style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment, run.theme)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
@@ -224,8 +233,9 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             background = noise_background(run_noise, noise_screen)
             notes.append(NOISE_SCREENS[noise_screen])
         else:
-            background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background})
-            _update(run_id, background=background.name)
+            background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background},
+                                                 visual_style=wanted_style)
+            _update(run_id, background=background.name, visual_style=background_style(background))
             notes.append(note)
         if fmt == "short":
             _execute_channel_short(run_id, project_id, theme, environment, rng, background, level=level, music_level=music_level, preferred=preferred,
@@ -280,6 +290,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             compact_credits=build_credits(playlist, ambience_paths, catalog, compact=True),
             music=bool(playlist), chime=with_chime, style=style, breath=breath,
             fmt=fmt, noise=run_noise, dim=dim_after is not None, screen=noise_screen, seed=project_id,
+            anime=fmt != "soroll" and background_style(background) == "anime",
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
@@ -414,12 +425,16 @@ def _localizations(run: AutoRun, description: str) -> dict[str, dict[str, str]]:
     """Títol i descripció en castellà, portugués, alemany i francés (si falla, el vídeo es puja igual)."""
     try:
         env = ENVIRONMENTS.get(run.environment)
-        return localized_texts(
+        texts = localized_texts(
             fmt=run.format or "pomodoro", public_theme=publication_theme(run.theme), sound=env.public_label if env else "",
             duration_minutes=run.duration_minutes, english_description=description, focus=run.focus_minutes, pause=run.break_minutes,
             music=bool(run.music), noise=NOISE_COLORS[run.noise][1] if run.noise in NOISE_COLORS else None,
             breath=BREATH_PATTERNS[run.breath].public if run.breath in BREATH_PATTERNS else None, dim=bool(run.dim),
         )
+        if run.visual_style == "anime" and run.format != "soroll":
+            for value in texts.values():
+                value["title"] = anime_title(value["title"])
+        return texts
     except Exception:  # les traduccions són un extra
         logger.exception("No s'han pogut preparar les traduccions")
         return {}
@@ -429,7 +444,7 @@ def _add_to_playlists(run_id: int, video_id: str) -> str | None:
     """Afig el vídeo a les llistes del canal. Torna una nota per a l'usuari."""
     with SessionLocal() as db:
         run = db.get(AutoRun, run_id)
-        wanted = playlists_for(run.format or "pomodoro", run.theme, run.environment) if run else []
+        wanted = playlists_for(run.format or "pomodoro", run.theme, run.environment, run.visual_style == "anime") if run else []
     if not wanted:
         return None
     if not can_manage_playlists():

@@ -527,6 +527,25 @@ def prompt_spec(theme: str, environment: str, fmt: str = "pomodoro") -> Ambience
     )
 
 
+VISUAL_STYLES = {"realista": "Realista", "anime": "Anime"}
+ANIME_PLAYLIST = ("Cozy Anime Ambience", "Cozy anime rooms with rain, fireplaces and soft lights to study, read and sleep.")
+
+
+def background_style(path: Path | str) -> str:
+    """«anime» si el fons és d'estil anime (nom acabat en «-anime» o fitxa amb style=anime); si no, «realista»."""
+    path = Path(path)
+    slug = slugify(path.stem)
+    if slug.endswith("-anime") or "-anime-" in slug:
+        return "anime"
+    try:
+        data = json.loads(path.with_suffix(path.suffix + ".json").read_text(encoding="utf-8"))
+        if (data.get("generation") or {}).get("style") == "anime" or data.get("style") == "anime":
+            return "anime"
+    except (OSError, ValueError, AttributeError):
+        pass
+    return "realista"
+
+
 def find_backgrounds(folder: Path, theme: str) -> list[Path]:
     """Fons existents que pertanyen a l'ambientació (pel nom del fitxer)."""
     if not folder.is_dir():
@@ -740,7 +759,7 @@ def _hashtags(*words: str) -> str:
     return " ".join(dict.fromkeys(_hashtag(w) for w in words if w))
 
 
-def build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None, screen: str = "color", seed: int | None = None) -> AutoTexts:
+def _build_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, fmt: str = "pomodoro", noise: str | None = None, dim: bool = False, style: str = "calma", breath: str | None = None, screen: str = "color", seed: int | None = None) -> AutoTexts:
     """Textos del vídeo. `seed` (l'identificador del vídeo) tria les frases: vídeos seguits no les repeteixen."""
     seed = new_seed() if seed is None else seed
     music_text = MUSIC_STYLES.get(style, MUSIC_STYLES["calma"])[1]
@@ -892,6 +911,31 @@ def build_texts(*, public_theme: str, environment: str, duration: int, focus: in
     return AutoTexts(title, description, ", ".join(t for t in dict.fromkeys(tags) if t), thumbnail)
 
 
+def build_texts(*, anime: bool = False, **kwargs) -> AutoTexts:
+    """Títol, descripció i etiquetes del vídeo. Els d'estil anime ho diuen en el títol, les etiquetes i els hashtags."""
+    texts = _build_texts(**kwargs)
+    return anime_texts(texts) if anime else texts
+
+
+def anime_title(title: str) -> str:
+    """«Cozy X Ambience | …» → «Cozy X Anime Ambience | …» (o « · Anime» si el títol no porta «Ambience»)."""
+    candidate = title.replace(" Ambience |", " Anime Ambience |", 1) if " Ambience |" in title else title.replace(" | ", " · Anime | ", 1)
+    if candidate == title:
+        candidate = f"{title} · Anime"
+    while len(candidate) > 100 and " | " in candidate:
+        candidate = candidate.rsplit(" | ", 1)[0]
+    return candidate[:100]
+
+
+def anime_texts(texts: AutoTexts) -> AutoTexts:
+    head, _, last = texts.description.rpartition("\n\n")
+    description = f"{head}\n\n{last} #animeambience" if last.startswith("#") and head else texts.description
+    if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
+        description = texts.description
+    tags = ", ".join(dict.fromkeys(["anime ambience", "cozy anime", "lofi anime", *[t.strip() for t in texts.tags.split(",") if t.strip()]]))
+    return AutoTexts(anime_title(texts.title), description, tags, texts.thumbnail_text)
+
+
 def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus: int, pause: int, chapters: str, credits: str, compact_credits: str = "", music: bool = True, chime: bool = False, music_text: str = "calm instrumental music", seed: int = 0) -> AutoTexts:
     env = ENVIRONMENTS[environment]
     label = duration_label(duration)
@@ -1020,9 +1064,9 @@ _FIRE_ENVIRONMENTS = {"llar", "pluja-llar", "llar-tempesta", "hivern", "rellotge
 _CAFE_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer"}
 
 
-def playlists_for(fmt: str, theme: str, environment: str) -> list[tuple[str, str]]:
-    """Llistes on va un vídeo (títol i descripció). Com a molt tres."""
-    result: list[tuple[str, str]] = []
+def playlists_for(fmt: str, theme: str, environment: str, anime: bool = False) -> list[tuple[str, str]]:
+    """Llistes on va un vídeo (títol i descripció). Com a molt tres (els d'anime, primer la seua)."""
+    result: list[tuple[str, str]] = [ANIME_PLAYLIST] if anime else []
     if fmt in FORMAT_PLAYLISTS:
         result.append(FORMAT_PLAYLISTS[fmt])
     if theme in WORLD_THEMES:

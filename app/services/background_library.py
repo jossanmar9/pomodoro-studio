@@ -15,7 +15,7 @@ from PIL import Image, UnidentifiedImageError
 
 from app.config import settings
 from app.services.ambience_assets import ALLOWED_IMAGE_EXTENSIONS, AssetProvenance, import_background
-from app.services.autopilot_plan import AUTO_THEMES, ENVIRONMENTS, FORMATS, NOISE_ENVIRONMENT, find_backgrounds, slugify
+from app.services.autopilot_plan import AUTO_THEMES, ENVIRONMENTS, FORMATS, NOISE_ENVIRONMENT, background_style, find_backgrounds, slugify
 
 MIN_WIDTH, MIN_HEIGHT = 1920, 1080
 # Llicències acceptades en afegir una imatge.
@@ -55,6 +55,7 @@ def library() -> list[dict]:
                 "name": path.name, "url": f"/assets/backgrounds/{path.name}", "license": meta.get("license", ""),
                 "model": meta.get("model", ""), "source": meta.get("source_notes", "")[:200],
                 "format": generation.get("format") or "", "environment": generation.get("environment") or "",
+                "style": background_style(path),
             })
         groups.append({"theme": theme, "items": items})
     return groups

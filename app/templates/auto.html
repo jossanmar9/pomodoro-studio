@@ -83,6 +83,12 @@
             {% if not group.direct %}{% for t in group.themes %}<option value="{{ t.name }}" {% if not t.backgrounds %}disabled{% endif %}>&nbsp;&nbsp;&nbsp;{{ t.name }} · {{ t.backgrounds }} fons</option>{% endfor %}{% endif %}{% endfor %}
           </select>
         </label>
+<label>Estil de les imatges
+          <select name="visual_style">
+            <option value="" selected>Qualsevol</option>
+            {% for key, label in visual_styles.items() %}<option value="{{ key }}" {% if not style_counts[key] %}disabled{% endif %}>{{ label }} · {{ style_counts[key] }} fons</option>{% endfor %}
+          </select>
+        </label>
         <label>Quants vídeos
           <select name="count">{% for n in range(1, 8) %}<option value="{{ n }}" {% if n == 7 %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
         </label>
@@ -261,6 +267,12 @@
     <div class="options">
       <fieldset class="option-group">
         <legend>Vídeo</legend>
+        <label data-hide-for="soroll">Estil de la imatge
+          <select name="visual_style">
+            <option value="" selected>Qualsevol</option>
+            {% for key, label in visual_styles.items() %}<option value="{{ key }}" {% if not style_counts[key] %}disabled{% endif %}>{{ label }} · {{ style_counts[key] }} fons</option>{% endfor %}
+          </select>
+        </label>
         <label class="check" data-hide-for="respiracio short"><input type="checkbox" name="intro" value="1" checked> Intro del canal (6 s: espurnes i el nom, i apareix l'escena)</label>
         <label class="check" data-show-for="pomodoro"><input type="checkbox" name="chime" value="1" checked> Avís suau en acabar cada temporitzador</label>
         <label class="check" data-show-for="dormir soroll" hidden><input type="checkbox" name="dim" value="1" checked> Enfosquir la pantalla als 30 minuts</label>

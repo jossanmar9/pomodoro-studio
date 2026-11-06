@@ -85,6 +85,7 @@ ADDED_COLUMNS = {
         "reels_due": "INTEGER NOT NULL DEFAULT 0",
         "reels_json": "TEXT",
         "intro": "INTEGER NOT NULL DEFAULT 0",
+        "visual_style": "VARCHAR(10)",
         "facebook": "INTEGER NOT NULL DEFAULT 0",
         "instagram_media_id": "VARCHAR(40)",
         "facebook_video_id": "VARCHAR(40)",
