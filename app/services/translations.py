@@ -92,6 +92,8 @@ SOUND_NAMES: dict[str, dict[str, str]] = {
     "Quiet Night": {"es": "Noche tranquila", "pt": "Noite tranquila", "de": "Stille Nacht", "fr": "Nuit calme"},
     "Rain & Fireplace": {"es": "Lluvia y chimenea", "pt": "Chuva e lareira", "de": "Regen und Kamin", "fr": "Pluie et cheminée"},
     "Rain in the Forest": {"es": "Lluvia en el bosque", "pt": "Chuva na floresta", "de": "Regen im Wald", "fr": "Pluie en forêt"},
+    "Summer Cicadas & Wind Chimes": {"es": "Cigarras y campanillas de viento", "pt": "Cigarras e sinos de vento", "de": "Zikaden und Windspiel", "fr": "Cigales et carillon à vent"},
+    "Rain & Vinyl Crackle": {"es": "Lluvia y vinilo", "pt": "Chuva e vinil", "de": "Regen und Vinylknistern", "fr": "Pluie et craquements de vinyle"},
     "Rain on the Window": {"es": "Lluvia en la ventana", "pt": "Chuva na janela", "de": "Regen am Fenster", "fr": "Pluie sur la fenêtre"},
     "Rainy City": {"es": "Ciudad lluviosa", "pt": "Cidade chuvosa", "de": "Regnerische Stadt", "fr": "Ville sous la pluie"},
     "Rainy Harbour": {"es": "Puerto con lluvia", "pt": "Porto na chuva", "de": "Hafen im Regen", "fr": "Port sous la pluie"},

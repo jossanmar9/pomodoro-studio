@@ -94,7 +94,7 @@ def fetch(entry: dict, target: Path) -> None:
 def main() -> int:
     entries = json.loads(CATALOG.read_text(encoding="utf-8"))
     pending = [e for e in entries if e.get("download_url") and not (ROOT / e["file"]).is_file()]
-    if not pending:
+    if not pending and not any(e.get("manual") and not (ROOT / e["file"]).is_file() for e in entries):
         print("Ja tens tots els sons del catàleg.")
         return 0
     print(f"Falten {len(pending)} fitxers. Baixant…\n")
@@ -116,6 +116,11 @@ def main() -> int:
             print(f"  Pots baixar-lo a mà des de {entry.get('source_url') or entry['download_url']} i guardar-lo com {entry['file']}")
         time.sleep(0.5)  # amb calma, per respecte al servidor
     print(f"\nFet: {len(pending) - failed} baixats, {failed} amb error.")
+    manual = [e for e in entries if e.get("manual") and not (ROOT / e["file"]).is_file()]
+    if manual:
+        print(f"\nHi ha {len(manual)} peces que cal baixar a mà (la web demana iniciar sessió):")
+        for entry in manual:
+            print(f"  • {entry['title']} ({entry.get('album', '')}): {entry['source_url']} → guarda-la com {entry['file']}")
     return 1 if failed else 0
 
 

@@ -20,6 +20,7 @@ Tipografies lliures usades en el comptador i en la miniatura de cada ambientaci�
 | `comfortaa` | Comfortaa | SIL OFL 1.1 | Cafeteria acollidora | Només s'ha canviat el nom del fitxer |
 | `bebas-neue` | Bebas Neue | SIL OFL 1.1 | Cafeteria a Nova York | Cap |
 | `josefin-sans` | Josefin Sans | SIL OFL 1.1 | Cafeteria moderna, Cafeteria a Tòquio | Només s'ha canviat el nom del fitxer |
+| `zen-maru-gothic` | Zen Maru Gothic (Bold i Medium) | SIL OFL 1.1 | Vídeos amb fons d'estil anime | Subconjunt només amb caràcters llatins |
 
 Les tipografies amb nom reservat (Reserved Font Name) no s'han modificat. Només s'han adaptat les que no en tenen, tal com permet la llicència OFL.
 

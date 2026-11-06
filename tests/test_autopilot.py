@@ -176,7 +176,8 @@ def test_every_environment_sound_is_in_the_catalogue():
             missing = [name for name in layer if name not in stems]
             assert not missing, (key, missing)
     for entry in catalog.values():
-        assert entry["license"] in {"CC0 1.0", "CC BY 4.0"} and entry["download_url"].startswith("https://")
+        url = entry["source_url"] if entry.get("manual") else entry["download_url"]  # les manuals es baixen a mà des de la seua pàgina
+        assert entry["license"] in {"CC0 1.0", "CC BY 4.0"} and url.startswith("https://")
 
 
 def test_level_and_listened_sample_are_reused(tmp_path):
@@ -593,7 +594,7 @@ def test_music_style_follows_format_and_environment(tmp_path):
     catalog = load_catalog(Path(__file__).resolve().parent.parent / "assets" / "audio-catalog.json")
     music = [e for e in catalog.values() if e["kind"] == "music"]
     for style in MUSIC_STYLES:
-        assert sum(e.get("style") == style for e in music) >= 7, style
+        assert sum(e.get("style") == style for e in music) >= 7, style  # lo-fi: 9 peces CC0 de HoliznaCC0
     texts = build_texts(public_theme="Medieval Tavern", environment="taverna", duration=120, focus=120, pause=0, chapters="00:00:00 Hour 1", credits="", fmt="rol", music=True, style="medieval")
     assert "medieval folk music" in texts.description
 
@@ -1668,3 +1669,15 @@ def test_anime_backgrounds_are_chosen_by_style_and_titled(env):
     texts = build_texts(public_theme="Rainy Library", environment="pluja", duration=120, focus=25, pause=5, chapters="", credits="", anime=True, seed=1)
     assert "Anime Ambience" in texts.title and texts.tags.startswith("anime ambience") and "#animeambience" in texts.description
     assert playlists_for("pomodoro", "Nadal", "llar", anime=True)[0][0] == "Cozy Anime Ambience"
+
+
+def test_anime_videos_use_rounded_font_and_lofi():
+    from app.services.autopilot_plan import ENVIRONMENTS, LOFI_FORMATS, MUSIC_STYLES, track_style
+    from app.services.fonts import fonts_for_theme
+    root = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+    anime = fonts_for_theme("Biblioteca medieval", root=root, anime=True)
+    assert anime.label and anime.label.name.startswith("ZenMaruGothic") and anime.digits.name.startswith("ZenMaruGothic")
+    assert fonts_for_theme("Biblioteca medieval", root=root).label.name.startswith("IMFe")
+    assert "lofi" in MUSIC_STYLES and {"pomodoro", "llegir"} <= LOFI_FORMATS
+    assert track_style(Path("lofi-winter-blues.mp3")) == "lofi"
+    assert ENVIRONMENTS["pluja-vinil"].layers[1] == ("vinil",) and ENVIRONMENTS["estiu-japo"].layers == (("cigales",), ("campanetes-vent",))

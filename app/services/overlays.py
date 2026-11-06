@@ -55,7 +55,7 @@ VIDEO_SUFFIXES = {".mp4", ".mov", ".webm", ".mkv"}
 OUTDOOR_THEMES = {"Bosc", "Parc a la ciutat", "Campament d'aventurers", "Platja", "Riu", "Port"}
 # Temes on la pols flotant no té sentit.
 NO_DUST_THEMES = {"Avió"}
-_RAIN = {"pluja", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca", "selva-pluja"}
+_RAIN = {"pluja", "pluja-vinil", "pluja-llar", "pluja-ciutat", "pluja-bosc", "pluja-finestra", "port", "biblioteca", "selva-pluja"}
 _STORM = {"tempesta", "tempesta-mar", "bosc-tempesta", "platja-tempesta", "llar-tempesta", "monso"}
 _FIRE_OUTSIDE = {"campament"}
 

@@ -37,6 +37,11 @@ CORMORANT = "cormorant-garamond/CormorantGaramond-SemiBold.ttf"
 COMFORTAA = "comfortaa/Comfortaa-Variable.ttf"
 BEBAS = "bebas-neue/BebasNeue-Regular.ttf"
 JOSEFIN = "josefin-sans/JosefinSans-Variable.ttf"
+ZEN_MARU = "zen-maru-gothic/ZenMaruGothic-Bold-Latin.ttf"
+ZEN_MARU_MEDIUM = "zen-maru-gothic/ZenMaruGothic-Medium-Latin.ttf"
+
+# Vídeos amb fons d'estil anime: lletra arrodonida, com la dels rètols de l'animació japonesa.
+ANIME_FONTS = FontStyle("Anime", ZEN_MARU, ZEN_MARU_MEDIUM)
 
 THEME_FONTS: dict[str, FontStyle] = {
     "Biblioteca medieval": FontStyle("Llibre antic", IM_FELL_SC, IM_FELL),
@@ -104,9 +109,9 @@ def _existing(relative: str, root: Path) -> Path | None:
     return path
 
 
-def fonts_for_theme(theme: str, *, root: Path | None = None) -> ResolvedFonts:
-    """Fitxers de tipografia de l'ambientació; None vol dir «usa DejaVu Sans»."""
-    style = THEME_FONTS.get(theme)
+def fonts_for_theme(theme: str, *, root: Path | None = None, anime: bool = False) -> ResolvedFonts:
+    """Fitxers de tipografia de l'ambientació (o la dels vídeos anime); None vol dir «usa DejaVu Sans»."""
+    style = ANIME_FONTS if anime else THEME_FONTS.get(theme)
     if style is None:
         return ResolvedFonts(None, None)
     if root is None:
