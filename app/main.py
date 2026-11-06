@@ -327,7 +327,7 @@ def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,them
     for g in background_library():
         if g["theme"] not in AUTO_THEMES or (themes and g["theme"] not in themes): continue
         for item in g["items"]:
-            if visual_style in VISUAL_STYLES and item.get("style")!=visual_style: continue
+            if visual_style in VISUAL_STYLES and item.get("style","realista")!=visual_style: continue
             env=item.get("environment") if item.get("environment") in ENVIRONMENTS else _guess_environment(item["name"])
             if env: items.append({**item,"theme":g["theme"],"environment":env})
     with SessionLocal() as db:
@@ -416,7 +416,7 @@ def _suggestions(available:set[str])->list:
 def auto_home(request:Request,error:str=Query("")):
     try: cleanup_published_videos()
     except Exception: logging.getLogger(__name__).exception("Ha fallat la neteja de vídeos publicats")
-    gallery={group["theme"]:[{k:item[k] for k in ("name","url","format","environment","style")} for item in group["items"]] for group in background_library()}
+    gallery={group["theme"]:[{**{k:item[k] for k in ("name","url","format","environment")},"style":item.get("style","realista")} for item in group["items"]] for group in background_library()}
     style_counts={s:sum(1 for items in gallery.values() for i in items if i["style"]==s) for s in VISUAL_STYLES}
     themes=[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in AUTO_THEMES]
     theme_groups=[{"name":g,"icon":icon,"direct":ts==[g],"backgrounds":sum(len(gallery.get(t,[])) for t in ts),"themes":[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in ts]} for g,icon,ts in grouped_themes()]
