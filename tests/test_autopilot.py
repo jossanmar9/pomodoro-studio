@@ -593,7 +593,7 @@ def test_music_style_follows_format_and_environment(tmp_path):
     catalog = load_catalog(Path(__file__).resolve().parent.parent / "assets" / "audio-catalog.json")
     music = [e for e in catalog.values() if e["kind"] == "music"]
     for style in MUSIC_STYLES:
-        assert sum(e.get("style") == style for e in music) >= 7, style
+        assert sum(e.get("style") == style for e in music) >= 7, style  # lo-fi: 9 peces CC0 de HoliznaCC0
     texts = build_texts(public_theme="Medieval Tavern", environment="taverna", duration=120, focus=120, pause=0, chapters="00:00:00 Hour 1", credits="", fmt="rol", music=True, style="medieval")
     assert "medieval folk music" in texts.description
 
