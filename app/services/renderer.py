@@ -40,6 +40,7 @@ class RenderSpec:
     chime: bool = False
     # False per a vídeos sense comptador (per a dormir, partides de rol, soroll).
     show_timer: bool = True
+    progress_bar: bool = True  # barra de progrés i punts de sessió davall del comptador
     # Segon a partir del qual la pantalla es fon a negre (None = mai).
     dim_after: int | None = None
     # Soroll generat per FFmpeg: "white", "pink" o "brown" (None = cap).
@@ -189,7 +190,68 @@ def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: 
         ]
     if timeline.segments:
         filters.append(f"drawtext={digits_font}:text='\\:':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}{fade}")
+        filters += session_dot_filters(timeline, appear_at)
     return ",".join(filters)
+
+
+# Barra de progrés i punts de sessió davall del comptador (opció «C»).
+PROGRESS_TRACK = "0x46464B"
+PROGRESS_FOCUS = "0xF3C47A"   # ambre
+PROGRESS_BREAK = "0x9CC7A4"   # verd suau durant el descans
+DOTS_PER_CYCLE = 4            # un cicle pomodoro clàssic: 4 sessions
+
+
+def _ranges(spans: list[tuple[int, int]]) -> str:
+    """Expressió «està dins d'algun d'estos intervals» per a enable o per a càlculs."""
+    return "+".join(f"between(t\\,{a}\\,{max(a, b - .001):g})" for a, b in spans) or "0"
+
+
+def progress_bar_parts(source: str, out: str, timeline: TimelineSummary, width: int, height: int, fps: int, appear_at: float = 0) -> list[str]:
+    """Barra que s'ompli durant cada concentració (ambre) i cada descans (verd), centrada davall del comptador."""
+    bar_w, bar_h = max(40, round(width * 0.22)), max(4, round(height * 0.008))
+    x, y = (width - bar_w) // 2, round(height * 0.685)
+    parts = [f"color=c={PROGRESS_TRACK}:s={bar_w}x{bar_h}:r={fps}[ptrack]"]
+    layer = "[ptrack]"
+    for kind, colour in (("FOCUS", PROGRESS_FOCUS), ("BREAK", PROGRESS_BREAK)):
+        segments = [seg for seg in timeline.segments if seg.kind.value == kind and seg.duration_seconds > 0]
+        if not segments:
+            continue
+        progress = "+".join(f"between(t\\,{seg.start_seconds}\\,{seg.end_seconds})*(t-{seg.start_seconds})/{seg.duration_seconds}" for seg in segments)
+        enable = _ranges([(seg.start_seconds, seg.end_seconds) for seg in segments])
+        name = f"p{kind.lower()}"
+        parts.append(f"color=c={colour}:s={bar_w}x{bar_h}:r={fps}[{name}c]")
+        parts.append(f"{layer}[{name}c]overlay=x='-{bar_w}+{bar_w}*min(1\\,{progress})':y=0:eval=frame:shortest=1:enable='{enable}'[{name}]")
+        layer = f"[{name}]"
+    shown = f"gte(t\\,{appear_at:g})" if appear_at > 0 else "1"
+    parts.append(f"{source}{layer}overlay=x={x}:y={y}:shortest=1:enable='{shown}'[{out}]")
+    return parts
+
+
+def session_dot_filters(timeline: TimelineSummary, appear_at: float = 0) -> list[str]:
+    """Punts del cicle: fets en ambre, l'actual en blanc i els que falten en gris."""
+    cycle = min(DOTS_PER_CYCLE, timeline.sessions)
+    if cycle < 2:
+        return []
+    states: dict[tuple[int, str], list[tuple[int, int]]] = {}
+    for seg in timeline.segments:
+        position = (seg.session - 1) % DOTS_PER_CYCLE
+        for dot in range(cycle):
+            state = "done" if dot < position else "now" if dot == position else "todo"
+            states.setdefault((dot, state), []).append((seg.start_seconds, seg.end_seconds))
+    colours = {"done": "0xF3C47A", "now": "0xFFF3DE", "todo": "0x5A5A5F"}
+    fade = f":alpha='min(1\\,max(0\\,(t-{appear_at:g})/1.2))'" if appear_at > 0 else ""
+    filters = []
+    for (dot, state), spans in sorted(states.items()):
+        merged: list[list[int]] = []
+        for a, b in spans:
+            if merged and merged[-1][1] == a:
+                merged[-1][1] = b
+            else:
+                merged.append([a, b])
+        offset = f"{dot - (cycle - 1) / 2:g}"
+        filters.append(f"drawtext={font_option(None)}:text='●':fontcolor={colours[state]}:fontsize=h/40:x=w/2+({offset})*h*0.032-text_w/2:y=h*0.712"
+                       f":enable='{_ranges([tuple(m) for m in merged])}'{fade}")
+    return filters
 
 
 def _validate_audio(track: AudioTrack) -> None:
@@ -271,9 +333,14 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
         source = "[0:v]"
     if spec.show_timer:
         with_intro = spec.channel_intro is not None and spec.timeline.total_seconds > CHANNEL_INTRO_SECONDS + 5
-        timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts, CHANNEL_INTRO_TIMER_FROM if with_intro else 0)
+        appear = CHANNEL_INTRO_TIMER_FROM if with_intro else 0
+        timer = build_timer_filters(spec.timeline, spec.timer_language, spec.fonts, appear)
         if timer:
             video.append(timer)
+        if spec.progress_bar and spec.timeline.segments:
+            parts.append(f"{source}{','.join(video) or 'null'}[vtimer]")
+            parts.extend(progress_bar_parts("[vtimer]", "vbar", spec.timeline, width, height, spec.fps, appear))
+            source, video = "[vbar]", []
     if spec.intro_text:
         end = spec.intro_seconds
         alpha = f"if(lt(t,2),t/2,if(lt(t,{end - 3}),1,max(0,({end}-t)/3)))"
