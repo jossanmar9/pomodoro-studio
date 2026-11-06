@@ -299,19 +299,22 @@
     const environment = form.querySelector('input[name="environment"]:checked')?.value || "";
     const previous = form.querySelector('input[name="background"]:checked')?.value || "";
     const score = (b) => (b.format === format ? 2 : 0) + (b.environment === environment ? 1 : 0);
-    const items = [...(BACKGROUNDS[theme] || [])].sort((a, b) => score(b) - score(a));
+    const style = form.querySelector('select[name="visual_style"]')?.value || "";
+    const items = [...(BACKGROUNDS[theme] || [])].filter((b) => !style || b.style === style).sort((a, b) => score(b) - score(a));
     if (!items.length) {
-      picker.innerHTML = `<p class="missing">Encara no hi ha cap fons de «${esc(theme)}». <a class="back" href="/fons#importar">Afegir-ne un</a></p>`;
+      picker.innerHTML = style
+        ? `<p class="missing">Encara no hi ha cap fons ${style === "anime" ? "anime" : "realista"} de «${esc(theme)}»: se n'usarà un de l'altre estil.</p>`
+        : `<p class="missing">Encara no hi ha cap fons de «${esc(theme)}». <a class="back" href="/fons#importar">Afegir-ne un</a></p>`;
       return;
     }
     const keep = items.some((b) => b.name === previous) ? previous : "";
     picker.innerHTML = `<label class="bg-option"><input type="radio" name="background" value="" ${keep ? "" : "checked"}><span class="random">🎲 A l'atzar<br><small>${items.length} fons</small></span></label>` +
       items.map((b) => {
-        const tags = [b.format && labelOf("format", b.format), b.environment && labelOf("environment", b.environment)].filter(Boolean).join(" · ");
+        const tags = [b.style === "anime" && "Anime", b.format && labelOf("format", b.format), b.environment && labelOf("environment", b.environment)].filter(Boolean).join(" · ");
         return `<label class="bg-option" title="${esc(b.name)}"><input type="radio" name="background" value="${esc(b.name)}" ${b.name === keep ? "checked" : ""}><span style="background-image:url('${encodeURI(b.url)}')"><small>${esc(tags || "Qualsevol")}</small></span></label>`;
       }).join("");
   }
-  form?.querySelectorAll('input[name="theme"], input[name="format"], input[name="environment"]').forEach((el) => el.addEventListener("change", renderBackgrounds));
+  form?.querySelectorAll('input[name="theme"], input[name="format"], input[name="environment"], select[name="visual_style"]').forEach((el) => el.addEventListener("change", renderBackgrounds));
   renderBackgrounds();
 
   document.querySelector("#random")?.addEventListener("click", () => {

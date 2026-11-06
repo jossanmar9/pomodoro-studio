@@ -1646,3 +1646,25 @@ def test_title_says_no_music_when_there_is_none():
     assert "(No Music)" not in ambient.title and "No Music" in ambient.title
     es = localized_texts(fmt="dormir", public_theme="Rainy Library", sound="Rain", duration_minutes=180, english_description="x", music=False)
     assert es["es"]["title"].endswith("(Sin música)") and es["de"]["title"].endswith("(Ohne Musik)")
+
+
+def test_anime_backgrounds_are_chosen_by_style_and_titled(env):
+    from app.services.autopilot_plan import anime_title, background_style, playlists_for
+    folder = env.tmp / "assets" / "backgrounds"
+    touch(folder / "biblioteca-medieval-llar-pomodoro.png")
+    touch(folder / "biblioteca-medieval-llar-pomodoro-anime.png")
+    assert background_style(folder / "biblioteca-medieval-llar-pomodoro-anime.png") == "anime"
+    assert background_style(folder / "biblioteca-medieval-llar-pomodoro.png") == "realista"
+    rng = random.Random(1)
+    for _ in range(5):
+        assert auto.choose_background("Biblioteca medieval", "llar", rng, visual_style="anime")[0].name.endswith("-anime.png")
+        assert not auto.choose_background("Biblioteca medieval", "llar", rng, visual_style="realista")[0].name.endswith("-anime.png")
+    touch(folder / "masmorra-masmorra-pomodoro.png")
+    path, note = auto.choose_background("Masmorra", "masmorra", rng, visual_style="anime")
+    assert path.name == "masmorra-masmorra-pomodoro.png" and "anime" in note
+    title = anime_title("Cozy Rainy Library Ambience | 3 Hours Pomodoro 25/5 Study With Me | Rain Sounds")
+    assert title.startswith("Cozy Rainy Library Anime Ambience |") and len(title) <= 100
+    assert len(anime_title("Cozy " + "Very Long Name " * 5 + "Ambience | 10 Hours Deep Work 90/15 Study With Me | Rain & Fireplace Sounds")) <= 100
+    texts = build_texts(public_theme="Rainy Library", environment="pluja", duration=120, focus=25, pause=5, chapters="", credits="", anime=True, seed=1)
+    assert "Anime Ambience" in texts.title and texts.tags.startswith("anime ambience") and "#animeambience" in texts.description
+    assert playlists_for("pomodoro", "Nadal", "llar", anime=True)[0][0] == "Cozy Anime Ambience"

@@ -68,6 +68,8 @@ class AutoRun(Base):
     reels_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Intro del canal (espurnes i nom) al començament del vídeo.
     intro: Mapped[int] = mapped_column(Integer, default=0)
+    # Estil del fons: «realista», «anime» o buit (qualsevol). Després de fer el vídeo, l'estil del fons usat.
+    visual_style: Mapped[str | None] = mapped_column(String(10), nullable=True)
     # Fons triat a mà en el formulari; després de fer el vídeo, el fons que s'ha usat.
     # Respiració guiada: patró (quadrada, 478, coherent).
     breath: Mapped[str | None] = mapped_column(String(20), nullable=True)
