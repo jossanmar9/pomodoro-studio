@@ -1698,6 +1698,31 @@ def test_import_script_names_and_describes_backgrounds(tmp_path):
     assert "no conec" in module.plan(tmp_path / "Pomodoro + Tema inventat + Vent.png", anime=True)
 
 
+def test_reclassify_script_moves_old_pomodoro_backgrounds(tmp_path):
+    import importlib.util, json
+    from PIL import Image
+    spec = importlib.util.spec_from_file_location("reclassificar_fons", Path(__file__).resolve().parent.parent / "scripts" / "reclassificar-fons.py")
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    def make(name, colour, fmt, layout=None):
+        Image.new("RGB", (64, 36), colour).save(tmp_path / name)
+        gen = {"format": fmt, "environment": "pluja"} | ({"layout": layout} if layout else {})
+        (tmp_path / (name + ".json")).write_text(json.dumps({"generation": gen}), encoding="utf-8")
+    make("fosc.png", (20, 20, 30), "pomodoro")
+    make("clar.png", (200, 190, 170), "pomodoro")
+    make("nou.png", (20, 20, 30), "pomodoro", "escriptori")
+    make("altre.png", (20, 20, 30), "llegir")
+    fmt = lambda n: json.loads((tmp_path / (n + ".json")).read_text())["generation"]["format"]
+    assert module.main(["--prova"], tmp_path) == 0 and fmt("fosc.png") == "pomodoro"
+    module.main([], tmp_path)
+    assert (fmt("fosc.png"), fmt("clar.png"), fmt("nou.png"), fmt("altre.png")) == ("dormir", "ambient", "pomodoro", "llegir")
+    module.main(["--desfer"], tmp_path)
+    assert (fmt("fosc.png"), fmt("clar.png")) == ("pomodoro", "pomodoro")
+    imp = importlib.util.spec_from_file_location("importar_fons", Path(__file__).resolve().parent.parent / "scripts" / "importar-fons.py")
+    importer = importlib.util.module_from_spec(imp); imp.loader.exec_module(importer)
+    desk = tmp_path / "Pomodoro + Bosc + Bosc i ocells.png"
+    Image.new("RGB", (64, 36)).save(desk)
+    assert importer.plan(desk, anime=False, desk=True)[1]["generation"]["layout"] == "escriptori"
+
 def test_progress_bar_and_session_dots_follow_the_timeline():
     from app.services.renderer import progress_bar_parts, session_dot_filters
     from app.services.timer import build_timeline

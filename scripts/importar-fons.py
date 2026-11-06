@@ -6,6 +6,7 @@
     python3 scripts/importar-fons.py ~/amber/fons --anime
     python3 scripts/importar-fons.py ~/Baixades/fons            (realistes)
     python3 scripts/importar-fons.py ~/amber/fons --anime --prova   (només ho mostra)
+    python3 scripts/importar-fons.py ~/fons-escriptori --escriptori  (pomodoros nous d'escriptori i finestra)
 
 Les imatges han de dur el nom dels prompts:
     «Pomodoro + Cabana amb pluja + Pluja i llar de foc.png»     (format + tema + so)
@@ -62,7 +63,7 @@ def digest(path: Path) -> str:
     return h.hexdigest()
 
 
-def plan(path: Path, anime: bool) -> tuple[str, dict] | str:
+def plan(path: Path, anime: bool, desk: bool = False) -> tuple[str, dict] | str:
     """Nom nou i fitxa de la imatge, o el motiu pel qual no es pot importar."""
     parts = [p.strip() for p in unicodedata.normalize("NFC", path.stem).split(" + ")]
     if len(parts) != 3:
@@ -91,6 +92,8 @@ def plan(path: Path, anime: bool) -> tuple[str, dict] | str:
         "provider": "import", "model": "ChatGPT", "license": "Generated with ChatGPT for The Amber Window",
         "source_notes": path.name, "sha256": "",
     }
+    if desk:
+        meta["generation"]["layout"] = "escriptori"
     return name, meta
 
 
@@ -98,6 +101,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Importa imatges de fons a Pomodoro Studio.")
     parser.add_argument("carpeta", type=Path, help="carpeta amb les imatges")
     parser.add_argument("--anime", action="store_true", help="les imatges són d'estil anime")
+    parser.add_argument("--escriptori", action="store_true", help="són els fons nous d'escriptori davant de la finestra")
     parser.add_argument("--prova", action="store_true", help="només mostra què faria, sense copiar res")
     args = parser.parse_args()
     source = args.carpeta.expanduser()
@@ -115,7 +119,7 @@ def main() -> int:
 
     copied, skipped, problems = 0, 0, []
     for path in sorted(p for p in source.iterdir() if p.is_file() and p.suffix.lower() in IMAGES):
-        result = plan(path, args.anime)
+        result = plan(path, args.anime, args.escriptori)
         if isinstance(result, str):
             problems.append(f"{path.name}: {result}")
             continue
