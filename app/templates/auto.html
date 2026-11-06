@@ -74,13 +74,19 @@
   <details class="card batch">
     <summary>🗓️ Preparar la setmana: diversos vídeos d'una vegada, un per dia</summary>
     <form action="/auto/setmana" method="post" class="batch-form">
-      <p class="muted">Pomodoro tria vídeos variats amb els fons que tens (temes diferents i formats alternats: pomodoro, per a dormir, per a llegir, so ambiental), els fa i els puja seguits, i YouTube en publica un cada dia a l'hora triada. Ideal per a deixar-los preparant el diumenge.</p>
+      <p class="muted">Pomodoro tria vídeos variats amb els fons que tens (de la temàtica i el format que tries, o de tot: temes diferents i formats alternats), els fa i els puja seguits, i YouTube en publica un cada dia a l'hora triada. Ideal per a deixar-los preparant el diumenge.</p>
       <div class="batch-fields">
         <label>Temàtica
           <select name="theme">
             <option value="">Variada (de tot)</option>
             {% for group in theme_groups %}<option value="grup:{{ group.name }}" {% if not group.backgrounds %}disabled{% endif %}>{{ group.icon }} {{ group.name }}{% if not group.direct %} (tots){% endif %} · {{ group.backgrounds }} fons</option>
             {% if not group.direct %}{% for t in group.themes %}<option value="{{ t.name }}" {% if not t.backgrounds %}disabled{% endif %}>&nbsp;&nbsp;&nbsp;{{ t.name }} · {{ t.backgrounds }} fons</option>{% endfor %}{% endif %}{% endfor %}
+          </select>
+        </label>
+<label>Format
+          <select name="format">
+            <option value="" selected>Alternats (de tot)</option>
+            {% for key in batch_formats %}<option value="{{ key }}">{{ formats[key] }}</option>{% endfor %}
           </select>
         </label>
 <label>Estil de les imatges
