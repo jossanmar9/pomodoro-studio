@@ -342,6 +342,11 @@ THEME_VISUALS: dict[str, tuple[str, str, str]] = {
     "Llibreria acollidora": ("cozy old bookstore", "floor-to-ceiling shelves of second-hand books, a rolling ladder, warm hanging lamps, a worn armchair and rain on the shop window", "cozy"),
     "Golfa amb pluja": ("cozy attic room under a sloped wooden roof", "rain on the skylight, old trunks, a small bed with a patchwork quilt, stacks of books and a warm lamp", "cozy"),
     "Far en la tempesta": ("lighthouse keeper's room during a storm", "round stone room with a brass oil lamp, logbooks and sea charts, a kettle on a small iron stove, rain and huge waves seen through the window", "timeless"),
+    "Habitació amb kotatsu": ("japanese room with a kotatsu", "a low kotatsu table under a thick quilt, mandarins, a cup of tea, tatami and a window", "japanese"),
+    "Botiga de barri de nit": ("small neighbourhood corner shop at night", "full shelves, a glowing entrance, a quiet street and wet pavement", "cozy"),
+    "Andana de tren rural": ("small rural train platform", "a wooden platform with a bench, a lamp post and fields around", "cozy"),
+    "Terrat amb pluja": ("city rooftop in the rain", "potted plants, laundry under an awning and city rooftops", "cozy"),
+    "Cuina de casa": ("old cozy home kitchen", "a pot on the stove, wooden cupboards, a kettle and a window", "cozy"),
     "Casa de te japonesa": ("traditional japanese tea house room", "tatami floor, a low table with a steaming tea set, paper lanterns and sliding doors open onto a rainy moss garden", "japanese"),
     "Racó de lectura": ("cozy reading nook in a window seat", "soft cushions and a knitted blanket, stacks of well-worn books, an open book, a cup of tea and a warm reading lamp by a large window", "cozy"),
 }
@@ -350,10 +355,10 @@ AUTO_THEMES = tuple(THEME_VISUALS)
 # Quadres de la pàgina: primer per tipus de lloc, després estacions i festes. Cada tema va en un sol quadre.
 THEME_GROUPS: dict[str, tuple[str, tuple[str, ...]]] = {
     "Biblioteques i lectura": ("📚", ("Biblioteca medieval", "Biblioteca màgica", "Biblioteca èlfica", "Biblioteca victoriana", "Racó de lectura", "Llibreria acollidora", "Observatori")),
-    "Cafeteries i ciutat": ("☕", ("Cafeteria acollidora", "Cafeteria moderna", "Cafeteria a Nova York", "Cafeteria a Tòquio", "Cafeteria a París", "Apartament a la ciutat", "Parc a la ciutat")),
-    "Cases i refugis": ("🏡", ("Cabana amb pluja", "Golfa amb pluja", "Far en la tempesta", "Casa de te japonesa", "Hivernacle")),
+    "Cafeteries i ciutat": ("☕", ("Cafeteria acollidora", "Cafeteria moderna", "Cafeteria a Nova York", "Cafeteria a Tòquio", "Cafeteria a París", "Apartament a la ciutat", "Parc a la ciutat", "Botiga de barri de nit", "Terrat amb pluja")),
+    "Cases i refugis": ("🏡", ("Cabana amb pluja", "Golfa amb pluja", "Far en la tempesta", "Casa de te japonesa", "Hivernacle", "Habitació amb kotatsu", "Cuina de casa")),
     "Natura": ("🌲", ("Bosc", "Platja", "Riu", "Port")),
-    "Viatges": ("🚆", ("Tren", "Avió", "Vaixell pirata")),
+    "Viatges": ("🚆", ("Tren", "Andana de tren rural", "Avió", "Vaixell pirata")),
     "Món": ("🌍", ("Àfrica", "Àsia", "Sud-amèrica", "Europa", "Nord-amèrica")),
     "Història": ("🏛️", ("Roma antiga", "Grècia antiga", "Japó feudal", "Castell gòtic")),
     "Fantasia i rol": ("🐉", ("Taverna medieval", "Torre de l'alquimista", "Masmorra", "Campament d'aventurers", "Cova del drac")),

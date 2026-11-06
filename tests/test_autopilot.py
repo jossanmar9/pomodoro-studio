@@ -1681,3 +1681,18 @@ def test_anime_videos_use_rounded_font_and_lofi():
     assert "lofi" in MUSIC_STYLES and {"pomodoro", "llegir"} <= LOFI_FORMATS
     assert track_style(Path("lofi-winter-blues.mp3")) == "lofi"
     assert ENVIRONMENTS["pluja-vinil"].layers[1] == ("vinil",) and ENVIRONMENTS["estiu-japo"].layers == (("cigales",), ("campanetes-vent",))
+
+
+def test_import_script_names_and_describes_backgrounds(tmp_path):
+    import importlib.util, struct, zlib
+    spec = importlib.util.spec_from_file_location("importar_fons", Path(__file__).resolve().parent.parent / "scripts" / "importar-fons.py")
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    png = tmp_path / "Pomodoro + Habitació amb kotatsu + Vent d'hivern i llar.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + struct.pack(">II", 2304, 1296) + b"\x08\x02\x00\x00\x00")
+    name, meta = module.plan(png, anime=True)
+    assert name == "habitacio-amb-kotatsu-hivern-pomodoro-anime.png"
+    assert meta["generation"]["style"] == "anime" and meta["generation"]["width"] == 2304 and meta["generation"]["format"] == "pomodoro"
+    seasonal = tmp_path / "Nadal + Poble del Pol Nord + Nit tranquil·la.png"
+    seasonal.write_bytes(png.read_bytes())
+    assert module.plan(seasonal, anime=False)[0] == "poble-del-pol-nord-nit-temporada.png"
+    assert "no conec" in module.plan(tmp_path / "Pomodoro + Tema inventat + Vent.png", anime=True)
