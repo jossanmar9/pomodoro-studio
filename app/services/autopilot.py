@@ -35,16 +35,17 @@ from app.services.shorts import FPS as SHORT_FPS, HEIGHT as SHORT_HEIGHT, SECOND
 from app.services.renderer import AudioTrack, RenderSpec
 from app.services.noise_screen import NOISE_SCREENS, make_noise_background
 from app.services.backdrops import short_backdrop, timer_backdrop
-from app.services.channel_intro import ensure_channel_intro
+from app.services.channel_intro import TIMER_FROM as CHANNEL_INTRO_TIMER_FROM, ensure_channel_intro
 from app.services.quality import check_video
 from app.services.schedule import label as schedule_label, publish_at as schedule_publish_at
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
 from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail
-from app.services.timer import build_chapters, build_timeline
+from app.services.timer import build_chapters, build_timeline, with_lead_in
 from app.services.youtube import YouTubeUploadSpec, add_to_playlists, can_comment, can_manage_playlists, post_comment, upload_video
 from app.services.translations import localized_short, localized_texts
 from app.themes import publication_theme
 
+COUNTDOWN_SECONDS = 10  # compte enrere abans de la primera concentració dels pomodoros
 logger = logging.getLogger(__name__)
 RESOLUTION = "1920x1080"
 FINAL_RENDER_STATUSES = {"COMPLETAT", "ERROR", "CANCEL·LAT"}
@@ -247,6 +248,9 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
 
         _update(run_id, step="AUDIO", message="Triant efectes i preparant la música…")
         timeline = build_timeline(focus, pause, duration)
+        if fmt == "pomodoro":
+            # 10 segons de compte enrere quan apareix el comptador (després de la intro, si n'hi ha).
+            timeline = with_lead_in(timeline, COUNTDOWN_SECONDS + (round(CHANNEL_INTRO_TIMER_FROM) if with_intro else 0))
         catalog = load_catalog(settings.audio_catalog)
         playlist: list[Path] = []
         if fmt == "soroll":

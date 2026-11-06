@@ -26,6 +26,16 @@ class TimelineSummary:
     focus_seconds: int
     break_seconds: int
     total_seconds: int
+    lead_in: int = 0  # segons de compte enrere abans de la primera concentració
+
+
+def with_lead_in(timeline: TimelineSummary, seconds: int) -> TimelineSummary:
+    """La mateixa línia temporal, però començant després d'un compte enrere de `seconds` segons."""
+    if seconds <= 0:
+        return timeline
+    segments = [TimelineSegment(s.kind, s.session, s.start_seconds + seconds, s.duration_seconds) for s in timeline.segments]
+    return TimelineSummary(segments, timeline.sessions, timeline.focus_seconds, timeline.break_seconds,
+                           timeline.total_seconds + seconds, timeline.lead_in + seconds)
 
 
 def build_timeline(focus_minutes: int, break_minutes: int, total_minutes: int) -> TimelineSummary:
@@ -73,6 +83,8 @@ def build_chapters(timeline: TimelineSummary, language: str = "va") -> str:
     if language not in {"va", "en"}:
         raise ValueError("Idioma de capítols no compatible")
     lines: list[str] = []
+    if timeline.lead_in:
+        lines.append(f"{format_timestamp(0)} {'Starting soon' if language == 'en' else 'Compte enrere'}")
     for segment in timeline.segments:
         if language == "en":
             label = f"Focus session {segment.session}" if segment.kind is SegmentType.FOCUS else "Break"
