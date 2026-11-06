@@ -1668,3 +1668,15 @@ def test_anime_backgrounds_are_chosen_by_style_and_titled(env):
     texts = build_texts(public_theme="Rainy Library", environment="pluja", duration=120, focus=25, pause=5, chapters="", credits="", anime=True, seed=1)
     assert "Anime Ambience" in texts.title and texts.tags.startswith("anime ambience") and "#animeambience" in texts.description
     assert playlists_for("pomodoro", "Nadal", "llar", anime=True)[0][0] == "Cozy Anime Ambience"
+
+
+def test_anime_videos_use_rounded_font_and_lofi():
+    from app.services.autopilot_plan import ENVIRONMENTS, LOFI_FORMATS, MUSIC_STYLES, track_style
+    from app.services.fonts import fonts_for_theme
+    root = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+    anime = fonts_for_theme("Biblioteca medieval", root=root, anime=True)
+    assert anime.label and anime.label.name.startswith("ZenMaruGothic") and anime.digits.name.startswith("ZenMaruGothic")
+    assert fonts_for_theme("Biblioteca medieval", root=root).label.name.startswith("IMFe")
+    assert "lofi" in MUSIC_STYLES and {"pomodoro", "llegir"} <= LOFI_FORMATS
+    assert track_style(Path("lofi-winter-blues.mp3")) == "lofi"
+    assert ENVIRONMENTS["pluja-vinil"].layers[1] == ("vinil",) and ENVIRONMENTS["estiu-japo"].layers == (("cigales",), ("campanetes-vent",))

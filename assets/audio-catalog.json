@@ -2703,5 +2703,44 @@
   "freesound_page": "https://freesound.org/people/KasDonatov/sounds/402710/",
   "duration_seconds": 42.959,
   "changes": "Freesound high-quality MP3 preview of the original; not edited."
+ },
+ {
+  "kind": "ambience",
+  "file": "assets/ambience/cigales.mp3",
+  "id": "163688",
+  "title": "cicadas.wav",
+  "author": "cognito perceptu",
+  "source_url": "https://freesound.org/people/cognito%20perceptu/sounds/163688/",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "download_url": "https://freesound.org/people/cognito%20perceptu/sounds/163688/",
+  "freesound_page": "https://freesound.org/people/cognito%20perceptu/sounds/163688/",
+  "changes": "Freesound high-quality MP3 preview of the original; not edited."
+ },
+ {
+  "kind": "ambience",
+  "file": "assets/ambience/campanetes-vent.mp3",
+  "id": "378429",
+  "title": "Koshi Wind Chimes, Slow #2",
+  "author": "Kinoton",
+  "source_url": "https://freesound.org/people/Kinoton/sounds/378429/",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "download_url": "https://freesound.org/people/Kinoton/sounds/378429/",
+  "freesound_page": "https://freesound.org/people/Kinoton/sounds/378429/",
+  "changes": "Freesound high-quality MP3 preview of the original; not edited."
+ },
+ {
+  "kind": "ambience",
+  "file": "assets/ambience/vinil.mp3",
+  "id": "371583",
+  "title": "Vinyl crackle loop",
+  "author": "OwlStorm (Ashe Kirk)",
+  "source_url": "https://freesound.org/people/OwlStorm/sounds/371583/",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "download_url": "https://freesound.org/people/OwlStorm/sounds/371583/",
+  "freesound_page": "https://freesound.org/people/OwlStorm/sounds/371583/",
+  "changes": "Freesound high-quality MP3 preview of the original; not edited."
  }
 ]

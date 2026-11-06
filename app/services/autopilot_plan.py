@@ -192,6 +192,16 @@ ENVIRONMENTS: dict[str, Environment] = {
         "soft grey light through wet leaves, gentle mist",
         (("pluja-terrassa", "pluja-bassal"), ("vent-arbres", "vent-arbre", "bosc-nit-pluja")),
     ),
+    "estiu-japo": Environment(
+        "Cigales i campanetes", "Summer Cicadas & Wind Chimes", "summer afternoon", "hot still air, cicadas singing and a wind chime by the window",
+        "warm late-afternoon sunlight",
+        (("cigales",), ("campanetes-vent",)),
+    ),
+    "pluja-vinil": Environment(
+        "Pluja i vinil", "Rain & Vinyl Crackle", "rainy evening", "steady rain outside and the soft crackle of a record player",
+        "warm lamp light inside, blurred rainy window",
+        (("pluja-terrassa", "pluja-pedra", "pluja-bassal"), ("vinil",)),
+    ),
     "pluja-finestra": Environment(
         "Pluja a la finestra", "Rain on the Window", "evening", "rain drops running down the window glass",
         "warm lamp light inside, blurred rainy window",
@@ -413,7 +423,10 @@ MUSIC_STYLES = {
     "fosca": ("Fantasia fosca", "dark fantasy music"),
     "jazz": ("Jazz de cafeteria", "soft jazz"),
     "nadal": ("Nadal", "calm Christmas music"),
+    "lofi": ("Lo-fi", "lo-fi beats"),
 }
+# Formats que, amb un fons anime, porten lo-fi (si no s'ha triat un altre estil de música).
+LOFI_FORMATS = {"pomodoro", "llegir", "short"}
 # Música de temporada per tema (com Nadal): Halloween fosca; estiu, jazz suau.
 SEASON_MUSIC = {"Halloween": "fosca", "Estiu": "jazz"}
 CHRISTMAS_THEMES = {"Nadal"}
@@ -1058,7 +1071,7 @@ SEASON_PLAYLISTS = {
     "Estiu": "Summer Ambience", "Halloween": "Halloween Ambience", "Pasqua": "Easter Ambience",
 }
 WORLD_THEMES = {"Àfrica", "Àsia", "Sud-amèrica", "Europa", "Nord-amèrica"}
-_RAIN_ENVIRONMENTS = {"selva-pluja", "monso", "pluja", "pluja-bosc", "pluja-ciutat", "pluja-finestra", "pluja-llar", "tempesta", "bosc-tempesta", "llar-tempesta",
+_RAIN_ENVIRONMENTS = {"selva-pluja", "monso", "pluja", "pluja-vinil", "pluja-bosc", "pluja-ciutat", "pluja-finestra", "pluja-llar", "tempesta", "bosc-tempesta", "llar-tempesta",
                       "platja-tempesta", "tempesta-mar", "temporal"}
 _FIRE_ENVIRONMENTS = {"llar", "pluja-llar", "llar-tempesta", "hivern", "rellotge", "campament"}
 _CAFE_ENVIRONMENTS = {"cafeteria", "cafeteria-carrer"}

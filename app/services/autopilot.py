@@ -20,7 +20,7 @@ from app.database import SessionLocal
 from app.models import AUTO_ACTIVE_STEPS, AUTO_STEPS, AutoRun, Project, PublicationMetadata, RenderConfig, YouTubePublication
 from app.services.autopilot_plan import (
     DIM_AFTER_SECONDS, ENVIRONMENTS, FORMATS, MUSIC_LEVELS, MUSIC_STYLES, music_style, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, NOISE_COLORS, YOUTUBE_CATEGORIES, plain_chapters, build_credits, build_music_mix_command, build_playlist, build_texts,
-    CHANNEL_URL, VISUAL_STYLES, anime_title, background_style, playlists_for, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
+    CHANNEL_URL, LOFI_FORMATS, VISUAL_STYLES, anime_title, background_style, playlists_for, build_preview_command, choose_ambience, duration_label, find_backgrounds, load_catalog, music_tracks, slugify,
 )
 from app.services.encoding import EncodingOptions
 from app.services.fonts import fonts_for_theme
@@ -207,6 +207,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         chosen_background = run.background
         wanted_style = run.visual_style if run.visual_style in VISUAL_STYLES else None
         breath = run.breath
+        run_music_style = run.music_style
         style = run.music_style if run.music_style in MUSIC_STYLES else music_style(fmt, run.environment, run.theme)
         noise_color = NOISE_COLORS[run.noise][0] if fmt == "soroll" and run.noise in NOISE_COLORS else None
         dim_after = DIM_AFTER_SECONDS if run.dim and fmt in {"dormir", "soroll"} else None
@@ -236,6 +237,8 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             background, note = choose_background(theme, environment, rng, fmt, chosen=chosen_background, recent=recent_backgrounds(theme) - {chosen_background},
                                                  visual_style=wanted_style)
             _update(run_id, background=background.name, visual_style=background_style(background))
+            if background_style(background) == "anime" and run_music_style not in MUSIC_STYLES and fmt in LOFI_FORMATS:
+                style = "lofi"  # els vídeos anime per a estudiar i llegir, amb lo-fi
             notes.append(note)
         if fmt == "short":
             _execute_channel_short(run_id, project_id, theme, environment, rng, background, level=level, music_level=music_level, preferred=preferred,
@@ -294,7 +297,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         )
         draft = PublicationDraft(texts.title, texts.description, chapters, texts.tags, "en")
         write_metadata(folder, theme=theme, focus=focus, pause=pause, duration=duration, resolution=RESOLUTION, timeline=timeline, draft=draft)
-        fonts = fonts_for_theme(theme)
+        fonts = fonts_for_theme(theme, anime=fmt != "soroll" and background_style(background) == "anime")
         thumbnail_background = noise_background(run_noise, "color", with_name=False) if fmt == "soroll" else background
         thumb_title, thumb_subtitle = thumbnail_lines(fmt, public_theme, environment, duration, focus, pause, run_noise, breath)
         make_thumbnail(thumbnail_background, folder / "thumbnail.jpg", thumb_title, thumb_subtitle, title_font=fonts.label, text_font=fonts.digits)
@@ -534,7 +537,7 @@ def _execute_channel_short(run_id: int, project_id: int, theme: str, environment
         raise AutopilotError(f"No s'ha pogut preparar l'àudio del Short: {(result.stderr or '')[-300:]}")
 
     _update(run_id, step="RENDERING", message="Fent el Short…")
-    fonts = fonts_for_theme(theme)
+    fonts = fonts_for_theme(theme, anime=background_style(background) == "anime")
     overlay, opacity = None, 0.0
     layer_style = overlay_style(theme, environment, background) if with_motion else None
     if layer_style:
@@ -608,7 +611,7 @@ def publish_short(run_id: int, folder: Path, main: YouTubeUploadSpec, video_id: 
         background = settings.assets_dir / "backgrounds" / (background_name or "")
         if not background_name or not background.is_file():
             return "Short no fet: no es troba el fons"
-    fonts = fonts_for_theme(theme)
+    fonts = fonts_for_theme(theme, anime=not noise and background_style(background) == "anime")
     overlay, opacity, darken, mode = None, 0.0, 0.0, "screen"
     if fmt == "respiracio" and breath in BREATH_PATTERNS:
         overlay = ensure_breath_clip(breath, cache_dir=settings.overlays_dir, width=SHORT_WIDTH, height=SHORT_HEIGHT, fps=SHORT_FPS, font=fonts.label)
