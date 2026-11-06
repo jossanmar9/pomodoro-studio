@@ -134,6 +134,8 @@ CHIME_BREAK_END = (659.25, 783.99)   # mi5 → sol5
 def chime_times(timeline: TimelineSummary) -> tuple[list[int], list[int]]:
     """Moments (en ms) en què acaba cada concentració i cada descans, excepte el final del vídeo."""
     focus_end, break_end = [], []
+    if timeline.lead_in:  # la campaneta marca el final del compte enrere
+        break_end.append(timeline.lead_in * 1000)
     for segment in timeline.segments:
         if segment.end_seconds >= timeline.total_seconds:
             continue
@@ -142,8 +144,8 @@ def chime_times(timeline: TimelineSummary) -> tuple[list[int], list[int]]:
 
 
 TIMER_LABELS = {
-    "va": ("CONCENTRACIÓ", "DESCANS", "SESSIÓ"),
-    "en": ("FOCUS", "BREAK", "SESSION"),
+    "va": ("CONCENTRACIÓ", "DESCANS", "SESSIÓ", "COMENCEM EN"),
+    "en": ("FOCUS", "BREAK", "SESSION", "STARTING IN"),
 }
 
 
@@ -163,9 +165,9 @@ SHADOW = "shadowcolor=black@0.6:shadowx=2:shadowy=3"
 
 def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: ResolvedFonts | None = None, appear_at: float = 0) -> str:
     if language not in TIMER_LABELS: raise ValueError("Idioma del comptador no compatible")
-    focus_label, break_label, session_label = TIMER_LABELS[language]
+    focus_label, break_label, session_label, start_label = TIMER_LABELS[language]
     if fonts and not fonts.uppercase_labels:
-        focus_label, break_label, session_label = (label.capitalize() for label in (focus_label, break_label, session_label))
+        focus_label, break_label, session_label, start_label = (label.capitalize() for label in (focus_label, break_label, session_label, start_label))
     label_font = font_option(fonts.label if fonts else None)
     digits_font = font_option(fonts.digits if fonts else None)
     filters = []
@@ -188,8 +190,17 @@ def build_timer_filters(timeline: TimelineSummary, language: str = "va", fonts: 
             f"drawtext={digits_font}:text='%{{eif\\:{seconds}\\:d\\:2}}':fontcolor=white:{big}:{SHADOW}:x=w/2+{gap}:{baseline}:enable='{enable}'{fade}",
             f"drawtext={label_font}:text='{_escape_drawtext(session_label)} {segment.session}':fontcolor=0xF3C47A:fontsize=h/30:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.62:enable='{enable}'{fade}",
         ]
+    lead = timeline.lead_in
+    if lead:
+        # Compte enrere: «Starting in» i un número que baixa fins a 1 (com a molt des de 10).
+        before = f"lt(t\\,{lead})"
+        filters += [
+            f"drawtext={label_font}:text='{_escape_drawtext(start_label)}':fontcolor=0xFFF3DE:fontsize=h/21:borderw=1:bordercolor=black@0.3:{SHADOW}:x=(w-text_w)/2:y=h*0.32:enable='{before}'{fade}",
+            f"drawtext={digits_font}:text='%{{eif\\:min(10\\,ceil({lead}-t))\\:d}}':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}:enable='{before}'{fade}",
+        ]
     if timeline.segments:
-        filters.append(f"drawtext={digits_font}:text='\\:':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}{fade}")
+        colon_on = f":enable='gte(t\\,{lead})'" if lead else ""
+        filters.append(f"drawtext={digits_font}:text='\\:':fontcolor=white:{big}:{SHADOW}:x=(w-text_w)/2:{baseline}{colon_on}{fade}")
         filters += session_dot_filters(timeline, appear_at)
     return ",".join(filters)
 

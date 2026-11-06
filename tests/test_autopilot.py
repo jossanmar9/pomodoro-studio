@@ -376,7 +376,7 @@ def test_full_run_renders_in_english_and_publishes(env):
     assert spec.music is None and spec.chime is True
     upload = env.uploads[0]
     assert upload.privacy == "public"
-    assert upload.description.count("00:00:00 Focus session 1") == 1
+    assert upload.description.count("00:00:00 Starting soon") == 1 and "Focus session 1" in upload.description  # compte enrere abans de la primera sessió
     assert "The Amber Window" in upload.description
     assert "no music" in upload.description and "soft chime" in upload.description
     assert "Music:" not in upload.description
@@ -1707,3 +1707,14 @@ def test_progress_bar_and_session_dots_follow_the_timeline():
     dots = session_dot_filters(timeline)
     assert len({d.split("x=w/2+(")[1].split(")")[0] for d in dots}) == 4 and all("●" in d for d in dots)
     assert session_dot_filters(build_timeline(50, 10, 60)) == []
+
+
+def test_pomodoro_starts_with_a_ten_second_countdown():
+    from app.services.renderer import build_timer_filters, chime_times
+    from app.services.timer import with_lead_in
+    timeline = with_lead_in(build_timeline(25, 5, 60), 10)
+    assert timeline.segments[0].start_seconds == 10 and timeline.total_seconds == 3610
+    assert build_chapters(timeline, "en").startswith("00:00:00 Starting soon\n00:00:10 Focus session 1")
+    assert chime_times(timeline)[1][0] == 10000
+    filters = build_timer_filters(timeline, "en")
+    assert "STARTING IN" in filters and "ceil(10-t)" in filters
