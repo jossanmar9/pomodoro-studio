@@ -1512,7 +1512,7 @@ def test_week_batch_can_stick_to_one_format(env, monkeypatch):
     monkeypatch.setattr(main.autopilot, "submit", submitted.append)
     day = (datetime.utcnow() + timedelta(days=2)).date().isoformat()
     with TestClient(main.app) as client:
-        assert '<select name="format">' in client.get("/").text
+        assert '<select name="format" required>' in client.get("/").text
         client.post("/auto/setmana", data={"count": "4", "first_day": day, "format": "dormir"}, follow_redirects=False)
         assert client.post("/auto/setmana", data={"count": "2", "first_day": day, "format": "short"}).status_code == 400
     with env.session() as db:
