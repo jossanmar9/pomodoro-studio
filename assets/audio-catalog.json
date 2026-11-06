@@ -2754,7 +2754,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "92d93af6fd4c2e88cf3ae9c3578074cefa7def8a955d92806fc6851b71d748e7",
+  "bytes": 5280205,
+  "duration_seconds": 131.976
  },
  {
   "kind": "music",
@@ -2767,7 +2770,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "5f0c5be828268e50d9dfe4dc3e8d581f131fa3f700d3622fe6db248a548ae2e8",
+  "bytes": 8939725,
+  "duration_seconds": 223.464
  },
  {
   "kind": "music",
@@ -2780,7 +2786,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "855a35d81441ec653ceb36b44dbdbd1f750b62a2b530d8ccf2f03172349f6ee8",
+  "bytes": 6965965,
+  "duration_seconds": 174.12
  },
  {
   "kind": "music",
@@ -2793,7 +2802,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "7e7b7f7adeebf4c0da4e309488b1c30d4c50ec9d98b9907086bd735cb911f58a",
+  "bytes": 6945805,
+  "duration_seconds": 173.616
  },
  {
   "kind": "music",
@@ -2806,7 +2818,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "b26c049d6ac149c678e0f24b68416dc71c6cb2b4da62eb4cf7448432c26fa2a0",
+  "bytes": 6812365,
+  "duration_seconds": 170.28
  },
  {
   "kind": "music",
@@ -2819,7 +2834,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "ead5e878511cac9b227607729b0777e1dc67366b774e2ea532f4f580c819c11d",
+  "bytes": 7786765,
+  "duration_seconds": 194.64
  },
  {
   "kind": "music",
@@ -2832,7 +2850,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "623d4d1a4748a72eb6147c7a940ef6dcd2e96fd3d63b4e4b8f7d64a4387530d8",
+  "bytes": 5485645,
+  "duration_seconds": 137.112
  },
  {
   "kind": "music",
@@ -2845,7 +2866,10 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "f04d24e0dfa2e0be2c558ce6e9688be5f3d53000553179e38127cc87cbc066d8",
+  "bytes": 4889485,
+  "duration_seconds": 122.208
  },
  {
   "kind": "music",
@@ -2858,6 +2882,105 @@
   "license": "CC0 1.0",
   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
   "manual": true,
-  "changes": "Downloaded from Free Music Archive; filename changed only; not edited."
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "80c1a71f60b84e6503bf850960663d21c17fe57b0a08586c69e8b52051dcbaa2",
+  "bytes": 5115085,
+  "duration_seconds": 127.848
+ },
+ {
+  "kind": "music",
+  "style": "lofi",
+  "file": "assets/music/lofi-feeling-human-again.mp3",
+  "title": "Feeling Human Again",
+  "author": "HoliznaCC0",
+  "album": "Spring Woke Me Up",
+  "source_url": "https://freemusicarchive.org/music/holiznacc0/spring-woke-me-up",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "manual": true,
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "896a6ddf192c6bca7f135d44bd42c7070b263215039cde22f19501f9beb9dbaf",
+  "bytes": 9569256,
+  "duration_seconds": 230.856
+ },
+ {
+  "kind": "music",
+  "style": "lofi",
+  "file": "assets/music/lofi-toy-box.mp3",
+  "title": "Toy Box",
+  "author": "HoliznaCC0",
+  "album": "Spring Woke Me Up",
+  "source_url": "https://freemusicarchive.org/music/holiznacc0/spring-woke-me-up",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "manual": true,
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "98ab5546dfbb10d4c31f6c7d29c1bc70407fdb405d9b49d206ee89a4ccb1dee0",
+  "bytes": 6568296,
+  "duration_seconds": 155.832
+ },
+ {
+  "kind": "music",
+  "style": "lofi",
+  "file": "assets/music/lofi-foley-of-man.mp3",
+  "title": "Foley Of Man",
+  "author": "HoliznaCC0",
+  "album": "Spring Woke Me Up",
+  "source_url": "https://freemusicarchive.org/music/holiznacc0/spring-woke-me-up",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "manual": true,
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "385a66b81485f91bc85f405623a877adff0708d8e3297a59ff44d266dcc38322",
+  "bytes": 5735016,
+  "duration_seconds": 135.0
+ },
+ {
+  "kind": "music",
+  "style": "lofi",
+  "file": "assets/music/lofi-hope-on-repeat.mp3",
+  "title": "Hope On Repeat",
+  "author": "HoliznaCC0",
+  "album": "Spring Woke Me Up",
+  "source_url": "https://freemusicarchive.org/music/holiznacc0/spring-woke-me-up",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "manual": true,
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "e781cf3926ea5b769f3b5667011234f4524cbcb06e539ba563c7f15fd805477a",
+  "bytes": 6884136,
+  "duration_seconds": 163.728
+ },
+ {
+  "kind": "music",
+  "style": "lofi",
+  "file": "assets/music/lofi-spring-in-sight.mp3",
+  "title": "Spring In Sight",
+  "author": "HoliznaCC0",
+  "album": "Spring Woke Me Up",
+  "source_url": "https://freemusicarchive.org/music/holiznacc0/spring-woke-me-up",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "manual": true,
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "31b8701fbc795f05881d7544943e64983cd008732d1388bef07bd7dd6d4a87a8",
+  "bytes": 5614056,
+  "duration_seconds": 131.976
+ },
+ {
+  "kind": "music",
+  "style": "lofi",
+  "file": "assets/music/lofi-seasonal-depression.mp3",
+  "title": "Seasonal Depression",
+  "author": "HoliznaCC0",
+  "album": "Spring Woke Me Up",
+  "source_url": "https://freemusicarchive.org/music/holiznacc0/spring-woke-me-up",
+  "license": "CC0 1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "manual": true,
+  "changes": "Downloaded from Free Music Archive; filename changed only; not edited.",
+  "sha256": "c2c23f47c27fb6ef4f88edd1e38011161175b8ae3c613ff4e0c8247ba089ce3a",
+  "bytes": 5965416,
+  "duration_seconds": 140.76
  }
 ]
