@@ -6,10 +6,11 @@
 Et demana:
   1. L'identificador de l'aplicació (App ID) i la clau secreta (App Secret):
      tauler de Meta → la teua aplicació → App settings → Basic.
-  2. Una clau d'usuari curta amb els permisos pages_show_list, pages_read_engagement
-     i pages_manage_posts (Graph API Explorer → Generate Access Token).
+  2. Una clau d'usuari curta amb els permisos pages_show_list, pages_read_engagement,
+     pages_manage_posts, instagram_basic i instagram_content_publish
+     (Graph API Explorer → Generate Access Token).
 
-Després escriu les dues línies que cal posar en el fitxer .env.
+Després escriu les línies que cal posar en el fitxer .env (Facebook i Instagram).
 No envies mai estes claus a ningú.
 """
 from __future__ import annotations
@@ -51,10 +52,17 @@ def main() -> None:
     for number, page in enumerate(pages, 1):
         print(f"{number}. {page['name']}")
     choice = pages[0] if len(pages) == 1 else pages[int(input("Quina pàgina? (número): ")) - 1]
-    print("\nAfig estes línies al fitxer .env de pomodoro-studio:\n")
+    # El compte d'Instagram unit a la pàgina: és l'identificador que cal per a publicar amb la clau de la pàgina.
+    linked = get(choice["id"], access_token=choice["access_token"], fields="instagram_business_account").get("instagram_business_account") or {}
+    print("\nSubstitueix (o afig) estes línies en el fitxer .env de pomodoro-studio:\n")
     print(f"FACEBOOK_PAGE_ID={choice['id']}")
     print(f"FACEBOOK_PAGE_TOKEN={choice['access_token']}")
-    print(f"INSTAGRAM_ACCESS_TOKEN={choice['access_token']}")
+    if linked.get("id"):
+        print(f"INSTAGRAM_USER_ID={linked['id']}")
+        print(f"INSTAGRAM_ACCESS_TOKEN={choice['access_token']}")
+    else:
+        print("\n(Instagram: la pàgina no té cap compte d'Instagram unit, o a la clau li falten els permisos")
+        print(" instagram_basic i instagram_content_publish. Les línies d'Instagram no canvien.)")
     print("\nDesprés torna a obrir Pomodoro.")
 
 
