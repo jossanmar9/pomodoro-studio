@@ -176,7 +176,8 @@ def test_every_environment_sound_is_in_the_catalogue():
             missing = [name for name in layer if name not in stems]
             assert not missing, (key, missing)
     for entry in catalog.values():
-        assert entry["license"] in {"CC0 1.0", "CC BY 4.0"} and entry["download_url"].startswith("https://")
+        url = entry["source_url"] if entry.get("manual") else entry["download_url"]  # les manuals es baixen a mà des de la seua pàgina
+        assert entry["license"] in {"CC0 1.0", "CC BY 4.0"} and url.startswith("https://")
 
 
 def test_level_and_listened_sample_are_reused(tmp_path):
