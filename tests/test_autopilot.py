@@ -1696,3 +1696,14 @@ def test_import_script_names_and_describes_backgrounds(tmp_path):
     seasonal.write_bytes(png.read_bytes())
     assert module.plan(seasonal, anime=False)[0] == "poble-del-pol-nord-nit-temporada.png"
     assert "no conec" in module.plan(tmp_path / "Pomodoro + Tema inventat + Vent.png", anime=True)
+
+
+def test_progress_bar_and_session_dots_follow_the_timeline():
+    from app.services.renderer import progress_bar_parts, session_dot_filters
+    from app.services.timer import build_timeline
+    timeline = build_timeline(25, 5, 180)
+    parts = progress_bar_parts("[v]", "vbar", timeline, 1920, 1080, 30)
+    assert parts[-1].startswith("[v][p") and parts[-1].endswith("[vbar]") and any("0xF3C47A" in p for p in parts) and any("0x9CC7A4" in p for p in parts)
+    dots = session_dot_filters(timeline)
+    assert len({d.split("x=w/2+(")[1].split(")")[0] for d in dots}) == 4 and all("●" in d for d in dots)
+    assert session_dot_filters(build_timeline(50, 10, 60)) == []
