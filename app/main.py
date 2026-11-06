@@ -316,11 +316,11 @@ def _guess_environment(name:str)->str|None:
     return max(found,key=len) if found else None
 
 
-def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,themes:list[str]|None=None,visual_style:str|None=None)->list[dict]:
+def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,themes:list[str]|None=None,visual_style:str|None=None,fmt:str|None=None)->list[dict]:
     """Tria vídeos variats per a publicar un cada dia.
 
     Sense `themes`, temes diferents cada dia; amb una temàtica (p. ex. Nadal), fons diferents
-    d'eixa temàtica. Els formats s'alternen (pomodoro, dormir, llegir, so ambiental).
+    d'eixa temàtica. Els formats s'alternen (pomodoro, dormir, llegir, so ambiental), o tots del format `fmt`.
     """
     rng=rng or random.Random()
     items=[]
@@ -338,20 +338,19 @@ def plan_batch(count:int,first_day_utc:datetime,rng:random.Random|None=None,them
     distinct_themes=len({i["theme"] for i in items})>=count
     chosen,used=[],set()
     for n in range(count):
-        wanted=BATCH_FORMATS[n%len(BATCH_FORMATS)]
+        wanted=fmt if fmt in BATCH_DURATIONS else BATCH_FORMATS[n%len(BATCH_FORMATS)]
         key=(lambda i:i["theme"]) if distinct_themes else (lambda i:i["name"])
         fresh=[i for i in items if key(i) not in used] or items
         pick=next((i for i in fresh if i.get("format")==wanted),None) or (fresh[0] if fresh else None)
         if pick is None: break
         used.add(key(pick))
-        fmt=pick.get("format") if pick.get("format") in BATCH_DURATIONS and pick.get("format")==wanted else wanted
-        chosen.append({"theme":pick["theme"],"environment":pick["environment"],"format":fmt,"background":pick["name"],
-                       "duration_minutes":BATCH_DURATIONS[fmt],"scheduled_for":first_day_utc+timedelta(days=n)})
+        chosen.append({"theme":pick["theme"],"environment":pick["environment"],"format":wanted,"background":pick["name"],
+                       "duration_minutes":BATCH_DURATIONS[wanted],"scheduled_for":first_day_utc+timedelta(days=n)})
     return chosen
 
 
 @app.post("/auto/setmana")
-def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),theme:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0),visual_style:str=Form("")):
+def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form(""),theme:str=Form(""),ambience_level:int=Form(0),music_mode:str=Form("auto"),music_level:int=Form(0),visual_style:str=Form(""),format:str=Form("")):
     """Prepara diversos vídeos d'una vegada: es fan i es pugen seguits i es publica un cada dia."""
     if not 1<=count<=7: raise HTTPException(400,"Han de ser d'1 a 7 vídeos")
     if ambience_level not in AMBIENCE_LEVELS: raise HTTPException(400,"Volum d'ambient no vàlid")
@@ -365,7 +364,8 @@ def auto_batch(count:int=Form(7),first_day:str=Form(...),publish_time:str=Form("
         chosen_themes=group_themes(theme) if theme.startswith("grup:") else ([theme] if theme in AUTO_THEMES else None)
         if not chosen_themes: raise HTTPException(400,"Temàtica no vàlida")
     style=visual_style if visual_style in VISUAL_STYLES else None
-    plan=plan_batch(count,first,themes=chosen_themes,visual_style=style)
+    if format and format not in BATCH_DURATIONS: raise HTTPException(400,"Format no vàlid")
+    plan=plan_batch(count,first,themes=chosen_themes,visual_style=style,fmt=format or None)
     if not plan: raise HTTPException(409,"No hi ha fons guardats d'eixa temàtica"+(f" d'estil {VISUAL_STYLES[style].lower()}" if style else "")+" per a triar els vídeos")
     ids=[]
     with SessionLocal() as db:
@@ -429,7 +429,7 @@ def auto_home(request:Request,error:str=Query("")):
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
         "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
-        "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
+        "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"batch_formats":[k for k in BATCH_DURATIONS if k in FORMATS],"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
         "visual_styles":VISUAL_STYLES,"style_counts":style_counts,"instagram_ready":instagram_configured(),"youtube_playlists":has_all_permissions(),"facebook_ready":facebook_configured(),
     })
 

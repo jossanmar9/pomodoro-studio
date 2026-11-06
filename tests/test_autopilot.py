@@ -1503,6 +1503,23 @@ def test_week_batch_can_stick_to_one_theme(env, monkeypatch):
     assert {r.environment for r in runs} <= {"llar", "hivern", "cafeteria-carrer"} and len({r.format for r in runs}) >= 3
 
 
+def test_week_batch_can_stick_to_one_format(env, monkeypatch):
+    from datetime import datetime, timedelta
+    groups = [{"theme": t, "items": [{"name": f"{t.lower()}-pluja-pomodoro.png", "url": "", "format": "pomodoro", "environment": "pluja"}]}
+              for t in ("Bosc", "Riu", "Port", "Platja")]
+    monkeypatch.setattr(main, "background_library", lambda: groups)
+    submitted = []
+    monkeypatch.setattr(main.autopilot, "submit", submitted.append)
+    day = (datetime.utcnow() + timedelta(days=2)).date().isoformat()
+    with TestClient(main.app) as client:
+        assert '<select name="format" required>' in client.get("/").text
+        client.post("/auto/setmana", data={"count": "4", "first_day": day, "format": "dormir"}, follow_redirects=False)
+        assert client.post("/auto/setmana", data={"count": "2", "first_day": day, "format": "short"}).status_code == 400
+    with env.session() as db:
+        runs = db.query(AutoRun).filter(AutoRun.id.in_(submitted)).all()
+    assert len(runs) == 4 and {r.format for r in runs} == {"dormir"} and {r.duration_minutes for r in runs} == {480}
+    assert len({r.theme for r in runs}) == 4
+
 def test_every_scene_belongs_only_to_its_season(tmp_path):
     from app.services.scenes import SCENES, slugify
     for scene in SCENES:
