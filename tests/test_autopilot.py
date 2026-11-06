@@ -376,7 +376,7 @@ def test_full_run_renders_in_english_and_publishes(env):
     assert spec.music is None and spec.chime is True
     upload = env.uploads[0]
     assert upload.privacy == "public"
-    assert upload.description.count("00:00:00 Focus session 1") == 1
+    assert upload.description.count("00:00:00 Starting soon") == 1 and "Focus session 1" in upload.description  # compte enrere abans de la primera sessió
     assert "The Amber Window" in upload.description
     assert "no music" in upload.description and "soft chime" in upload.description
     assert "Music:" not in upload.description
