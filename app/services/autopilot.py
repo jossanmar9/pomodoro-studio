@@ -39,7 +39,7 @@ from app.services.channel_intro import TIMER_FROM as CHANNEL_INTRO_TIMER_FROM, e
 from app.services.quality import check_video
 from app.services.schedule import label as schedule_label, publish_at as schedule_publish_at
 from app.services.meta import facebook_configured, instagram_configured, publish_facebook_reel, publish_instagram_reel, reel_caption
-from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail
+from app.services.thumbnail import fitting_fontsize, generate_thumbnail, make_thumbnail, make_title_card
 from app.services.timer import build_chapters, build_timeline, with_lead_in
 from app.services.youtube import YouTubeUploadSpec, add_to_playlists, can_comment, can_manage_playlists, post_comment, upload_video
 from app.services.translations import localized_short, localized_texts
@@ -305,6 +305,14 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
         thumbnail_background = noise_background(run_noise, "color", with_name=False) if fmt == "soroll" else background
         thumb_title, thumb_subtitle = thumbnail_lines(fmt, public_theme, environment, duration, focus, pause, run_noise, breath)
         make_thumbnail(thumbnail_background, folder / "thumbnail.jpg", thumb_title, thumb_subtitle, title_font=fonts.label, text_font=fonts.digits)
+        title_card = None
+        if fmt not in {"soroll", "respiracio"}:  # estos ja tenen el seu text o la seua preparació a l'inici
+            try:
+                width, height = (int(v) for v in RESOLUTION.split("x"))
+                title_card = make_title_card(folder / "titol-inicial.png", thumb_title, thumb_subtitle, width=width, height=height,
+                                             title_font=fonts.label, text_font=fonts.digits)
+            except Exception:  # sense títol inicial, el vídeo es fa igual
+                logger.exception("No s'ha pogut fer el títol inicial")
 
         with SessionLocal() as db:
             saved = db.get(Project, project_id)
@@ -350,7 +358,7 @@ def execute(run_id: int, *, rng: random.Random | None = None) -> None:
             overlay=overlay, overlay_opacity=opacity, darken=darken, overlay_intro=overlay_intro,
             overlay_mode=overlay_mode(layer_style) if layer_style and overlay is not None and fmt != "respiracio" else "screen",
             pulse=fmt == "soroll" and noise_pulse,
-            channel_intro=channel_intro,
+            channel_intro=channel_intro, title_card=title_card,
             intro_text=f"{NOISE_COLORS[run_noise][1]} Noise" if fmt == "soroll" and noise_screen == "negre" else None,
         ))
         _wait_for_render(project_id)
