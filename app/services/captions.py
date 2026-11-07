@@ -263,6 +263,14 @@ HOOKS = {
     ),
 }
 
+# Ganxos que valen per a tots els formats.
+COMMON_HOOKS = (
+    "{place} {icon}", "Welcome back to {name} {icon}", "{name}, tonight {icon}", "Today's cozy place: {name} {icon}",
+    "Escape to {name} {icon}", "{place} {icon} Slow down", "Your calm corner: {name} {icon}", "{place} {icon} Stay a while",
+    "Come in from the noise: {name} {icon}", "{place} {icon} A moment of peace",
+)
+HOOKS = {fmt: options + COMMON_HOOKS for fmt, options in HOOKS.items()}
+
 # Invitació segons el format.
 INVITES = {
     "pomodoro": (
@@ -363,6 +371,11 @@ CTAS = (
     "📺 Stay longer with the full video on YouTube: {where}",
     "🕯️ Full ambience on The Amber Window YouTube: {where}",
     "▶️ More hours of calm on YouTube: {where}",
+    "🎧 Put it on for hours, full video on YouTube: {where}",
+    "📺 This is just a taste. The full ambience is on YouTube: {where}",
+    "🕯️ Long version for studying and sleeping on YouTube: {where}",
+    "▶️ Find this place and many more on YouTube: {where}",
+    "🎧 Uninterrupted, hours long, on YouTube: {where}",
 )
 
 CLOSERS = (
@@ -378,6 +391,16 @@ CLOSERS = (
     "Where would you rather be right now? 👇",
     "Keep this for a calm evening ✨",
     "Come back whenever you need some calm 🤍",
+    "Double tap if you'd stay here all day 🤍",
+    "Who would you bring to this place? 👇",
+    "Pin this for your next rainy day 📌",
+    "Rate this place from 1 to 10 👇",
+    "Morning or night person? Tell us below ☀️🌙",
+    "Save it and come back after a long day 🕯️",
+    "Turn the sound on for the full effect 🔊",
+    "Share this calm with someone you love 💛",
+    "What would you do here? Study, read or sleep? 👇",
+    "Breathe in, breathe out, save for later ✨",
 )
 
 ICONS = {
@@ -453,7 +476,8 @@ def reel_caption(public_theme: str, subtitle: str, *, theme: str = "", fmt: str 
     hook = _pick(HOOKS[fmt_key], seed, 0).format(place=place, name=public_theme, icon=_pick(ICONS[family], seed, 9))
     return "\n".join([
         hook,
-        f"{subtitle}. {mood_line(sound, seed)}",
+        f"{subtitle}. {scene_line(public_theme, seed)}",
+        mood_line(sound, seed),
         "",
         _pick(INVITES[fmt_key], seed, 10),
         _pick(CTAS, seed, 11).format(where=where),
@@ -462,3 +486,236 @@ def reel_caption(public_theme: str, subtitle: str, *, theme: str = "", fmt: str 
         "",
         " ".join(hashtags(theme, fmt, sound, seed)),
     ])
+
+
+# ---------------------------------------------------------------- el lloc (segons el nom públic del tema)
+
+SCENE_GROUPS = (
+    ("christmas", ("christmas", "santa", "north pole", "reindeer", "gingerbread")),
+    ("halloween", ("halloween", "pumpkin", "potion")),
+    ("spring", ("spring", "easter", "blossom", "picnic")),
+    ("summer", ("summer", "lavender", "porch")),
+    ("autumn", ("autumn", "fall")),
+    ("winter", ("winter", "snow", "frozen", "chalet", "alps", "nordic", "alaska", "rockies")),
+    ("fantasy", ("wizard", "elven", "alchemist", "gothic", "dungeon", "dragon", "adventurer", "tavern", "pirate", "castle")),
+    ("history", ("rome", "greece", "feudal", "medieval")),
+    ("library", ("library", "bookstore", "reading")),
+    ("cafe", ("café", "cafe", "coffee", "bakery", "tea house", "tea room")),
+    ("travel", ("train", "airplane", "station", "africa", "asia", "america", "europe")),
+    ("night", ("observatory", "stars", "night")),
+    ("sea", ("beach", "harbour", "lighthouse", "ship", "zanzibar", "maine", "ireland", "fisherm")),
+    ("nature", ("forest", "river", "greenhouse", "park", "garden", "jungle", "savanna", "safari", "andes", "patagonia", "amazon", "lake", "bali", "mekong")),
+    ("japan", ("tokyo", "japanese", "kotatsu", "kyoto")),
+    ("city", ("city", "new york", "paris", "rooftop", "corner shop", "apartment", "cartagena")),
+    ("home", ("cabin", "attic", "kitchen", "nook", "cottage", "home", "house", "lodge", "villa", "riad", "tent", "refuge")),
+)
+
+SCENES = {
+    "christmas": (
+        "Fairy lights, a warm drink and snow falling outside.",
+        "The tree is lit and the whole house smells like cinnamon.",
+        "A quiet Christmas evening, wrapped in blankets.",
+        "Snowflakes, candles and the magic of December.",
+        "Gingerbread in the oven and carols far away.",
+        "The coziest time of the year, slowed right down.",
+        "Stockings by the fire and nowhere to rush to.",
+        "A little Christmas magic for your day.",
+        "Twinkling lights and a peaceful winter night.",
+        "Holiday calm, just for you.",
+    ),
+    "halloween": (
+        "Pumpkins glowing and leaves dancing in the wind.",
+        "A spooky night, but cozy inside.",
+        "Candlelight, old books and a little bit of magic.",
+        "October nights are made for staying in.",
+        "The moon is full and the tea is warm.",
+        "Spooky season, softly.",
+        "Crackling candles and whispers in the wind.",
+        "A haunted house that feels like home.",
+        "Witchy vibes and warm blankets.",
+        "Let the fog roll in, you're safe in here.",
+    ),
+    "spring": (
+        "Blossoms outside and fresh air through the window.",
+        "Spring light, soft rain and new beginnings.",
+        "Flowers waking up and birds singing again.",
+        "A fresh start, one quiet moment at a time.",
+        "Warm sun, cool breeze and a cup of tea.",
+        "Pastel skies and gentle rain.",
+        "The garden is blooming and so are you.",
+        "Spring afternoons were made for this.",
+        "Petals on the windowsill and calm in the air.",
+        "Everything is growing, slowly and beautifully.",
+    ),
+    "summer": (
+        "Long summer evenings and a gentle breeze.",
+        "Golden hour light and nowhere to be.",
+        "Warm nights, open windows and cicadas singing.",
+        "The slow, sweet pace of summer.",
+        "Iced tea, soft light and a lazy afternoon.",
+        "Summer rain on a warm evening.",
+        "The sun sets slowly and so does the day.",
+        "A summer night that lasts forever.",
+        "Sea breeze and sunlight through the curtains.",
+        "Bare feet, open windows, quiet mind.",
+    ),
+    "autumn": (
+        "Falling leaves and a warm drink in your hands.",
+        "Golden trees, grey skies and a cozy sweater.",
+        "Autumn rain and the smell of wet leaves.",
+        "The season of soft light and slow days.",
+        "Pumpkin spice and a quiet afternoon.",
+        "Crisp air outside, warm blankets inside.",
+        "Leaves dancing past the window.",
+        "Autumn evenings were made for staying in.",
+        "Amber light and orange leaves.",
+        "Sweater weather, finally.",
+    ),
+    "winter": (
+        "Snow piling up on the windowsill.",
+        "A frozen world outside, a warm room inside.",
+        "Winter quiet is a special kind of quiet.",
+        "Thick socks, hot cocoa and falling snow.",
+        "The cold can't reach you here.",
+        "Snowy mountains and a crackling fire.",
+        "Short days, long cozy nights.",
+        "Everything is white and still.",
+        "Frost on the glass and calm in the heart.",
+        "A winter cabin kind of mood.",
+    ),
+    "fantasy": (
+        "Candles flicker and old magic hums in the walls.",
+        "Somewhere in a faraway kingdom, the night is calm.",
+        "Spellbooks, potions and a story waiting to begin.",
+        "A world of dragons, quests and quiet corners.",
+        "The adventure pauses here for a while.",
+        "Ancient stones and warm firelight.",
+        "Every hero needs a place to rest.",
+        "Magic in the air and a map on the table.",
+        "Tales of old echo through the halls.",
+        "Step into the story.",
+    ),
+    "history": (
+        "A journey back in time, to a slower world.",
+        "Ancient walls with stories to tell.",
+        "Candlelight, parchment and centuries of quiet.",
+        "History whispers in every corner.",
+        "Old stones, warm light and a calm mind.",
+        "Imagine studying here a thousand years ago.",
+        "Timeless calm from another age.",
+        "Scrolls, ink and patience.",
+        "Where scholars once sat, you can rest too.",
+        "Some places never lose their peace.",
+    ),
+    "library": (
+        "Endless shelves and the smell of old paper.",
+        "Dusty books, warm lamps and absolute quiet.",
+        "A library is the best place to get lost.",
+        "Rows of stories waiting for you.",
+        "Turn the page and slow down.",
+        "Leather spines and soft lamplight.",
+        "Whispers of paper and the hush of readers.",
+        "Every book here has a story to tell.",
+        "The quietest room in the world.",
+        "Books, rain and a corner to yourself.",
+    ),
+    "cafe": (
+        "Fresh coffee and the gentle hum of a café.",
+        "Your favourite corner table is free.",
+        "Steam rising from your cup.",
+        "Pastries, coffee and a quiet window seat.",
+        "The barista knows your order.",
+        "Clinking cups and soft conversations.",
+        "A café on a rainy day is the best place to be.",
+        "Coffee in hand, notebook open.",
+        "Warm mugs and good company.",
+        "Espresso, rain and a few quiet hours.",
+    ),
+    "travel": (
+        "The window seat is yours.",
+        "Somewhere between departure and arrival.",
+        "Watching the landscape roll past.",
+        "A journey is the best time to think.",
+        "Tickets in your pocket and nowhere to rush to.",
+        "Clouds below, calm above.",
+        "The gentle sway of a long trip.",
+        "Every journey has a quiet moment.",
+        "Lights of faraway towns passing by.",
+        "Let the road carry you.",
+    ),
+    "sea": (
+        "Salt air and the sound of the harbour.",
+        "Boats rocking gently in the water.",
+        "The lighthouse keeps watch tonight.",
+        "Seagulls far away and waves close by.",
+        "A house by the sea and a quiet mind.",
+        "The tide comes in, the worries go out.",
+        "Sea spray on the window.",
+        "Ropes creaking and lanterns swaying.",
+        "Life by the shore moves slowly.",
+        "The sea is calm tonight.",
+    ),
+    "nature": (
+        "Green leaves and fresh air.",
+        "Far away from the noise, close to nature.",
+        "The wild is gentle today.",
+        "Trees, water and a moment to breathe.",
+        "A hidden corner of the world.",
+        "Plants, sunlight and calm.",
+        "Nature does the talking here.",
+        "The forest is your study room today.",
+        "Wild and peaceful at the same time.",
+        "A breath of fresh air.",
+    ),
+    "japan": (
+        "Paper lanterns and quiet streets.",
+        "Green tea and the sound of rain on the roof.",
+        "A small room in Japan, warm and calm.",
+        "Tatami mats and soft light.",
+        "Wind chimes ringing softly.",
+        "Neon reflections on wet pavement.",
+        "Simple, quiet and beautiful.",
+        "A kotatsu, a mandarin and a long afternoon.",
+        "The calm of a Japanese evening.",
+        "Slow living, Japanese style.",
+    ),
+    "city": (
+        "City lights through the window.",
+        "The city never sleeps, but you can rest.",
+        "Rooftops, rain and a warm room.",
+        "A little apartment above the busy streets.",
+        "Neon glow and a quiet desk.",
+        "The skyline is quiet tonight.",
+        "Urban calm, finally.",
+        "Late night in the city, all to yourself.",
+        "Street lamps flickering on.",
+        "Your quiet corner in a loud city.",
+    ),
+    "home": (
+        "A warm room, a soft blanket and a quiet hour.",
+        "Home is where the lamp is on.",
+        "Wooden walls and a crackling silence.",
+        "The coziest corner of the house.",
+        "Slippers on, tea ready, mind calm.",
+        "A little cabin far from everything.",
+        "Creaky floors and warm light.",
+        "Come in, sit down, stay a while.",
+        "Everything you need is right here.",
+        "The comfort of a quiet home.",
+    ),
+    "night": MOODS["night"],
+    "default": MOODS["default"],
+}
+
+
+def scene_group(public_theme: str) -> str:
+    lowered = public_theme.casefold()
+    for group, words in SCENE_GROUPS:
+        if any(word in lowered for word in words):
+            return group
+    return "default"
+
+
+def scene_line(public_theme: str, seed: int) -> str:
+    """Una frase sobre el lloc del vídeo (biblioteca, cafeteria, Nadal, fantasia…)."""
+    return _pick(SCENES[scene_group(public_theme)], seed, 13)

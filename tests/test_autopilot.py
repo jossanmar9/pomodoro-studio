@@ -1675,8 +1675,8 @@ def test_texts_vary_between_videos_but_keep_search_words():
             texts = build_texts(public_theme="x", environment="soroll", duration=600, focus=600, pause=0, chapters=chapters, credits="",
                                 fmt="soroll", noise=noise, seed=seed)
             assert len(texts.title) <= 100 and "Noise" in texts.title
-    phrases = [short_phrase(seed, part) for seed in range(15) for part in (2, 3)]
-    assert len(set(phrases)) == len(SHORT_PHRASES) == 30
+    phrases = [short_phrase(seed, part) for seed in range(40) for part in (2, 3)]
+    assert len(set(phrases)) == len(SHORT_PHRASES) == 80
     assert all("," not in p and "'" not in p for p in SHORT_PHRASES)
 
 

@@ -21,7 +21,7 @@ from app.services.renderer import (
     SUPPORTED_VIDEO_SUFFIXES, _bell, ambience_filter, noise_filter, noise_source,
 )
 from app.services.timer import format_timestamp
-from app.services.captions import mood_line
+from app.services.captions import mood_line, scene_line
 from app.services.text_variants import INTROS, OUTROS, TITLE_DETAILS, USES, new_seed, pick
 
 CHANNEL_NAME = "The Amber Window"
@@ -832,7 +832,8 @@ def _build_texts(*, public_theme: str, environment: str, duration: int, focus: i
         else:
             sound = f"{env.public_label.lower()} sounds"
         sound_tags = [f"{env.public_label.lower()} sounds", f"{env.public_label.lower()} ambience"]
-        mood = mood_line(f"{env.public_label} {sound}", seed)  # una frase sobre el so, que també va canviant
+        # Una frase sobre el lloc i una altra sobre el so, que també van canviant.
+        mood = f"{scene_line(public_theme, seed)} {mood_line(f'{env.public_label} {sound}', seed)}"
         if fmt == "dormir":
             title = _fit_title([
                 f"{cozy} Ambience | {sounds} {detail} | {label}{dark_title}",
@@ -982,7 +983,7 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
         timer_line += " A soft chime marks the end of every focus session and every break."
     def compose(credit_text: str) -> str:
         return _join_blocks(
-            pick(INTROS["pomodoro"], seed).format(cozy=cozy, label_l=label.lower(), sound=sound) + f" {mood_line(f'{env.public_label} {sound}', seed)}\n"
+            pick(INTROS["pomodoro"], seed).format(cozy=cozy, label_l=label.lower(), sound=sound) + f" {scene_line(public_theme, seed)} {mood_line(f'{env.public_label} {sound}', seed)}\n"
             f"{'Deep work timer' if deep else 'Pomodoro timer'}: {focus} minutes of focus, {pause} minutes of break. {timer_line}",
             pick(USES["pomodoro"], seed, 1),
             f"Chapters:\n{chapters}",
