@@ -1,13 +1,20 @@
-"""Títols i descripcions traduïts per a YouTube (castellà, portugués, alemany i francés).
+"""Títols i descripcions traduïts per a YouTube (castellà, portugués, alemany, francés, català, italià, japonés i coreà).
 
 YouTube mostra el títol i la descripció en l'idioma de qui mira (o de qui cerca), i
 els fa servir per a trobar el vídeo en eixes cerques. El text original continua en
 anglés; la descripció traduïda porta una introducció en l'idioma i, després, la
 descripció anglesa sencera (capítols i crèdits inclosos).
+Ara la descripció també es tradueix sencera (vegeu `full_description`); si no
+cap en el límit de YouTube, es torna a la forma antiga.
 """
 from __future__ import annotations
 
-LANGUAGES = ("es", "pt", "de", "fr")
+import hashlib
+import re
+
+from app.services import translations_more as more
+
+LANGUAGES = ("es", "pt", "de", "fr", *more.NEW_LANGUAGES)
 MAX_DESCRIPTION_BYTES = 4900
 
 # Nom públic en anglés → traducció.
@@ -157,16 +164,26 @@ WORDS = {
 }
 
 
+for _table, _extra in ((THEME_NAMES, more.THEMES), (SOUND_NAMES, more.SOUNDS), (NOISE_NAMES, more.NOISES), (BREATH_NAMES, more.BREATHS)):
+    for _name, _values in _extra.items():
+        _table.setdefault(_name, {}).update(zip(more.NEW_LANGUAGES, _values))
+WORDS.update(more.WORDS)
+DESCRIPTION = more.DESCRIPTION
+CHANNEL_NAME = "The Amber Window"
+NO_SPACE_LANGUAGES = {"ja", "ko"}  # «2時間», «30분»
+
+
 def _tr(table: dict[str, dict[str, str]], name: str, lang: str) -> str:
     return table.get(name, {}).get(lang, name)
 
 
 def duration_text(minutes: int, lang: str) -> str:
     words = WORDS[lang]
+    gap = "" if lang in NO_SPACE_LANGUAGES else " "
     if minutes < 60 or minutes % 60:
-        return f"{minutes} {words['minutes']}"
+        return f"{minutes}{gap}{words['minutes']}"
     hours = minutes // 60
-    return f"{hours} {words['hour'] if hours == 1 else words['hours']}"
+    return f"{hours}{gap}{words['hour'] if hours == 1 else words['hours']}"
 
 
 def _fit(options: list[str], suffix: str = "") -> str:
@@ -214,13 +231,82 @@ def localized_texts(*, fmt: str, public_theme: str, sound: str, duration_minutes
             ], no_music)
         intro = words["intro"].format(theme=theme, sound=sound_text, music=words["with_music"] if music else "",
                                       duration=duration, purpose=_purpose(fmt, words))
-        description = f"{intro}\n\n{words['below']}\n\n{english_rest}"
+        description = full_description(lang, fmt, intro, english_description, focus=focus, pause=pause, deep=(focus, pause) not in {(25, 5), (50, 10)},
+                                       dim=dim) or f"{intro}\n\n{words['below']}\n\n{english_rest}"
         if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
             description = f"{intro}\n\n{english_rest}"
         if len(description.encode("utf-8")) > MAX_DESCRIPTION_BYTES:
             description = description.encode("utf-8")[:MAX_DESCRIPTION_BYTES].decode("utf-8", "ignore")
         result[lang] = {"title": title, "description": description}
     return result
+
+
+CHAPTER_LABELS = (
+    (re.compile(r"^Starting soon$"), "starting"), (re.compile(r"^Focus session (\d+)$"), "focus"), (re.compile(r"^Break$"), "break"),
+    (re.compile(r"^Hour (\d+)$"), "hour"), (re.compile(r"^Part (\d+)$"), "part"), (re.compile(r"^Dark screen$"), "darkchapter"),
+)
+CREDIT_HEADERS = {"Music:": "music", "Ambient sounds:": "sounds"}
+
+
+def _chapter_line(line: str, text: dict[str, str]) -> str:
+    stamp, _, label = line.partition(" ")
+    for pattern, key in CHAPTER_LABELS:
+        found = pattern.match(label)
+        if found:
+            return f"{stamp} {text[key].format(n=found.group(1) if found.groups() else '')}"
+    return line
+
+
+def _credit_block(block: str, text: dict[str, str]) -> str:
+    lines = []
+    for line in block.split("\n"):
+        if line in CREDIT_HEADERS:
+            line = text[CREDIT_HEADERS[line]]
+        elif line.startswith("Licenses: "):
+            line = f"{text['licenses']} {line[len('Licenses: '):]}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def full_description(lang: str, fmt: str, intro: str, english: str, *, focus: int = 25, pause: int = 5, deep: bool = False,
+                     dim: bool = False) -> str | None:
+    """Descripció sencera en l'idioma: introducció, per a què serveix, capítols, crèdits (amb els noms originals) i comiat.
+
+    Es basa en la descripció anglesa: en copia els capítols (traduïts), els crèdits i els hashtags.
+    Torna None si no se'n pot fer una que càpia en el límit de YouTube.
+    """
+    text = DESCRIPTION.get(lang)
+    if not text or fmt not in text["uses"]:
+        return None
+    seed = int(hashlib.sha256(english.encode("utf-8")).hexdigest(), 16)
+    blocks = [b.strip() for b in english.split("\n\n") if b.strip()]
+    chapters = next((b for b in blocks if b.startswith("Chapters:")), "")
+    credits = [b for b in blocks if b.split("\n")[0] in CREDIT_HEADERS or b.startswith("Licenses: ")]
+    hashtags = blocks[-1] if blocks and blocks[-1].startswith("#") else ""
+    second = [text["uses"][fmt][seed % 2]]
+    if fmt == "pomodoro":
+        method = WORDS[lang]["deep"] if deep else "Pomodoro"
+        first = f"{intro}\n{text['timer'].format(method=method, focus=focus, pause=pause)}"
+        if "A soft chime" in english:
+            first += f" {text['chime']}"
+    else:
+        first = intro
+    if fmt == "soroll":
+        second.append(text["black"] if "stays black" in english else (text["dim"].format(minutes=30) if dim else ""))
+    elif dim:
+        second.append(text["dim"].format(minutes=30))
+    parts = [first, " ".join(p for p in second if p)]
+    if fmt == "respiracio":
+        parts.append(text["safe"])
+    if chapters:
+        lines = chapters.split("\n")[1:]
+        parts.append("\n".join([text["chapters"], *(_chapter_line(line, text) for line in lines)]))
+    if fmt == "soroll":
+        parts.append(text["generated"])
+    parts += [_credit_block(b, text) for b in credits]
+    parts += [text["outros"][(seed // 2) % len(text["outros"])].format(channel=CHANNEL_NAME), hashtags]
+    description = "\n\n".join(p for p in parts if p)
+    return description if len(description.encode("utf-8")) <= MAX_DESCRIPTION_BYTES else None
 
 
 def localized_short(base: dict[str, dict[str, str]], video_id: str) -> dict[str, dict[str, str]]:

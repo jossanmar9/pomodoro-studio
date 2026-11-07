@@ -1122,7 +1122,8 @@ def test_videos_get_translations_and_playlists(env, monkeypatch):
         run = db.get(AutoRun, run_id)
     assert run.step == "DONE", run.error
     main_upload, short_upload = env.uploads
-    assert set(main_upload.localizations) == {"es", "pt", "de", "fr"}
+    from app.services.translations import LANGUAGES
+    assert set(main_upload.localizations) == set(LANGUAGES)
     es = main_upload.localizations["es"]
     assert "Biblioteca medieval" in es["title"] and "3 horas" in es["title"] and "para dormir" in es["title"] and len(es["title"]) <= 100
     assert es["description"].startswith("Biblioteca medieval con lluvia suave") and "The Amber Window" in es["description"]
@@ -1169,10 +1170,24 @@ def test_translated_titles_fit_and_cover_every_theme_and_sound():
         texts = localized_texts(fmt=fmt, public_theme="Enchanted Wizard Library", sound="Winter Wind & Fireplace", duration_minutes=600,
                                 english_description="Intro.\n\nChapters:\n00:00:00 Hour 1", focus=90, pause=15, noise=noise, breath=breath, dim=True)
         for lang in LANGUAGES:
-            assert 0 < len(texts[lang]["title"]) <= 100 and "00:00:00 Hour 1" in texts[lang]["description"], (fmt, lang)
+            assert 0 < len(texts[lang]["title"]) <= 100 and "00:00:00 " in texts[lang]["description"], (fmt, lang)
+            assert "Hour 1" not in texts[lang]["description"] and "Chapters:" not in texts[lang]["description"], (fmt, lang)
     assert "Trabajo profundo 90/15" in localized_texts(fmt="pomodoro", public_theme="Rainy Cabin", sound="Gentle Rain", duration_minutes=120,
                                                       english_description="x", focus=90, pause=15)["es"]["title"]
 
+
+def test_whole_description_is_translated_with_credits_kept():
+    from app.services.translations import LANGUAGES, localized_texts
+    assert {"ca", "it", "ja", "ko"} <= set(LANGUAGES)
+    english = ("Intro.\n\nUse it.\n\nChapters:\n00:00:00 Starting soon\n00:00:10 Focus session 1\n00:25:10 Break\n\n"
+               "Music:\n• Song by X (CC BY 4.0)\n\nAmbient sounds:\n• Rain by Y (CC0)\n\nBye.\n\n#studywithme #pomodoro")
+    texts = localized_texts(fmt="pomodoro", public_theme="Rainy Cabin", sound="Gentle Rain", duration_minutes=120, english_description=english)
+    assert texts["ca"]["description"].startswith("Cabana amb pluja") and "00:00:10 Sessió 1" in texts["ca"]["description"]
+    assert "Sons ambientals:\n• Rain by Y (CC0)" in texts["ca"]["description"] and "Música:\n• Song by X (CC BY 4.0)" in texts["ca"]["description"]
+    assert "2時間" in texts["ja"]["title"] and "2시간" in texts["ko"]["title"]
+    for lang in LANGUAGES:
+        d = texts[lang]["description"]
+        assert "Use it." not in d and "Bye." not in d and d.endswith("#studywithme #pomodoro"), lang
 
 def test_new_thumbnail_has_big_title_over_the_image(tmp_path):
     from PIL import Image
