@@ -1122,7 +1122,8 @@ def test_videos_get_translations_and_playlists(env, monkeypatch):
         run = db.get(AutoRun, run_id)
     assert run.step == "DONE", run.error
     main_upload, short_upload = env.uploads
-    assert set(main_upload.localizations) == {"es", "pt", "de", "fr"}
+    from app.services.translations import LANGUAGES
+    assert set(main_upload.localizations) == set(LANGUAGES)
     es = main_upload.localizations["es"]
     assert "Biblioteca medieval" in es["title"] and "3 horas" in es["title"] and "para dormir" in es["title"] and len(es["title"]) <= 100
     assert es["description"].startswith("Biblioteca medieval con lluvia suave") and "The Amber Window" in es["description"]
