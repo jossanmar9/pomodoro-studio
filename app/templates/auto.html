@@ -19,6 +19,7 @@
   </header>
 
   {% if error %}<div class="warning">{{ error }}</div>{% endif %}
+  {% if ok %}<div class="notice">{{ ok }}</div>{% endif %}
   <div class="warning shutdown-banner" id="shutdown-banner" hidden>
     <span id="shutdown-text"></span>
     <button type="button" class="mini" id="shutdown-cancel">Cancel·lar l'apagada</button>
@@ -130,6 +131,30 @@
       <small class="muted">Si vols triar tu cada vídeo, fes-los un a un amb el formulari de davall i, en «Quan es publica», tria el dia.</small>
     </form>
   </details>
+
+  {% if instagram_ready and facebook_ready %}
+  <details class="card batch">
+    <summary>📸 Publicar una imatge a Instagram</summary>
+    <form action="/instagram/publicar" method="post" class="batch-form">
+      <p class="muted">Tria fons a l'atzar que encara no s'han publicat i els puja amb una pregunta («Which one would you choose?», «Study here or sleep here?»…) i un text amb hashtags que canvia cada vegada.</p>
+      <div class="batch-fields">
+        <label>Tipus
+          <select name="kind">
+            <option value="carrusel" selected>Carrusel de 3 (1, 2 o 3?)</option>
+            <option value="imatge">Una imatge sola</option>
+          </select>
+        </label>
+        <label>Estil de les imatges
+          <select name="visual_style">
+            <option value="" selected>Qualsevol</option>
+            {% for key, label in visual_styles.items() %}<option value="{{ key }}" {% if not style_counts[key] %}disabled{% endif %}>{{ label }} · {{ style_counts[key] }} fons</option>{% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="big">Publicar ara</button>
+      </div>
+    </form>
+  </details>
+  {% endif %}
 
   <form action="/auto" method="post" class="card auto-form" id="auto-form">
     <fieldset class="choice-block">

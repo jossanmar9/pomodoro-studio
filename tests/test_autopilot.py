@@ -1834,3 +1834,64 @@ def test_title_card_fades_in_after_the_channel_intro(tmp_path):
     start = title_card_start(with_intro)
     assert start > 5 and f"fade=t=out:st={start + TITLE_IN + TITLE_HOLD}:d={TITLE_OUT}:alpha=1" in build_ffmpeg_command(with_intro)[build_ffmpeg_command(with_intro).index("-filter_complex") + 1]
     assert title_card_start(RenderSpec(bg, tmp_path / "c.mp4", "1920x1080", timeline)) is None
+
+
+def test_instagram_carousel_and_single_image_are_prepared(tmp_path):
+    from PIL import Image
+    from app.services.instagram_posts import CAROUSEL_QUESTIONS, SINGLE_QUESTIONS, prepare_post, posted_names, remember_posted
+    folder = tmp_path / "fons"
+    folder.mkdir()
+    groups = []
+    for theme, env, style in (("Bosc", "bosc", "anime"), ("Riu", "riu", "anime"), ("Port", "pluja", "anime"), ("Platja", "mar", "realista")):
+        name = f"{theme.lower()}-{env}.png"
+        Image.new("RGB", (320, 180), (90, 70, 50)).save(folder / name)
+        groups.append({"theme": theme, "items": [{"name": name, "style": style, "environment": env}]})
+    images, caption, names = prepare_post(groups, kind="carrusel", style="anime", folder=folder, out_dir=tmp_path / "out", font=None, seed=5, posted=set())
+    assert len(images) == 3 and len(set(names)) == 3 and "platja-mar.png" not in names
+    with Image.open(images[0]) as slide:
+        assert slide.size == (1080, 1350) and slide.format == "JPEG"
+    assert caption.splitlines()[0].rsplit(" ", 1)[0] in CAROUSEL_QUESTIONS and "1 · " in caption and "3 · " in caption
+    assert len(caption.splitlines()[-1].split()) == 5 and "link in bio" in caption
+    images, caption, names = prepare_post(groups, kind="imatge", style="realista", folder=folder, out_dir=tmp_path / "out", font=None, seed=9, posted=set())
+    assert names == ["platja-mar.png"] and caption.splitlines()[0].rsplit(" ", 1)[0] in SINGLE_QUESTIONS
+    assert len(CAROUSEL_QUESTIONS) >= 40 and len(SINGLE_QUESTIONS) >= 25
+    log = tmp_path / "posts.json"
+    remember_posted(["bosc-bosc.png"], "P1", log)
+    assert posted_names(log) == {"bosc-bosc.png"}
+    # Els ja publicats no es tornen a triar mentre n'hi haja de nous.
+    _, _, names = prepare_post(groups, kind="imatge", style="anime", folder=folder, out_dir=tmp_path / "out", font=None, seed=1, posted={"bosc-bosc.png", "riu-riu.png"})
+    assert names == ["port-pluja.png"]
+
+
+def test_instagram_images_go_through_an_unpublished_facebook_photo(tmp_path, monkeypatch):
+    from app.services import meta
+    monkeypatch.setattr(meta.settings, "instagram_user_id", "IGU")
+    monkeypatch.setattr(meta.settings, "instagram_access_token", "EAAtoken")
+    monkeypatch.setattr(meta.settings, "facebook_page_id", "PAGE")
+    monkeypatch.setattr(meta.settings, "facebook_page_token", "PT")
+    monkeypatch.setattr(meta.settings, "instagram_token_file", tmp_path / "token.json")
+    images = []
+    for n in range(3):
+        images.append(tmp_path / f"s{n}.jpg"); images[-1].write_bytes(b"jpg")
+    calls, counter = [], iter(range(100))
+
+    def fake(method, url, params, headers, body):
+        calls.append((method, url, params or {}, headers or {}))
+        if url.endswith("/PAGE/photos"):
+            assert b'name="published"' in body and b"false" in body
+            return meta.HttpResponse(200, {"id": f"F{next(counter)}"})
+        if method == "GET" and "fields" in (params or {}) and params["fields"] == "images":
+            return meta.HttpResponse(200, {"images": [{"width": 720, "source": "small"}, {"width": 1080, "source": f"https://cdn/{url[-2:]}"}]})
+        if url.endswith("/IGU/media"):
+            return meta.HttpResponse(200, {"id": f"C{next(counter)}"})
+        if method == "GET":
+            return meta.HttpResponse(200, {"status_code": "FINISHED"})
+        if url.endswith("/media_publish"):
+            return meta.HttpResponse(200, {"id": "POST1"})
+        return meta.HttpResponse(200, {"success": True})
+
+    assert meta.publish_instagram_images(images, "Which one? 1, 2 or 3", request=fake, sleep=lambda s: None) == "POST1"
+    media = [c for c in calls if c[1].endswith("/IGU/media")]
+    assert [c[2].get("is_carousel_item") for c in media[:3]] == ["true"] * 3 and media[-1][2]["media_type"] == "CAROUSEL"
+    assert media[-1][2]["children"].count(",") == 2 and media[0][2]["image_url"].startswith("https://cdn/")
+    assert sum(1 for c in calls if c[0] == "DELETE") == 3  # les còpies de Facebook s'esborren
