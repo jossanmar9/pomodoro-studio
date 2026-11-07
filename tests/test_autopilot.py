@@ -1068,10 +1068,21 @@ def test_reel_caption_has_link_and_five_hashtags():
     from app.services.meta import reel_caption
     ig = reel_caption("Snowy Christmas Village", "4 Hours · Winter Wind & Fireplace", theme="Nadal", fmt="dormir")
     fb = reel_caption("Snowy Christmas Village", "4 Hours · Winter Wind & Fireplace", theme="Nadal", channel_url="https://www.youtube.com/@TheAmberWindow", facebook=True)
-    assert ig.startswith("Cozy Snowy Christmas Village") and "link in bio" in ig and "#christmasambience" in ig
+    assert "Snowy Christmas Village" in ig.splitlines()[0] and "link in bio" in ig and "#christmasambience" in ig
     assert "https://www.youtube.com/@TheAmberWindow" in fb and "link in bio" not in fb
     hashtags = ig.splitlines()[-1].split()
-    assert len(hashtags) == 5 and len(set(hashtags)) == 5 and "#fireplacesounds" in hashtags
+    assert len(hashtags) == 5 and len(set(hashtags)) == 5 and "#sleepsounds" in hashtags
+    assert any(tag in hashtags for tag in ("#fireplacesounds", "#fireplace", "#cozynight"))
+
+
+def test_reel_captions_are_varied_for_every_theme():
+    from app.services.captions import reel_caption
+    captions = [reel_caption("Rainy Cabin", "2 Hours · Rain & Fireplace", theme="Cabana amb pluja", fmt=fmt, seed=seed)
+                for fmt in ("pomodoro", "dormir") for seed in range(40)]
+    assert len(set(captions)) == 80 and len({c.splitlines()[0] for c in captions}) >= 30
+    # Els 3 reels d'un vídeo, a Instagram i Facebook, porten textos diferents.
+    same_video = [reel_caption("Rainy Cabin", "2 Hours · Rain", fmt="dormir", seed=12 * 10 + part * 2 + fb) for part in range(3) for fb in (0, 1)]
+    assert len(set(same_video)) == 6
 
 
 def test_short_is_also_shared_as_reels(env, monkeypatch):
@@ -1664,8 +1675,8 @@ def test_texts_vary_between_videos_but_keep_search_words():
             texts = build_texts(public_theme="x", environment="soroll", duration=600, focus=600, pause=0, chapters=chapters, credits="",
                                 fmt="soroll", noise=noise, seed=seed)
             assert len(texts.title) <= 100 and "Noise" in texts.title
-    phrases = [short_phrase(seed, part) for seed in range(15) for part in (2, 3)]
-    assert len(set(phrases)) == len(SHORT_PHRASES) == 30
+    phrases = [short_phrase(seed, part) for seed in range(40) for part in (2, 3)]
+    assert len(set(phrases)) == len(SHORT_PHRASES) == 80
     assert all("," not in p and "'" not in p for p in SHORT_PHRASES)
 
 
