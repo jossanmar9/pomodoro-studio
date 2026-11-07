@@ -54,7 +54,7 @@
         <div class="gallery">
           {% for item in group['items'] %}
           <figure>
-            <img src="{{ item.url }}" alt="Fons de {{ group.theme }}" loading="lazy">
+            <a href="{{ item.url }}" target="_blank" rel="noopener"><img src="{{ item.thumb }}" alt="Fons de {{ group.theme }}" loading="lazy"></a>
             <figcaption>
               <span class="muted">{{ item.license or 'Sense llicència registrada' }}{% if item.format %} · {{ formats.get(item.format, item.format) }}{% endif %}{% if item.environment %} · {{ environments.get(item.environment, item.environment) }}{% endif %}</span>
               <form action="/fons/{{ item.name }}/eliminar" method="post" onsubmit="return confirm('Eliminar este fons de la biblioteca?')"><button type="submit" class="mini secondary">Eliminar</button></form>

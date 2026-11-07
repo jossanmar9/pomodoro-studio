@@ -1760,3 +1760,27 @@ def test_pomodoro_starts_with_a_ten_second_countdown():
     assert chime_times(timeline)[1][0] == 10000
     filters = build_timer_filters(timeline, "en")
     assert "STARTING IN" in filters and "ceil(10-t)" in filters
+
+
+def test_background_thumbnails_and_cached_sidecars(env):
+    import json
+    from PIL import Image
+    from app.services import background_library as bl
+    folder = env.tmp / "assets" / "backgrounds"
+    image = folder / "bosc-pluja-pomodoro.png"
+    Image.new("RGB", (2304, 1296), (40, 60, 50)).save(image)
+    sidecar = folder / "bosc-pluja-pomodoro.png.json"
+    sidecar.write_text(json.dumps({"generation": {"format": "pomodoro", "environment": "pluja"}}), encoding="utf-8")
+    with TestClient(main.app) as client:
+        response = client.get("/miniatura/bosc-pluja-pomodoro.png")
+        assert response.status_code == 200 and response.headers["content-type"] == "image/jpeg"
+        assert client.get("/miniatura/..%2Fsecret.png").status_code == 404
+        assert "/miniatura/bosc-pluja-pomodoro.png" in client.get("/").text
+    with Image.open(bl.thumbnail("bosc-pluja-pomodoro.png")) as thumb:
+        assert thumb.width == bl.THUMB_WIDTH
+    item = lambda: next(i for g in bl.library() for i in g["items"] if i["name"] == image.name)
+    assert item()["format"] == "pomodoro"
+    import os, time
+    sidecar.write_text(json.dumps({"generation": {"format": "dormir", "environment": "pluja"}}), encoding="utf-8")
+    os.utime(sidecar, ns=(time.time_ns() + 10**9,) * 2)
+    assert item()["format"] == "dormir"  # la fitxa canviada es torna a llegir
