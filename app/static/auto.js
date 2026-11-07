@@ -311,7 +311,7 @@
     picker.innerHTML = `<label class="bg-option"><input type="radio" name="background" value="" ${keep ? "" : "checked"}><span class="random">🎲 A l'atzar<br><small>${items.length} fons</small></span></label>` +
       items.map((b) => {
         const tags = [b.style === "anime" && "Anime", b.format && labelOf("format", b.format), b.environment && labelOf("environment", b.environment)].filter(Boolean).join(" · ");
-        return `<label class="bg-option" title="${esc(b.name)}"><input type="radio" name="background" value="${esc(b.name)}" ${b.name === keep ? "checked" : ""}><span style="background-image:url('${encodeURI(b.url)}')"><small>${esc(tags || "Qualsevol")}</small></span></label>`;
+        return `<label class="bg-option" title="${esc(b.name)}"><input type="radio" name="background" value="${esc(b.name)}" ${b.name === keep ? "checked" : ""}><span style="background-image:url('${encodeURI(b.thumb || b.url)}')"><small>${esc(tags || "Qualsevol")}</small></span></label>`;
       }).join("");
   }
   form?.querySelectorAll('input[name="theme"], input[name="format"], input[name="environment"], select[name="visual_style"]').forEach((el) => el.addEventListener("change", renderBackgrounds));

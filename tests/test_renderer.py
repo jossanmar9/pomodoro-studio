@@ -22,7 +22,9 @@ def test_image_background_uses_loop_progress_and_exact_duration():
     spec = RenderSpec(Path("assets/backgrounds/prova.jpg"), Path("output/prova.mp4"), "1920x1080", timeline)
     command = build_ffmpeg_command(spec, plan=cpu_plan())
     assert command[0] == "ffmpeg"
-    assert "-loop" in command and "-progress" in command
+    assert "-loop" not in command and "-progress" in command
+    graph = command[command.index("-filter_complex") + 1]
+    assert "loop=loop=-1:size=1:start=0" in graph and graph.index("scale=") < graph.index("loop=loop")  # s'escala una sola vegada
     assert command[command.index("-t") + 1] == "120"
     assert "libx264" in command
     assert command[-1] == "output/prova.mp4"
