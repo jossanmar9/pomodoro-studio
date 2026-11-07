@@ -34,7 +34,7 @@ from app.services.schedule import from_local, label as schedule_label, local_day
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
 from app.services.meta import facebook_configured, instagram_configured
-from app.services.background_library import library as background_library
+from app.services.background_library import library as background_library, thumbnail as background_thumbnail
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.noise_screen import NOISE_SCREENS
 from app.services.autopilot_plan import VISUAL_STYLES, MUSIC_LEVELS, NOISE_THEME, environments_by_label, group_themes, grouped_themes, music_advice, MUSIC_STYLES, music_style as music_style_for, music_tracks, AMBIENCE_LEVELS, AUTO_THEMES, FORMATS, NOISE_COLORS, NOISE_ENVIRONMENT, NOISE_LOUDNESS, PRIMARY_AMBIENCE_LOUDNESS, DURATION_CHOICES, ENVIRONMENTS, POMODORO_CHOICES, PRIVACY_CHOICES, build_preview_command, choose_ambience, find_backgrounds, load_catalog
@@ -412,11 +412,19 @@ def _suggestions(available:set[str])->list:
         return []
 
 
+@app.get("/miniatura/{name}")
+def background_thumb(name:str):
+    """Miniatura xicoteta d'un fons, perquè la pàgina no haja de carregar les imatges grans."""
+    try: path=background_thumbnail(name)
+    except (ValueError,OSError): raise HTTPException(404,"Fons no trobat") from None
+    return FileResponse(path,media_type="image/jpeg",headers={"Cache-Control":"public, max-age=31536000, immutable"})
+
+
 @app.get("/",response_class=HTMLResponse)
 def auto_home(request:Request,error:str=Query("")):
     try: cleanup_published_videos()
     except Exception: logging.getLogger(__name__).exception("Ha fallat la neteja de vídeos publicats")
-    gallery={group["theme"]:[{**{k:item[k] for k in ("name","url","format","environment")},"style":item.get("style","realista")} for item in group["items"]] for group in background_library()}
+    gallery={group["theme"]:[{**{k:item.get(k,"") for k in ("name","url","thumb","format","environment")},"style":item.get("style","realista")} for item in group["items"]] for group in background_library()}
     style_counts={s:sum(1 for items in gallery.values() for i in items if i["style"]==s) for s in VISUAL_STYLES}
     themes=[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in AUTO_THEMES]
     theme_groups=[{"name":g,"icon":icon,"direct":ts==[g],"backgrounds":sum(len(gallery.get(t,[])) for t in ts),"themes":[{"name":t,"backgrounds":len(gallery.get(t,[]))} for t in ts]} for g,icon,ts in grouped_themes()]

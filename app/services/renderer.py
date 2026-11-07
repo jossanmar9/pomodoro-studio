@@ -74,14 +74,23 @@ MOTION_MARGIN = 1.06
 MOTION_PERIODS = (97, 131)
 
 
-def motion_filters(width: int, height: int) -> list[str]:
-    """Amplia un 6 % i desplaça la finestra lentament (moviment de Lissajous)."""
+def freeze_filters(fps: int) -> list[str]:
+    """Repeteix la imatge ja descodificada i escalada (abans es tornava a llegir el PNG en cada fotograma)."""
+    return ["loop=loop=-1:size=1:start=0", f"setpts=N/{fps}/TB"]
+
+
+def motion_filters(width: int, height: int, fps: int = 30) -> list[str]:
+    """Amplia un 6 % i desplaça la finestra lentament (moviment de Lissajous).
+
+    L'escalat es fa una sola vegada; després es repeteix la imatge i només es mou la finestra.
+    """
     big_w = int(width * MOTION_MARGIN) // 2 * 2
     big_h = int(height * MOTION_MARGIN) // 2 * 2
     px, py = MOTION_PERIODS
     return [
         f"scale={big_w}:{big_h}:force_original_aspect_ratio=increase",
         f"crop={big_w}:{big_h}",
+        *freeze_filters(fps),
         f"crop={width}:{height}:x='(iw-ow)/2*(1+sin(2*PI*t/{px}))':y='(ih-oh)/2*(1+sin(2*PI*t/{py}))'",
         "setsar=1",
     ]
@@ -294,7 +303,7 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
 
     selected = plan or select_encoding(spec.encoding)
     command = ["ffmpeg", "-y", "-nostdin", "-progress", "pipe:1", "-nostats"]
-    command += ["-loop", "1", "-framerate", str(spec.fps), "-i", str(spec.background)] if suffix in SUPPORTED_IMAGE_SUFFIXES else ["-stream_loop", "-1", "-i", str(spec.background)]
+    command += ["-i", str(spec.background)] if suffix in SUPPORTED_IMAGE_SUFFIXES else ["-stream_loop", "-1", "-i", str(spec.background)]
     audio_tracks = [*spec.ambience, *([spec.music] if spec.music else [])]
     for track in audio_tracks:
         _validate_audio(track); command += ["-stream_loop", "-1", "-i", str(track.path)]
@@ -320,9 +329,11 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
                 next_input += 1
 
     if spec.motion and suffix in SUPPORTED_IMAGE_SUFFIXES:
-        video = motion_filters(width, height)
+        video = motion_filters(width, height, spec.fps)
     else:
         video = [f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"]
+        if suffix in SUPPORTED_IMAGE_SUFFIXES:
+            video += freeze_filters(spec.fps)
     if spec.flicker:
         video.append(FLICKER_FILTER)
     if spec.darken > 0:

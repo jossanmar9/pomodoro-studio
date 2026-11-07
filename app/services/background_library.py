@@ -33,6 +33,55 @@ def library_dir() -> Path:
     return settings.assets_dir / "backgrounds"
 
 
+THUMB_WIDTH = 480
+_META_CACHE: dict[Path, tuple[int, dict, str]] = {}
+
+
+def _meta(path: Path) -> tuple[dict, str]:
+    """Fitxa i estil d'un fons, llegits una sola vegada mentre la fitxa no canvie."""
+    sidecar = path.with_suffix(path.suffix + ".json")
+    try:
+        stamp = sidecar.stat().st_mtime_ns
+    except OSError:
+        stamp = -1
+    cached = _META_CACHE.get(path)
+    if cached and cached[0] == stamp:
+        return cached[1], cached[2]
+    meta = {}
+    if stamp != -1:
+        try:
+            meta = json.loads(sidecar.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            meta = {}
+    if not isinstance(meta, dict):
+        meta = {}
+    style = background_style(path)
+    _META_CACHE[path] = (stamp, meta, style)
+    return meta, style
+
+
+def thumbnail(name: str) -> Path:
+    """Miniatura JPEG del fons (es fa la primera vegada i es reutilitza mentre la imatge no canvie)."""
+    if not name or Path(name).name != name:
+        raise ValueError("Fons no trobat")
+    source = library_dir() / name
+    if source.suffix.casefold() not in ALLOWED_IMAGE_EXTENSIONS or not source.is_file():
+        raise ValueError("Fons no trobat")
+    folder = library_dir() / ".miniatures"
+    target = folder / f"{source.stem}-{source.stat().st_mtime_ns}.jpg"
+    if not target.is_file():
+        folder.mkdir(parents=True, exist_ok=True)
+        for old in folder.glob(f"{source.stem}-*.jpg"):
+            old.unlink(missing_ok=True)
+        with Image.open(source) as image:
+            image = image.convert("RGB")
+            image.thumbnail((THUMB_WIDTH, THUMB_WIDTH))
+            temporary = target.with_suffix(".tmp")
+            image.save(temporary, "JPEG", quality=82, optimize=True)
+            temporary.replace(target)
+    return target
+
+
 # --- Biblioteca -------------------------------------------------------------------
 
 def library() -> list[dict]:
@@ -43,19 +92,13 @@ def library() -> list[dict]:
         for path in find_backgrounds(library_dir(), theme):
             if path.suffix.casefold() not in ALLOWED_IMAGE_EXTENSIONS:
                 continue
-            meta = {}
-            sidecar = path.with_suffix(path.suffix + ".json")
-            if sidecar.is_file():
-                try:
-                    meta = json.loads(sidecar.read_text(encoding="utf-8"))
-                except (OSError, ValueError):
-                    meta = {}
+            meta, style = _meta(path)
             generation = meta.get("generation") if isinstance(meta.get("generation"), dict) else {}
             items.append({
-                "name": path.name, "url": f"/assets/backgrounds/{path.name}", "license": meta.get("license", ""),
+                "name": path.name, "url": f"/assets/backgrounds/{path.name}", "thumb": f"/miniatura/{path.name}", "license": meta.get("license", ""),
                 "model": meta.get("model", ""), "source": meta.get("source_notes", "")[:200],
                 "format": generation.get("format") or "", "environment": generation.get("environment") or "",
-                "style": background_style(path),
+                "style": style,
             })
         groups.append({"theme": theme, "items": items})
     return groups

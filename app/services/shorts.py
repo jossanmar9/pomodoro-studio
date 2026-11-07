@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.services.encoding import short_video_args
-from app.services.renderer import _escape_drawtext, font_option, overlay_parts
+from app.services.renderer import _escape_drawtext, font_option, freeze_filters, overlay_parts
 
 WIDTH, HEIGHT, FPS = 1080, 1920, 30
 SECONDS = 45
@@ -38,11 +38,11 @@ def build_short_command(background: Path, video: Path, output: Path, *, title: s
                         overlay: Path | None = None, overlay_opacity: float = 0.6, darken: float = 0.0,
                         footer: str = "Full video on the channel", overlay_mode: str = "screen") -> list[str]:
     command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error",
-               "-loop", "1", "-framerate", str(FPS), "-i", str(background),
+               "-i", str(background),
                "-ss", str(start), "-t", str(seconds), "-i", str(video)]
     if overlay is not None:
         command += ["-stream_loop", "-1", "-i", str(overlay)]
-    base = [f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase", f"crop={WIDTH}:{HEIGHT}", "setsar=1"]
+    base = [f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase", f"crop={WIDTH}:{HEIGHT}", "setsar=1", *freeze_filters(FPS)]
     if darken > 0:
         base.append(f"eq=brightness={-min(0.5, darken):g}:saturation=0.85")
     parts = []
