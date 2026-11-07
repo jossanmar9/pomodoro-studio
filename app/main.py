@@ -33,7 +33,8 @@ from app.services.suggestions import build_suggestions, cached_views, refresh_vi
 from app.services.schedule import from_local, label as schedule_label, local_day, next_slot
 from app.services.power import power
 from app.services.autopilot import cleanup_published_videos, autopilot, reel_missing, run_summary, short_missing, youtube_connected
-from app.services.meta import facebook_configured, instagram_configured
+from app.services.meta import MetaError, facebook_configured, instagram_configured, publish_instagram_images
+from app.services.instagram_posts import prepare_post, remember_posted
 from app.services.background_library import library as background_library, thumbnail as background_thumbnail
 from app.services.breathing import DURATIONS as BREATH_DURATIONS, PATTERNS as BREATH_PATTERNS
 from app.services.noise_screen import NOISE_SCREENS
@@ -420,8 +421,28 @@ def background_thumb(name:str):
     return FileResponse(path,media_type="image/jpeg",headers={"Cache-Control":"public, max-age=31536000, immutable"})
 
 
+@app.post("/instagram/publicar")
+def instagram_post(kind:str=Form("carrusel"),visual_style:str=Form("")):
+    """Publica a Instagram una imatge o un carrusel de 3 fons a l'atzar, amb una pregunta."""
+    if not (instagram_configured() and facebook_configured()):
+        return RedirectResponse("/?error="+quote("Per a publicar imatges cal configurar Instagram i la pàgina de Facebook"),303)
+    if kind not in {"carrusel","imatge"} or (visual_style and visual_style not in VISUAL_STYLES):
+        raise HTTPException(400,"Opció no vàlida")
+    folder=settings.output_dir/"instagram"
+    try:
+        images,caption,names=prepare_post(background_library(),kind=kind,style=visual_style or None,folder=settings.assets_dir/"backgrounds",
+                                          out_dir=folder,font=fonts_for_theme("").label)
+        post_id=publish_instagram_images(images,caption)
+        remember_posted(names,post_id)
+    except (ValueError,MetaError) as exc:
+        return RedirectResponse("/?error="+quote(f"No s'ha pogut publicar a Instagram: {exc}"),303)
+    finally:
+        for old in folder.glob("instagram-*.jpg") if folder.is_dir() else []: old.unlink(missing_ok=True)
+    return RedirectResponse("/?ok="+quote("Publicat a Instagram: "+("carrusel de 3 imatges" if kind=="carrusel" else "una imatge")),303)
+
+
 @app.get("/",response_class=HTMLResponse)
-def auto_home(request:Request,error:str=Query("")):
+def auto_home(request:Request,error:str=Query(""),ok:str=Query("")):
     try: cleanup_published_videos()
     except Exception: logging.getLogger(__name__).exception("Ha fallat la neteja de vídeos publicats")
     gallery={group["theme"]:[{**{k:item.get(k,"") for k in ("name","url","thumb","format","environment")},"style":item.get("style","realista")} for item in group["items"]] for group in background_library()}
@@ -436,7 +457,7 @@ def auto_home(request:Request,error:str=Query("")):
         "themes":themes,"theme_groups":theme_groups,"environments":environments,"durations":DURATION_CHOICES,"pomodoros":list(POMODORO_CHOICES),
         "privacy_choices":PRIVACY_CHOICES,"default_privacy":settings.auto_default_privacy if settings.auto_default_privacy in PRIVACY_CHOICES else "private",
         "youtube_configured":youtube_configured(),"youtube_connected":youtube_connected(),"backgrounds":gallery,
-        "counts":counts,"runs":_recent_runs(),"error":error[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
+        "counts":counts,"runs":_recent_runs(),"error":error[:300],"ok":ok[:300],"music_default":settings.auto_music_default,"levels":AMBIENCE_LEVELS,"music_levels":MUSIC_LEVELS,
         "keep_days":settings.keep_published_days,"breath_patterns":{k:v.label for k,v in BREATH_PATTERNS.items()},"breath_durations":BREATH_DURATIONS,"music_styles":{k:v[0] for k,v in MUSIC_STYLES.items()},"music_counts":_music_counts(),"formats":FORMATS,"batch_formats":[k for k in BATCH_DURATIONS if k in FORMATS],"noise_colors":{k:v[2] for k,v in NOISE_COLORS.items()},"noise_screens":NOISE_SCREENS,
         "visual_styles":VISUAL_STYLES,"style_counts":style_counts,"instagram_ready":instagram_configured(),"youtube_playlists":has_all_permissions(),"facebook_ready":facebook_configured(),
     })

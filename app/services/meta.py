@@ -190,6 +190,94 @@ def publish_facebook_reel(video: Path, description: str, *, request: Requester =
     return video_id
 
 
+def _multipart(fields: dict, file_field: str, path: Path) -> tuple[bytes, str]:
+    boundary = f"----amberwindow{int(time.time() * 1000)}"
+    parts = []
+    for key, value in fields.items():
+        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n".encode())
+    parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{file_field}\"; filename=\"{path.name}\"\r\n"
+                 f"Content-Type: image/jpeg\r\n\r\n".encode() + path.read_bytes() + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    return b"".join(parts), f"multipart/form-data; boundary={boundary}"
+
+
+def _public_image_url(image: Path, request: Requester) -> tuple[str, str]:
+    """Instagram només agafa imatges d'una adreça pública: es pugen a la pàgina de Facebook sense publicar-les."""
+    page, token = settings.facebook_page_id, settings.facebook_page_token
+    body, content_type = _multipart({"published": "false", "access_token": token}, "source", image)
+    photo = str(_check(request("POST", f"{FACEBOOK_GRAPH}/{page}/photos", None, {"Content-Type": content_type}, body),
+                       "Facebook no ha acceptat la imatge")["id"])
+    images = _check(request("GET", f"{FACEBOOK_GRAPH}/{photo}", {"fields": "images", "access_token": token}, None, None),
+                    "No s'ha pogut llegir l'adreça de la imatge").get("images") or []
+    if not images:
+        raise MetaError("Facebook no ha tornat l'adreça de la imatge")
+    best = max(images, key=lambda item: item.get("width", 0))
+    return photo, best["source"]
+
+
+def _wait_ready(graph: str, container: str, token: str, request: Requester, sleep: Callable[[float], None]) -> None:
+    waited = 0
+    while True:
+        status = _check(request("GET", f"{graph}/{container}", {"fields": "status_code,status", "access_token": token}, None, None),
+                        "No s'ha pogut consultar la publicació")
+        code = status.get("status_code")
+        if code in (None, "FINISHED"):
+            return
+        if code in {"ERROR", "EXPIRED"}:
+            raise MetaError(f"Instagram no ha pogut preparar la imatge: {status.get('status') or code}"[:300])
+        if waited >= PROCESS_TIMEOUT:
+            raise MetaError("Instagram tarda massa a preparar la imatge")
+        sleep(POLL_SECONDS)
+        waited += POLL_SECONDS
+
+
+def publish_instagram_images(images: list[Path], caption: str, *, request: Requester = _request,
+                             sleep: Callable[[float], None] = time.sleep) -> str:
+    """Publica una imatge o un carrusel (2-10 imatges) a Instagram. Torna l'identificador de la publicació.
+
+    Cal la pàgina de Facebook configurada: les imatges hi passen sense publicar-se (vegeu _public_image_url).
+    """
+    if not images:
+        raise MetaError("No hi ha imatges per publicar")
+    if not facebook_configured():
+        raise MetaError("Per a publicar imatges cal la pàgina de Facebook configurada (FACEBOOK_PAGE_ID i FACEBOOK_PAGE_TOKEN)")
+    try:
+        refresh_instagram_token(request)
+    except MetaError as exc:
+        logger.warning("%s", exc)
+    token, user = _instagram_token(), settings.instagram_user_id
+    graph = _instagram_graph(token)
+    photos, urls = [], []
+    for image in images:
+        photo, url = _public_image_url(image, request)
+        photos.append(photo)
+        urls.append(url)
+    try:
+        if len(urls) == 1:
+            container = _check(request("POST", f"{graph}/{user}/media", {"image_url": urls[0], "caption": caption[:2200], "access_token": token},
+                                       None, None), "Instagram no ha acceptat la imatge")["id"]
+        else:
+            children = []
+            for url in urls:
+                child = _check(request("POST", f"{graph}/{user}/media", {"image_url": url, "is_carousel_item": "true", "access_token": token},
+                                       None, None), "Instagram no ha acceptat una imatge del carrusel")["id"]
+                _wait_ready(graph, child, token, request, sleep)
+                children.append(str(child))
+            container = _check(request("POST", f"{graph}/{user}/media", {
+                "media_type": "CAROUSEL", "children": ",".join(children), "caption": caption[:2200], "access_token": token,
+            }, None, None), "Instagram no ha acceptat el carrusel")["id"]
+        _wait_ready(graph, container, token, request, sleep)
+        published = _check(request("POST", f"{graph}/{user}/media_publish", {"creation_id": container, "access_token": token}, None, None),
+                           "Instagram no ha publicat la imatge")
+    finally:
+        for photo in photos:  # les còpies de Facebook ja no calen (no s'havien publicat)
+            try:
+                request("DELETE", f"{FACEBOOK_GRAPH}/{photo}", {"access_token": settings.facebook_page_token}, None, None)
+            except MetaError:
+                pass
+    return str(published["id"])
+
+
 # ---------------------------------------------------------------- textos
 
 def reel_caption(public_theme: str, subtitle: str, *, theme: str = "", fmt: str = "pomodoro", channel_url: str = "", facebook: bool = False,

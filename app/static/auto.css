@@ -157,3 +157,4 @@ button.big:hover{background:#f0b862}
 .schedule-date{display:flex;gap:8px}
 .schedule-date[hidden]{display:none!important}
 .schedule-date input{flex:1;min-height:44px}
+.notice{border:1px solid #3d6b47;background:#132018;border-radius:12px;padding:12px 14px;margin-bottom:16px}

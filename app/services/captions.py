@@ -445,11 +445,10 @@ def hashtags(theme: str, fmt: str, sound: str, seed: int = 0) -> list[str]:
     fmt_tags = FORMAT_TAGS.get(fmt, FORMAT_TAGS["ambient"])
     if fmt == "soroll":
         fmt_tags = tuple(t for t in fmt_tags if t != ("#whitenoise" if "Brown" in sound else "#brownnoise"))
-    tags = [_pick(GENERAL_TAGS, seed, 1)]
-    if theme in SEASONAL_TAGS:
-        tags.append(SEASONAL_TAGS[theme])
-    tags.append(fmt_tags[0])
-    tags.append(_pick(FAMILY_TAGS[family], seed, 2))
+    tags: list[str] = []
+    for tag in (_pick(GENERAL_TAGS, seed, 1), SEASONAL_TAGS.get(theme), fmt_tags[0], _pick(FAMILY_TAGS[family], seed, 2)):
+        if tag and tag not in tags:
+            tags.append(tag)
     for pool, salt in ((fmt_tags[1:], 3), (GENERAL_TAGS, 4), (FAMILY_TAGS[family], 5), (fmt_tags, 6)):
         candidate = _pick(pool, seed, salt)
         if len(tags) < 5 and candidate not in tags:
