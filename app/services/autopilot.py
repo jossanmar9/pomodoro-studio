@@ -823,10 +823,12 @@ def share_reels(run_id: int, video: Path | None = None, *, every: bool = False) 
         for network in sorted(networks):
             _update(run_id, message=f"Publicant el reel a {labels[network]}{part}…")
             try:
+                # Cada vídeo, cada Short i cada xarxa porten un text diferent.
+                seed = run_id * 10 + REEL_FILES.index(filename) * 2 + (1 if network == "fb" else 0) if filename in REEL_FILES else run_id
                 if network == "ig":
-                    info["ig"] = publish_instagram_reel(path, reel_caption(public, subtitle, theme=theme, fmt=fmt))
+                    info["ig"] = publish_instagram_reel(path, reel_caption(public, subtitle, theme=theme, fmt=fmt, seed=seed))
                 else:
-                    info["fb"] = publish_facebook_reel(path, reel_caption(public, subtitle, theme=theme, fmt=fmt, channel_url=CHANNEL_URL, facebook=True))
+                    info["fb"] = publish_facebook_reel(path, reel_caption(public, subtitle, theme=theme, fmt=fmt, channel_url=CHANNEL_URL, facebook=True, seed=seed))
                 notes.append(f"Reel publicat a {labels[network]}{part}")
             except Exception as exc:  # el vídeo i el Short ja estan publicats
                 logger.exception("No s'ha pogut publicar el reel a %s", labels[network])

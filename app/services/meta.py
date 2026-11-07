@@ -192,40 +192,8 @@ def publish_facebook_reel(video: Path, description: str, *, request: Requester =
 
 # ---------------------------------------------------------------- textos
 
-def _hashtags(theme: str, fmt: str, sound: str) -> list[str]:
-    tags = ["#cozyambience"]
-    seasonal = {"Nadal": "#christmasambience", "Hivern": "#winterambience", "Tardor": "#autumnambience", "Primavera": "#springambience",
-                "Estiu": "#summerambience", "Halloween": "#halloweenambience", "Pasqua": "#springvibes"}
-    if theme in seasonal:
-        tags.append(seasonal[theme])
-    by_format = {"dormir": "#sleepsounds", "llegir": "#readingambience", "pomodoro": "#studywithme", "respiracio": "#breathwork",
-                 "rol": "#dndambience", "soroll": "#brownnoise" if "Brown" in sound else "#whitenoise"}
-    tags.append(by_format.get(fmt, "#studyambience"))
-    lowered = sound.lower()
-    for word, tag in (("rain", "#rainsounds"), ("fire", "#fireplacesounds"), ("café", "#cafeambience"), ("cafe", "#cafeambience"),
-                      ("ocean", "#oceansounds"), ("sea", "#oceansounds"), ("forest", "#forestsounds"), ("snow", "#winterambience")):
-        if word in lowered and tag not in tags:
-            tags.append(tag)
-            break
-    for extra in ("#relaxingsounds", "#ambience"):
-        if len(tags) < 5 and extra not in tags:
-            tags.append(extra)
-    return tags[:5]
-
-
-def reel_caption(public_theme: str, subtitle: str, *, theme: str = "", fmt: str = "pomodoro", channel_url: str = "", facebook: bool = False) -> str:
-    """Text del reel: el mateix per a Instagram i Facebook (amb l'enllaç clicable en Facebook)."""
-    head = public_theme if public_theme.lower().startswith("cozy") else f"Cozy {public_theme}"
-    sound = subtitle.split("·", 1)[-1].strip() if "·" in subtitle else subtitle
-    where = f"on YouTube: {channel_url}" if facebook and channel_url else "on YouTube: link in bio"
-    return "\n".join([
-        f"{head} ✨",
-        f"{subtitle}. Close your eyes and stay a while.",
-        "",
-        f"🕯️ The full version is {where}.",
-        "Perfect for studying, reading or falling asleep.",
-        "",
-        "Save this for a quiet moment 🤍",
-        "",
-        " ".join(_hashtags(theme, fmt, sound)),
-    ])
+def reel_caption(public_theme: str, subtitle: str, *, theme: str = "", fmt: str = "pomodoro", channel_url: str = "", facebook: bool = False,
+                 seed: int = 0) -> str:
+    """Text del reel (Instagram i Facebook, amb l'enllaç clicable en Facebook). Varia segons `seed`: vegeu captions.py."""
+    from app.services.captions import reel_caption as varied
+    return varied(public_theme, subtitle, theme=theme, fmt=fmt, channel_url=channel_url, facebook=facebook, seed=seed)

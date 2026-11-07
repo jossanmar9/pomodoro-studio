@@ -34,11 +34,24 @@ SHORT_PHRASES = (
     "Rest your tired mind", "Quiet hours ahead", "Soft sounds and warm light", "Make yourself at home",
     "Let it all go quiet", "Sit back and breathe", "Everything can wait", "Warm and safe and quiet",
     "Stay cozy", "Listen to the quiet",
+    "The world can wait", "Rest is productive too", "Slow is beautiful", "A softer kind of evening",
+    "Light a candle and stay", "Breathe out the day", "Come in from the cold", "This is your sign to rest",
+    "Quiet mind ahead", "Calm starts here", "Take your time", "Nowhere else to be",
+    "Let the rain decide", "Warm drink and soft light", "Gentle hours", "Your quiet hour",
+    "Unplug for a while", "Hush now", "Rest your eyes", "Small moments of calm",
+    "Soft focus", "Just breathe", "Be here now", "A pocket of peace",
+    "Cozy hours ahead", "Here you can rest", "Lights low and mind slow", "Nothing to prove today",
+    "Stay as long as you like", "Leave the noise outside", "Rain on the roof", "Fire in the hearth",
+    "Wrapped in warm light", "Peace and quiet", "One calm breath", "Exhale slowly",
+    "Gentle sounds for tired minds", "The calm you needed", "A slow cozy night", "Let your shoulders drop",
+    "Hold on to this calm", "Rest without guilt", "Find the quiet", "Softly and slowly",
+    "Feel at home", "A window to calm", "Steady and still", "Come back to yourself",
+    "Sleep will come", "Breathe with the rain",
 )
 
 
 def short_phrase(seed: int, part: int) -> str:
-    """Frase del Short 2 o 3. Cada vídeo en gasta dues de seguides: passen 15 vídeos abans de repetir-ne."""
+    """Frase del Short 2 o 3. Cada vídeo en gasta dues de seguides: passen 40 vídeos abans de repetir-ne."""
     return SHORT_PHRASES[(2 * seed + part - 2) % len(SHORT_PHRASES)]
 
 

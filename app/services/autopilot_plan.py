@@ -21,6 +21,7 @@ from app.services.renderer import (
     SUPPORTED_VIDEO_SUFFIXES, _bell, ambience_filter, noise_filter, noise_source,
 )
 from app.services.timer import format_timestamp
+from app.services.captions import mood_line
 from app.services.text_variants import INTROS, OUTROS, TITLE_DETAILS, USES, new_seed, pick
 
 CHANNEL_NAME = "The Amber Window"
@@ -831,6 +832,7 @@ def _build_texts(*, public_theme: str, environment: str, duration: int, focus: i
         else:
             sound = f"{env.public_label.lower()} sounds"
         sound_tags = [f"{env.public_label.lower()} sounds", f"{env.public_label.lower()} ambience"]
+        mood = mood_line(f"{env.public_label} {sound}", seed)  # una frase sobre el so, que també va canviant
         if fmt == "dormir":
             title = _fit_title([
                 f"{cozy} Ambience | {sounds} {detail} | {label}{dark_title}",
@@ -839,7 +841,7 @@ def _build_texts(*, public_theme: str, environment: str, duration: int, focus: i
                 f"{label} {sounds} for Sleep{dark_title}",
             ], no_music)
             compose = lambda credit_text: _join_blocks(
-                intro(cozy=cozy, sound=sound),
+                intro(cozy=cozy, sound=sound) + f" {mood}",
                 f"{uses_text()} {dark_line}",
                 f"Chapters:\n{chapters}",
                 credit_text,
@@ -879,7 +881,7 @@ def _build_texts(*, public_theme: str, environment: str, duration: int, focus: i
                 f"{label} {sounds}, No Music",
             ], no_music)
             compose = lambda credit_text: _join_blocks(
-                intro(cozy=cozy, env_l=env.public_label.lower()),
+                intro(cozy=cozy, env_l=env.public_label.lower()) + f" {mood}",
                 uses_text(),
                 f"Chapters:\n{chapters}",
                 credit_text,
@@ -897,7 +899,7 @@ def _build_texts(*, public_theme: str, environment: str, duration: int, focus: i
                 f"{label} Reading Ambience | {public_theme}",
             ], no_music)
             compose = lambda credit_text: _join_blocks(
-                intro(reading=reading, sound=sound),
+                intro(reading=reading, sound=sound) + f" {mood}",
                 uses_text(),
                 f"Chapters:\n{chapters}",
                 credit_text,
@@ -916,7 +918,7 @@ def _build_texts(*, public_theme: str, environment: str, duration: int, focus: i
                 f"{public_theme} | Tabletop RPG Ambience",
             ], no_music)
             compose = lambda credit_text: _join_blocks(
-                intro(theme=public_theme, sound=sound),
+                intro(theme=public_theme, sound=sound) + f" {mood}",
                 uses_text(),
                 f"Chapters:\n{chapters}",
                 credit_text,
@@ -980,7 +982,7 @@ def _pomodoro_texts(*, public_theme: str, environment: str, duration: int, focus
         timer_line += " A soft chime marks the end of every focus session and every break."
     def compose(credit_text: str) -> str:
         return _join_blocks(
-            pick(INTROS["pomodoro"], seed).format(cozy=cozy, label_l=label.lower(), sound=sound) + "\n"
+            pick(INTROS["pomodoro"], seed).format(cozy=cozy, label_l=label.lower(), sound=sound) + f" {mood_line(f'{env.public_label} {sound}', seed)}\n"
             f"{'Deep work timer' if deep else 'Pomodoro timer'}: {focus} minutes of focus, {pause} minutes of break. {timer_line}",
             pick(USES["pomodoro"], seed, 1),
             f"Chapters:\n{chapters}",
