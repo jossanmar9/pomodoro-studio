@@ -65,6 +65,8 @@ class RenderSpec:
     intro_text: str | None = None
     # Intro del canal (clip de channel_intro.py) que es barreja amb els primers segons.
     channel_intro: Path | None = None
+    # Capa PNG transparent amb el text de la miniatura, que apareix a l'inici i s'esvaïx (thumbnail.make_title_card).
+    title_card: Path | None = None
     intro_seconds: int = 12
 
 
@@ -72,6 +74,17 @@ class RenderSpec:
 MOTION_MARGIN = 1.06
 # Períodes en segons de la deriva horitzontal i vertical (primers entre si: no es repetix de manera visible).
 MOTION_PERIODS = (97, 131)
+
+
+TITLE_IN, TITLE_HOLD, TITLE_OUT = 1.0, 3.5, 2.5  # el títol inicial: apareix, es queda i s'esvaïx (7 s)
+
+
+def title_card_start(spec: "RenderSpec") -> float | None:
+    """Segon en què apareix el títol inicial: quan acaba la intro del canal, o just al començament."""
+    if spec.title_card is None or spec.timeline.total_seconds < 30:
+        return None
+    with_intro = spec.channel_intro is not None and spec.timeline.total_seconds > CHANNEL_INTRO_SECONDS + 5
+    return round(CHANNEL_INTRO_TIMER_FROM, 2) if with_intro else 0.5
 
 
 def freeze_filters(fps: int) -> list[str]:
@@ -373,6 +386,16 @@ def build_ffmpeg_command(spec: RenderSpec, *, plan: EncodingPlan | None = None) 
     if spec.dim_after is not None and spec.dim_after < spec.timeline.total_seconds:
         fade = min(DIM_FADE_SECONDS, spec.timeline.total_seconds - spec.dim_after)
         video.append(f"fade=t=out:st={spec.dim_after}:d={fade}:color=black")
+    title_at = title_card_start(spec)
+    if title_at is not None:
+        command += ["-i", str(spec.title_card)]
+        end = title_at + TITLE_IN + TITLE_HOLD + TITLE_OUT
+        parts.append(f"{source}{','.join(video) or 'null'}[vnotitle]")
+        parts.append(f"[{next_input}:v]format=rgba,scale={width}:{height},{','.join(freeze_filters(spec.fps))},trim=duration={end},"
+                     f"fade=t=in:st={title_at}:d={TITLE_IN}:alpha=1,fade=t=out:st={title_at + TITLE_IN + TITLE_HOLD}:d={TITLE_OUT}:alpha=1[title]")
+        parts.append(f"[vnotitle][title]overlay=0:0:eof_action=pass:format=auto[vtitled]")
+        source, video = "[vtitled]", []
+        next_input += 1
     video_out = "[vout]"
     if spec.channel_intro is not None and spec.timeline.total_seconds > CHANNEL_INTRO_SECONDS + 5:
         command += ["-i", str(spec.channel_intro)]

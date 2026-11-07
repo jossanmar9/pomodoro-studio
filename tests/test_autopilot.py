@@ -139,7 +139,9 @@ def test_every_theme_has_free_font_files_with_licence():
         assert fonts.label and fonts.digits, theme
         for path in (fonts.label, fonts.digits):
             assert any((path.parent / name).is_file() for name in ("OFL.txt", "LICENSE.txt")), path
-    assert fonts_for_theme("Personalitzada", root=root).label is None
+    # Tots els vídeos fan servir la tipografia del canal (Lora), siga quin siga el tema o l'estil.
+    assert {fonts_for_theme(t, root=root).label.name for t in [*THEME_FONTS, "Personalitzada"]} == {"Lora-Variable.ttf"}
+    assert fonts_for_theme("Masmorra", root=root, anime=True).digits.name == "Lora-Variable.ttf"
 
 
 def test_timer_uses_theme_fonts_and_fixed_colon():
@@ -323,6 +325,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(auto, "ensure_breath_intro", lambda **kw: touch(tmp_path / "overlays" / "respiracio-intro.mp4"))
     monkeypatch.setattr(auto, "generate_thumbnail", lambda bg, out, text, size, font=None: touch(out))
     monkeypatch.setattr(auto, "make_thumbnail", lambda bg, out, title, subtitle="", **kw: touch(out))
+    monkeypatch.setattr(auto, "make_title_card", lambda out, title, subtitle="", **kw: touch(out))
     monkeypatch.setattr(auto, "can_manage_playlists", lambda: True)
     playlists = []
     monkeypatch.setattr(auto, "add_to_playlists", lambda video_id, wanted: playlists.append((video_id, wanted)) or [t for t, _ in wanted])
@@ -1707,9 +1710,7 @@ def test_anime_videos_use_rounded_font_and_lofi():
     from app.services.autopilot_plan import ENVIRONMENTS, LOFI_FORMATS, MUSIC_STYLES, track_style
     from app.services.fonts import fonts_for_theme
     root = Path(__file__).resolve().parent.parent / "assets" / "fonts"
-    anime = fonts_for_theme("Biblioteca medieval", root=root, anime=True)
-    assert anime.label and anime.label.name.startswith("ZenMaruGothic") and anime.digits.name.startswith("ZenMaruGothic")
-    assert fonts_for_theme("Biblioteca medieval", root=root).label.name.startswith("IMFe")
+    assert fonts_for_theme("Biblioteca medieval", root=root, anime=True).label.name == "Lora-Variable.ttf"
     assert "lofi" in MUSIC_STYLES and {"pomodoro", "llegir"} <= LOFI_FORMATS
     assert track_style(Path("lofi-winter-blues.mp3")) == "lofi"
     assert ENVIRONMENTS["pluja-vinil"].layers[1] == ("vinil",) and ENVIRONMENTS["estiu-japo"].layers == (("cigales",), ("campanetes-vent",))
@@ -1799,3 +1800,26 @@ def test_background_thumbnails_and_cached_sidecars(env):
     sidecar.write_text(json.dumps({"generation": {"format": "dormir", "environment": "pluja"}}), encoding="utf-8")
     os.utime(sidecar, ns=(time.time_ns() + 10**9,) * 2)
     assert item()["format"] == "dormir"  # la fitxa canviada es torna a llegir
+
+
+
+def test_title_card_fades_in_after_the_channel_intro(tmp_path):
+    from PIL import Image
+    from app.services.renderer import RenderSpec, TITLE_HOLD, TITLE_IN, TITLE_OUT, build_ffmpeg_command, title_card_start
+    from app.services.thumbnail import make_title_card
+    from app.services.timer import build_timeline
+    card = make_title_card(tmp_path / "titol.png", "Rainy Cabin", "Pomodoro 25/5 · 2 Hours", width=640, height=360)
+    with Image.open(card) as image:
+        assert image.mode == "RGBA" and image.size == (640, 360)
+        assert image.getpixel((5, 5))[3] == 0 and image.getchannel("A").getextrema()[1] == 255  # dalt transparent, text opac
+    bg = tmp_path / "bg.png"
+    Image.new("RGB", (64, 36)).save(bg)
+    timeline = build_timeline(25, 5, 60)
+    plain = RenderSpec(bg, tmp_path / "a.mp4", "1920x1080", timeline, title_card=card)
+    graph = build_ffmpeg_command(plain)[build_ffmpeg_command(plain).index("-filter_complex") + 1]
+    assert title_card_start(plain) == 0.5 and "fade=t=in:st=0.5:d=1.0:alpha=1" in graph and "overlay=0:0:eof_action=pass" in graph
+    intro = tmp_path / "intro.mp4"; intro.write_bytes(b"x")
+    with_intro = RenderSpec(bg, tmp_path / "b.mp4", "1920x1080", timeline, title_card=card, channel_intro=intro)
+    start = title_card_start(with_intro)
+    assert start > 5 and f"fade=t=out:st={start + TITLE_IN + TITLE_HOLD}:d={TITLE_OUT}:alpha=1" in build_ffmpeg_command(with_intro)[build_ffmpeg_command(with_intro).index("-filter_complex") + 1]
+    assert title_card_start(RenderSpec(bg, tmp_path / "c.mp4", "1920x1080", timeline)) is None
